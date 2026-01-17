@@ -11,7 +11,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Lato:wght@300;400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body data-i18n-title="rooms.pageTitle">
   <!-- Header -->
   <header class="header" id="header">
     <div class="container">
@@ -25,12 +25,12 @@
         </div>
       </a>
       <nav class="nav-menu" id="navMenu">
-        <a href="index.html" class="nav-link">Accueil</a>
-        <a href="services.html" class="nav-link">Services</a>
-        <a href="chambres.html" class="nav-link active">Chambres</a>
-        <a href="activites.html" class="nav-link">À découvrir</a>
-        <a href="contact.html" class="nav-link">Contact</a>
-        <a href="#reservation" class="btn-book">Réserver</a>
+        <a href="index.html" class="nav-link" data-i18n="nav.home">Accueil</a>
+        <a href="services.html" class="nav-link" data-i18n="nav.services">Services</a>
+        <a href="chambres.html" class="nav-link active" data-i18n="nav.rooms">Chambres</a>
+        <a href="activites.html" class="nav-link" data-i18n="nav.activities">À découvrir</a>
+        <a href="contact.html" class="nav-link" data-i18n="nav.contact">Contact</a>
+        <a href="https://www.booking.com/hotel/fr/corintel.fr.html?aid=311089&label=corintel-O0VnbWaGZNr8nXbaU172TQS625028973267%3Apl%3Ata%3Ap1%3Ap2%3Aac%3Aap%3Aneg%3Afi%3Atikwd-924823501370%3Alp9055050%3Ali%3Adec%3Adm%3Appccp%3DUmFuZG9tSVYkc2RlIyh9YVujEjbMrKBV7ahOy8HtCLg&sid=2bd2846f5430642ffc2dfefa4e617e28&dest_id=-1473710&dest_type=city&dist=0&group_adults=2&group_children=0&hapos=1&hpos=1&no_rooms=1&req_adults=2&req_children=0&room1=A%2CA&sb_price_type=total&sr_order=popularity&srepoch=1766942847&srpvid=7a705f51b38eb96dd0ea283227969889&type=total&ucfs=1&" class="btn-book" data-i18n="nav.book">Réserver</a>
       </nav>
       <div class="menu-toggle" id="menuToggle">
         <span></span>
@@ -43,9 +43,9 @@
   <!-- Page Hero -->
   <section class="page-hero" style="background-image: url('images/chambres/chambre1.jpg');">
     <div class="page-hero-content">
-      <p class="hero-subtitle">Votre cocon</p>
-      <h1 class="page-hero-title">Nos Chambres</h1>
-      <p class="page-hero-subtitle">32 chambres au charme unique</p>
+      <p class="hero-subtitle" data-i18n="rooms.heroSubtitle">Votre cocon</p>
+      <h1 class="page-hero-title" data-i18n="rooms.heroTitle">Nos Chambres</h1>
+      <p class="page-hero-subtitle" data-i18n="rooms.heroDescription">32 chambres au charme unique</p>
     </div>
   </section>
 
@@ -53,11 +53,11 @@
   <section class="section section-light">
     <div class="container">
       <div class="section-header">
-        <p class="section-subtitle">Confort & espace</p>
-        <h2 class="section-title">Un nid douillet et coloré</h2>
+        <p class="section-subtitle" data-i18n="rooms.introSubtitle">Confort & espace</p>
+        <h2 class="section-title" data-i18n="rooms.introTitle">Un nid douillet et coloré</h2>
       </div>
       <div class="rooms-intro">
-        <p>
+        <p data-i18n="rooms.introText">
           Confort et espace définissent les 32 chambres de l'Hôtel Corintel de Tresses, Bordeaux Est.
           Chaque chambre possède une décoration unique, créant une atmosphère douillette,
           colorée et accueillante — un véritable nid où il fait bon se reposer après
@@ -72,8 +72,8 @@
             <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/>
           </svg>
           <div class="room-feature-text">
-            <h4>Climatisation</h4>
-            <p>Fraîcheur garantie en été</p>
+            <h4 data-i18n="rooms.featureAC">Climatisation</h4>
+            <p data-i18n="rooms.featureACDesc">Fraîcheur garantie en été</p>
           </div>
         </div>
         <div class="room-feature">
@@ -83,8 +83,8 @@
             <line x1="8" y1="12" x2="16" y2="12"/>
           </svg>
           <div class="room-feature-text">
-            <h4>Non-fumeur</h4>
-            <p>Environnement sain</p>
+            <h4 data-i18n="rooms.featureNoSmoking">Non-fumeur</h4>
+            <p data-i18n="rooms.featureNoSmokingDesc">Environnement sain</p>
           </div>
         </div>
         <div class="room-feature">
@@ -93,8 +93,8 @@
             <polyline points="17 2 12 7 7 2"/>
           </svg>
           <div class="room-feature-text">
-            <h4>Télévision</h4>
-            <p>Écran plat dans chaque chambre</p>
+            <h4 data-i18n="rooms.featureTV">Télévision</h4>
+            <p data-i18n="rooms.featureTVDesc">Écran plat dans chaque chambre</p>
           </div>
         </div>
         <div class="room-feature">
@@ -105,8 +105,8 @@
             <line x1="12" y1="20" x2="12.01" y2="20"/>
           </svg>
           <div class="room-feature-text">
-            <h4>Wi-Fi gratuit</h4>
-            <p>Connexion haut débit</p>
+            <h4 data-i18n="rooms.featureWifi">Wi-Fi gratuit</h4>
+            <p data-i18n="rooms.featureWifiDesc">Connexion haut débit</p>
           </div>
         </div>
       </div>
@@ -117,9 +117,9 @@
   <section class="section section-cream">
     <div class="container">
       <div class="section-header">
-        <p class="section-subtitle">Nos catégories</p>
-        <h2 class="section-title">Chambres pour tous les voyageurs</h2>
-        <p class="section-description">
+        <p class="section-subtitle" data-i18n="rooms.categoriesSubtitle">Nos catégories</p>
+        <h2 class="section-title" data-i18n="rooms.categoriesTitle">Chambres pour tous les voyageurs</h2>
+        <p class="section-description" data-i18n="rooms.categoriesDescription">
           Que vous voyagiez seul, en couple, entre amis ou en famille,
           nous avons la chambre idéale pour vous.
         </p>
@@ -131,9 +131,9 @@
           <img src="images/chambres/confort-simple.jpg" alt="Chambre Confort Simple">
         </div>
         <div class="service-detail-content">
-          <p class="section-subtitle">Pour 1 personne</p>
-          <h3>Chambre Confort Simple</h3>
-          <p>
+          <p class="section-subtitle" data-i18n="rooms.simpleFor">Pour 1 personne</p>
+          <h3 data-i18n="rooms.simpleTitle">Chambre Confort Simple</h3>
+          <p data-i18n="rooms.simpleDesc">
             Idéale pour les voyageurs en solo, notre chambre Confort Simple
             offre un espace optimisé et un lit confortable pour une nuit
             reposante. Un refuge parfait après une journée de travail ou
@@ -144,19 +144,19 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="20 6 9 17 4 12"/>
               </svg>
-              1 lit simple
+              <span data-i18n="rooms.simpleBed">1 lit simple</span>
             </span>
             <span class="service-feature-tag">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="20 6 9 17 4 12"/>
               </svg>
-              Salle de bain privée
+              <span data-i18n="rooms.simpleBathroom">Salle de bain privée</span>
             </span>
             <span class="service-feature-tag">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="20 6 9 17 4 12"/>
               </svg>
-              Climatisation
+              <span data-i18n="rooms.simpleAC">Climatisation</span>
             </span>
           </div>
         </div>
@@ -165,9 +165,9 @@
       <!-- Room Type 2: Confort Double -->
       <div class="service-detail">
         <div class="service-detail-content">
-          <p class="section-subtitle">Pour 1-2 personnes</p>
-          <h3>Chambre Confort Double</h3>
-          <p>
+          <p class="section-subtitle" data-i18n="rooms.doubleFor">Pour 1-2 personnes</p>
+          <h3 data-i18n="rooms.doubleTitle">Chambre Confort Double</h3>
+          <p data-i18n="rooms.doubleDesc">
             Notre chambre Confort avec lit double est parfaite pour les couples
             ou les voyageurs appréciant l'espace. Décorée avec goût, elle offre
             une atmosphère romantique et apaisante.
@@ -177,19 +177,19 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="20 6 9 17 4 12"/>
               </svg>
-              1 lit double
+              <span data-i18n="rooms.doubleBed">1 lit double</span>
             </span>
             <span class="service-feature-tag">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="20 6 9 17 4 12"/>
               </svg>
-              Bureau de travail
+              <span data-i18n="rooms.doubleDesk">Bureau de travail</span>
             </span>
             <span class="service-feature-tag">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="20 6 9 17 4 12"/>
               </svg>
-              Vue sur jardin
+              <span data-i18n="rooms.doubleView">Vue sur jardin</span>
             </span>
           </div>
         </div>
@@ -204,9 +204,9 @@
           <img src="images/chambres/confort-twin.jpg" alt="Chambre Confort Twin">
         </div>
         <div class="service-detail-content">
-          <p class="section-subtitle">Pour 3 personnes</p>
-          <h3>Chambre Confort Twin</h3>
-          <p>
+          <p class="section-subtitle" data-i18n="rooms.twinFor">Pour 3 personnes</p>
+          <h3 data-i18n="rooms.twinTitle">Chambre Confort Twin</h3>
+          <p data-i18n="rooms.twinDesc">
             Parfaite pour voyager entre amis ou collègues, la chambre Twin
             dispose de deux lits simples séparés. Confort et convivialité
             sont au rendez-vous pour des séjours réussis.
@@ -216,25 +216,25 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="20 6 9 17 4 12"/>
               </svg>
-              1 lit simple
+              <span data-i18n="rooms.twinSingleBed">1 lit simple</span>
             </span>
              <span class="service-feature-tag">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="20 6 9 17 4 12"/>
               </svg>
-              1 lit double
+              <span data-i18n="rooms.twinDoubleBed">1 lit double</span>
             </span>
             <span class="service-feature-tag">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="20 6 9 17 4 12"/>
               </svg>
-              Espace généreux
+              <span data-i18n="rooms.twinSpace">Espace généreux</span>
             </span>
             <span class="service-feature-tag">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="20 6 9 17 4 12"/>
               </svg>
-              Idéale entre amis
+              <span data-i18n="rooms.twinFriends">Idéale entre amis</span>
             </span>
           </div>
         </div>
@@ -243,9 +243,9 @@
       <!-- Room Type 4: Confort Triple -->
       <div class="service-detail">
         <div class="service-detail-content">
-          <p class="section-subtitle">Pour 2-3 personnes</p>
-          <h3>Chambre Confort Triple</h3>
-          <p>
+          <p class="section-subtitle" data-i18n="rooms.tripleFor">Pour 2-3 personnes</p>
+          <h3 data-i18n="rooms.tripleTitle">Chambre Confort Triple</h3>
+          <p data-i18n="rooms.tripleDesc">
             Notre chambre Confort Triple offre tout l'espace nécessaire
             pour accueillir jusqu'à trois personnes confortablement.
             Une solution flexible pour les petits groupes.
@@ -255,19 +255,19 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="20 6 9 17 4 12"/>
               </svg>
-              Jusqu'à 3 couchages
+              <span data-i18n="rooms.tripleBeds">Jusqu'à 3 couchages</span>
             </span>
             <span class="service-feature-tag">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="20 6 9 17 4 12"/>
               </svg>
-              Spacieuse
+              <span data-i18n="rooms.tripleSpacious">Spacieuse</span>
             </span>
             <span class="service-feature-tag">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="20 6 9 17 4 12"/>
               </svg>
-              Flexible
+              <span data-i18n="rooms.tripleFlexible">Flexible</span>
             </span>
           </div>
         </div>
@@ -282,9 +282,9 @@
           <img src="images/chambres/famille-2-adultes-2-enfants.jpg" alt="Chambre Familiale">
         </div>
         <div class="service-detail-content">
-          <p class="section-subtitle">Pour 3-5 personnes</p>
-          <h3>Chambre Familiale</h3>
-          <p>
+          <p class="section-subtitle" data-i18n="rooms.familyFor">Pour 3-5 personnes</p>
+          <h3 data-i18n="rooms.familyTitle">Chambre Familiale</h3>
+          <p data-i18n="rooms.familyDesc">
             Pensée pour les familles, cette chambre spacieuse peut accueillir
             jusqu'à 5 personnes. Parents et enfants profitent d'un confort
             optimal pour des vacances sereines en Gironde.
@@ -294,19 +294,19 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="20 6 9 17 4 12"/>
               </svg>
-              Jusqu'à 5 personnes
+              <span data-i18n="rooms.familyCapacity">Jusqu'à 5 personnes</span>
             </span>
             <span class="service-feature-tag">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="20 6 9 17 4 12"/>
               </svg>
-              Grande surface
+              <span data-i18n="rooms.familyLarge">Grande surface</span>
             </span>
             <span class="service-feature-tag">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="20 6 9 17 4 12"/>
               </svg>
-              Idéale en famille
+              <span data-i18n="rooms.familyIdeal">Idéale en famille</span>
             </span>
           </div>
         </div>
@@ -319,9 +319,9 @@
     <div class="container">
       <div class="intro-grid">
         <div class="intro-content">
-          <p class="section-subtitle">Salles de bain</p>
-          <h2>Fraîcheur et modernité</h2>
-          <p>
+          <p class="section-subtitle" data-i18n="rooms.bathroomSubtitle">Salles de bain</p>
+          <h2 data-i18n="rooms.bathroomTitle">Fraîcheur et modernité</h2>
+          <p data-i18n="rooms.bathroomDesc">
             Chaque chambre dispose de sa propre salle de bain privative,
             équipée avec soin pour votre confort. Des espaces lumineux
             et fonctionnels où commencer et terminer chaque journée
@@ -332,25 +332,25 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="20 6 9 17 4 12"/>
               </svg>
-              <span>Douche ou baignoire</span>
+              <span data-i18n="rooms.bathroomShower">Douche ou baignoire</span>
             </div>
             <div class="intro-feature">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="20 6 9 17 4 12"/>
               </svg>
-              <span>Sèche-cheveux</span>
+              <span data-i18n="rooms.bathroomDryer">Sèche-cheveux</span>
             </div>
             <div class="intro-feature">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="20 6 9 17 4 12"/>
               </svg>
-              <span>Produits d'accueil</span>
+              <span data-i18n="rooms.bathroomProducts">Produits d'accueil</span>
             </div>
             <div class="intro-feature">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="20 6 9 17 4 12"/>
               </svg>
-              <span>Serviettes fournies</span>
+              <span data-i18n="rooms.bathroomTowels">Serviettes fournies</span>
             </div>
           </div>
         </div>
@@ -365,29 +365,29 @@
   <section class="section section-cream">
     <div class="container">
       <div class="section-header">
-        <p class="section-subtitle">Galerie</p>
-        <h2 class="section-title">Aperçu de nos chambres</h2>
+        <p class="section-subtitle" data-i18n="rooms.gallerySubtitle">Galerie</p>
+        <h2 class="section-title" data-i18n="rooms.galleryTitle">Aperçu de nos chambres</h2>
       </div>
       <div class="rooms-gallery">
         <div class="room-card">
           <img src="images/chambres/chambre1.jpg" alt="Chambre décorée avec soin">
           <div class="room-card-overlay">
-            <h4>Décoration unique</h4>
-            <p>Chaque chambre a son caractère</p>
+            <h4 data-i18n="rooms.galleryDecor">Décoration unique</h4>
+            <p data-i18n="rooms.galleryDecorDesc">Chaque chambre a son caractère</p>
           </div>
         </div>
         <div class="room-card">
           <img src="images/chambres/hotel-bordeaux-tresses-sdb3.jpg" alt="Salle de bain moderne">
           <div class="room-card-overlay">
-            <h4>Salle de bain</h4>
-            <p>Confort et propreté</p>
+            <h4 data-i18n="rooms.galleryBathroom">Salle de bain</h4>
+            <p data-i18n="rooms.galleryBathroomDesc">Confort et propreté</p>
           </div>
         </div>
         <div class="room-card">
           <img src="images/chambres/famille-3-a-5-personnes-standard.jpg" alt="Chambre familiale spacieuse">
           <div class="room-card-overlay">
-            <h4>Espace famille</h4>
-            <p>Pour les grands et les petits</p>
+            <h4 data-i18n="rooms.galleryFamily">Espace famille</h4>
+            <p data-i18n="rooms.galleryFamilyDesc">Pour les grands et les petits</p>
           </div>
         </div>
       </div>
@@ -397,9 +397,9 @@
   <!-- CTA Section -->
   <section class="cta-section">
     <div class="container">
-      <h2>Trouvez votre chambre idéale</h2>
-      <p>Réservez dès maintenant pour garantir votre séjour</p>
-      <a href="#reservation" class="btn btn-primary">Réserver maintenant</a>
+      <h2 data-i18n="rooms.ctaTitle">Trouvez votre chambre idéale</h2>
+      <p data-i18n="rooms.ctaText">Réservez dès maintenant pour garantir votre séjour</p>
+      <a href="#reservation" class="btn btn-primary" data-i18n="common.bookNow">Réserver maintenant</a>
     </div>
   </section>
 
@@ -412,35 +412,35 @@
             Hôtel Corintel
             <span>Bordeaux Est</span>
           </div>
-          <p>Un havre de paix aux portes de Bordeaux, où charme et authenticité vous attendent pour un séjour inoubliable.</p>
+          <p data-i18n="footer.description">Un havre de paix aux portes de Bordeaux, où charme et authenticité vous attendent pour un séjour inoubliable.</p>
         </div>
         <div class="footer-nav">
-          <h4 class="footer-title">Navigation</h4>
+          <h4 class="footer-title" data-i18n="footer.navigation">Navigation</h4>
           <ul class="footer-links">
-            <li><a href="index.html">Accueil</a></li>
-            <li><a href="services.html">Services</a></li>
-            <li><a href="chambres.html">Chambres</a></li>
-            <li><a href="activites.html">À découvrir</a></li>
-            <li><a href="contact.html">Contact</a></li>
+            <li><a href="index.html" data-i18n="nav.home">Accueil</a></li>
+            <li><a href="services.html" data-i18n="nav.services">Services</a></li>
+            <li><a href="chambres.html" data-i18n="nav.rooms">Chambres</a></li>
+            <li><a href="activites.html" data-i18n="nav.activities">À découvrir</a></li>
+            <li><a href="contact.html" data-i18n="nav.contact">Contact</a></li>
           </ul>
         </div>
         <div class="footer-nav">
-          <h4 class="footer-title">Services</h4>
+          <h4 class="footer-title" data-i18n="footer.services">Services</h4>
           <ul class="footer-links">
-            <li><a href="services.html#restaurant">Restaurant</a></li>
-            <li><a href="services.html#bar">Bar</a></li>
-            <li><a href="services.html#boulodrome">Boulodrome</a></li>
-            <li><a href="services.html#parking">Parking</a></li>
+            <li><a href="services.html#restaurant" data-i18n="footer.restaurant">Restaurant</a></li>
+            <li><a href="services.html#bar" data-i18n="footer.bar">Bar</a></li>
+            <li><a href="services.html#boulodrome" data-i18n="footer.boulodrome">Boulodrome</a></li>
+            <li><a href="services.html#parking" data-i18n="footer.parking">Parking</a></li>
           </ul>
         </div>
         <div class="footer-contact">
-          <h4 class="footer-title">Contact</h4>
+          <h4 class="footer-title" data-i18n="footer.contact">Contact</h4>
           <div class="footer-contact-item">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
               <circle cx="12" cy="10" r="3"/>
             </svg>
-            <span>Tresses, Bordeaux Est<br>Gironde, France</span>
+            <span data-i18n="footer.address">Tresses, Bordeaux Est<br>Gironde, France</span>
           </div>
           <div class="footer-contact-item">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -458,18 +458,20 @@
         </div>
       </div>
       <div class="footer-bottom">
-        <p>&copy; 2024 Hôtel Corintel. Tous droits réservés.</p>
+        <p data-i18n="footer.copyright">&copy; 2024 Hôtel Corintel. Tous droits réservés.</p>
       </div>
     </div>
   </footer>
 
   <!-- Scroll to Top Button -->
-  <button class="scroll-top" id="scrollTop" aria-label="Retour en haut">
+  <button class="scroll-top" id="scrollTop" aria-label="Retour en haut" data-i18n-aria="common.backToTop">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <polyline points="18 15 12 9 6 15"/>
     </svg>
   </button>
 
+  <script src="js/translations.js"></script>
+  <script src="js/i18n.js"></script>
   <script>
     // Mobile menu toggle
     const menuToggle = document.getElementById('menuToggle');
