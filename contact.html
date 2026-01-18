@@ -11,7 +11,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Lato:wght@300;400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body data-i18n-title="contact.pageTitle">
   <!-- Header -->
   <header class="header" id="header">
     <div class="container">
@@ -25,12 +25,12 @@
         </div>
       </a>
       <nav class="nav-menu" id="navMenu">
-        <a href="index.html" class="nav-link">Accueil</a>
-        <a href="services.html" class="nav-link">Services</a>
-        <a href="chambres.html" class="nav-link">Chambres</a>
-        <a href="activites.html" class="nav-link">À découvrir</a>
-        <a href="contact.html" class="nav-link active">Contact</a>
-        <a href="#reservation" class="btn-book">Réserver</a>
+        <a href="index.html" class="nav-link" data-i18n="nav.home">Accueil</a>
+        <a href="services.html" class="nav-link" data-i18n="nav.services">Services</a>
+        <a href="chambres.html" class="nav-link" data-i18n="nav.rooms">Chambres</a>
+        <a href="activites.html" class="nav-link" data-i18n="nav.activities">À découvrir</a>
+        <a href="contact.html" class="nav-link active" data-i18n="nav.contact">Contact</a>
+        <a href="https://www.booking.com/hotel/fr/corintel.fr.html?aid=311089&label=corintel-O0VnbWaGZNr8nXbaU172TQS625028973267%3Apl%3Ata%3Ap1%3Ap2%3Aac%3Aap%3Aneg%3Afi%3Atikwd-924823501370%3Alp9055050%3Ali%3Adec%3Adm%3Appccp%3DUmFuZG9tSVYkc2RlIyh9YVujEjbMrKBV7ahOy8HtCLg&sid=2bd2846f5430642ffc2dfefa4e617e28&dest_id=-1473710&dest_type=city&dist=0&group_adults=2&group_children=0&hapos=1&hpos=1&no_rooms=1&req_adults=2&req_children=0&room1=A%2CA&sb_price_type=total&sr_order=popularity&srepoch=1766942847&srpvid=7a705f51b38eb96dd0ea283227969889&type=total&ucfs=1&" class="btn-book" data-i18n="nav.book">Réserver</a>
       </nav>
       <div class="menu-toggle" id="menuToggle">
         <span></span>
@@ -43,9 +43,9 @@
   <!-- Page Hero -->
   <section class="page-hero" style="background-image: url('images/acceuil/dehors_nuit.jpg');">
     <div class="page-hero-content">
-      <p class="hero-subtitle">Nous contacter</p>
-      <h1 class="page-hero-title">Contact</h1>
-      <p class="page-hero-subtitle">Nous sommes à votre écoute</p>
+      <p class="hero-subtitle" data-i18n="contact.heroSubtitle">Nous contacter</p>
+      <h1 class="page-hero-title" data-i18n="contact.heroTitle">Contact</h1>
+      <p class="page-hero-subtitle" data-i18n="contact.heroDescription">Nous sommes à votre écoute</p>
     </div>
   </section>
 
@@ -53,9 +53,9 @@
   <section class="section section-light">
     <div class="container">
       <div class="section-header">
-        <p class="section-subtitle">Restons en contact</p>
-        <h2 class="section-title">Comment nous joindre</h2>
-        <p class="section-description">
+        <p class="section-subtitle" data-i18n="contact.introSubtitle">Restons en contact</p>
+        <h2 class="section-title" data-i18n="contact.introTitle">Comment nous joindre</h2>
+        <p class="section-description" data-i18n="contact.introDescription">
           Une question, une demande de renseignements ou une réservation ?
           N'hésitez pas à nous contacter. Notre équipe se fera un plaisir
           de vous répondre dans les plus brefs délais.
@@ -65,7 +65,7 @@
       <div class="contact-grid">
         <!-- Contact Information -->
         <div class="contact-info">
-          <h3>Nos coordonnées</h3>
+          <h3 data-i18n="contact.infoTitle">Nos coordonnées</h3>
           <div class="contact-details">
             <div class="contact-item">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -73,7 +73,7 @@
                 <circle cx="12" cy="10" r="3"/>
               </svg>
               <div class="contact-item-text">
-                <h4>Adresse</h4>
+                <h4 data-i18n="contact.addressLabel">Adresse</h4>
                 <p>
                   Hôtel Corintel<br>
                   Tresses, Bordeaux Est<br>
@@ -86,7 +86,7 @@
                 <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
               </svg>
               <div class="contact-item-text">
-                <h4>Téléphone</h4>
+                <h4 data-i18n="contact.phoneLabel">Téléphone</h4>
                 <p><a href="tel:+33556789012">+33 5 56 78 90 12</a></p>
               </div>
             </div>
@@ -97,7 +97,7 @@
               </svg>
               <div class="contact-item-text">
                 <h4>Email</h4>
-                <p><a href="mailto:contact@hotel-corintel.fr">contact@hotel-corintel.fr</a></p>
+                <p><a href="mailto:chriisjms@gmail.com">hotel.bordeaux.tresses@gmail.com</a></p>
               </div>
             </div>
             <div class="contact-item">
@@ -106,8 +106,8 @@
                 <polyline points="12 6 12 12 16 14"/>
               </svg>
               <div class="contact-item-text">
-                <h4>Réception</h4>
-                <p>
+                <h4 data-i18n="contact.receptionLabel">Réception</h4>
+                <p data-i18n="contact.receptionHours">
                   Ouverte 7j/7<br>
                   7h00 - 22h00
                 </p>
@@ -116,7 +116,7 @@
           </div>
 
           <!-- Map -->
-          <h3>Nous trouver</h3>
+          <h3 data-i18n="contact.findUs">Nous trouver</h3>
           <div class="contact-map">
             <iframe
               src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d45257.87474670947!2d-0.5!3d44.85!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0xd5527c2be4e47ed%3A0x40665174817a4b0!2sTresses!5e0!3m2!1sfr!2sfr!4v1704000000000!5m2!1sfr!2sfr"
@@ -130,37 +130,37 @@
 
         <!-- Contact Form -->
         <div class="contact-form-wrapper">
-          <h3>Envoyez-nous un message</h3>
+          <h3 data-i18n="contact.formTitle">Envoyez-nous un message</h3>
           <form class="contact-form" id="contactForm" action="#" method="POST">
             <div class="form-row">
               <div class="form-group">
-                <label for="firstName">Prénom *</label>
-                <input type="text" id="firstName" name="firstName" required placeholder="Votre prénom">
+                <label for="firstName" data-i18n="contact.firstNameLabel">Prénom *</label>
+                <input type="text" id="firstName" name="firstName" required data-i18n-placeholder="contact.firstNamePlaceholder" placeholder="Votre prénom">
               </div>
               <div class="form-group">
-                <label for="lastName">Nom *</label>
-                <input type="text" id="lastName" name="lastName" required placeholder="Votre nom">
+                <label for="lastName" data-i18n="contact.lastNameLabel">Nom *</label>
+                <input type="text" id="lastName" name="lastName" required data-i18n-placeholder="contact.lastNamePlaceholder" placeholder="Votre nom">
               </div>
             </div>
             <div class="form-row">
               <div class="form-group">
-                <label for="email">Email *</label>
-                <input type="email" id="email" name="email" required placeholder="votre@email.com">
+                <label for="email" data-i18n="contact.emailLabel">Email *</label>
+                <input type="email" id="email" name="email" required data-i18n-placeholder="contact.emailPlaceholder" placeholder="votre@email.com">
               </div>
               <div class="form-group">
-                <label for="phone">Téléphone</label>
-                <input type="tel" id="phone" name="phone" placeholder="+33 6 XX XX XX XX">
+                <label for="phone" data-i18n="contact.phoneLabelForm">Téléphone</label>
+                <input type="tel" id="phone" name="phone" data-i18n-placeholder="contact.phonePlaceholder" placeholder="+33 6 XX XX XX XX">
               </div>
             </div>
             <div class="form-group">
-              <label for="subject">Objet *</label>
-              <input type="text" id="subject" name="subject" required placeholder="Objet de votre message">
+              <label for="subject" data-i18n="contact.subjectLabel">Objet *</label>
+              <input type="text" id="subject" name="subject" required data-i18n-placeholder="contact.subjectPlaceholder" placeholder="Objet de votre message">
             </div>
             <div class="form-group">
-              <label for="message">Message *</label>
-              <textarea id="message" name="message" required placeholder="Votre message..." rows="6"></textarea>
+              <label for="message" data-i18n="contact.messageLabel">Message *</label>
+              <textarea id="message" name="message" required data-i18n-placeholder="contact.messagePlaceholder" placeholder="Votre message..." rows="6"></textarea>
             </div>
-            <button type="submit" class="btn-submit">Envoyer le message</button>
+            <button type="submit" class="btn-submit" data-i18n="contact.submitButton">Envoyer le message</button>
           </form>
         </div>
       </div>
@@ -171,8 +171,8 @@
   <section class="section section-cream">
     <div class="container">
       <div class="section-header">
-        <p class="section-subtitle">Comment venir</p>
-        <h2 class="section-title">Accès à l'hôtel</h2>
+        <p class="section-subtitle" data-i18n="contact.accessSubtitle">Comment venir</p>
+        <h2 class="section-title" data-i18n="contact.accessTitle">Accès à l'hôtel</h2>
       </div>
       <div class="services-grid">
         <div class="service-card">
@@ -182,8 +182,8 @@
               <path d="M16 8h4a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-1"/>
             </svg>
           </div>
-          <h3>En voiture</h3>
-          <p>
+          <h3 data-i18n="contact.byCarTitle">En voiture</h3>
+          <p data-i18n="contact.byCarDesc">
             Depuis Bordeaux, prenez la rocade direction Libourne/Paris.
             Sortie Tresses/Artigues. Parking gratuit sur place.
           </p>
@@ -195,8 +195,8 @@
               <line x1="4" y1="22" x2="4" y2="15"/>
             </svg>
           </div>
-          <h3>En train</h3>
-          <p>
+          <h3 data-i18n="contact.byTrainTitle">En train</h3>
+          <p data-i18n="contact.byTrainDesc">
             Gare de Bordeaux Saint-Jean à 15 km. Taxis et VTC disponibles.
             Nous pouvons organiser votre transfert sur demande.
           </p>
@@ -208,8 +208,8 @@
               <path d="M22 2l-7 20-4-9-9-4 20-7z"/>
             </svg>
           </div>
-          <h3>En avion</h3>
-          <p>
+          <h3 data-i18n="contact.byPlaneTitle">En avion</h3>
+          <p data-i18n="contact.byPlaneDesc">
             Aéroport de Bordeaux-Mérignac à 25 km. Navettes et location
             de voitures disponibles à l'aéroport.
           </p>
@@ -222,8 +222,8 @@
               <path d="M15 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm-3 11.5V14l-3-3 4-3 2 3h3"/>
             </svg>
           </div>
-          <h3>À vélo</h3>
-          <p>
+          <h3 data-i18n="contact.byBikeTitle">À vélo</h3>
+          <p data-i18n="contact.byBikeDesc">
             Pistes cyclables depuis Bordeaux. Local vélo sécurisé
             disponible pour nos clients cyclotouristes.
           </p>
@@ -235,9 +235,9 @@
   <!-- CTA Section -->
   <section class="cta-section">
     <div class="container">
-      <h2>Prêt à réserver ?</h2>
-      <p>Contactez-nous directement ou réservez en ligne</p>
-      <a href="#reservation" class="btn btn-primary">Réserver maintenant</a>
+      <h2 data-i18n="contact.ctaTitle">Prêt à réserver ?</h2>
+      <p data-i18n="contact.ctaText">Contactez-nous directement ou réservez en ligne</p>
+      <a href="#reservation" class="btn btn-primary" data-i18n="common.bookNow">Réserver maintenant</a>
     </div>
   </section>
 
@@ -250,64 +250,66 @@
             Hôtel Corintel
             <span>Bordeaux Est</span>
           </div>
-          <p>Un havre de paix aux portes de Bordeaux, où charme et authenticité vous attendent pour un séjour inoubliable.</p>
+          <p data-i18n="footer.description">Un havre de paix aux portes de Bordeaux, où charme et authenticité vous attendent pour un séjour inoubliable.</p>
         </div>
         <div class="footer-nav">
-          <h4 class="footer-title">Navigation</h4>
+          <h4 class="footer-title" data-i18n="footer.navigation">Navigation</h4>
           <ul class="footer-links">
-            <li><a href="index.html">Accueil</a></li>
-            <li><a href="services.html">Services</a></li>
-            <li><a href="chambres.html">Chambres</a></li>
-            <li><a href="activites.html">À découvrir</a></li>
-            <li><a href="contact.html">Contact</a></li>
+            <li><a href="index.html" data-i18n="nav.home">Accueil</a></li>
+            <li><a href="services.html" data-i18n="nav.services">Services</a></li>
+            <li><a href="chambres.html" data-i18n="nav.rooms">Chambres</a></li>
+            <li><a href="activites.html" data-i18n="nav.activities">À découvrir</a></li>
+            <li><a href="contact.html" data-i18n="nav.contact">Contact</a></li>
           </ul>
         </div>
         <div class="footer-nav">
-          <h4 class="footer-title">Services</h4>
+          <h4 class="footer-title" data-i18n="footer.services">Services</h4>
           <ul class="footer-links">
-            <li><a href="services.html#restaurant">Restaurant</a></li>
-            <li><a href="services.html#bar">Bar</a></li>
-            <li><a href="services.html#boulodrome">Boulodrome</a></li>
-            <li><a href="services.html#parking">Parking</a></li>
+            <li><a href="services.html#restaurant" data-i18n="footer.restaurant">Restaurant</a></li>
+            <li><a href="services.html#bar" data-i18n="footer.bar">Bar</a></li>
+            <li><a href="services.html#boulodrome" data-i18n="footer.boulodrome">Boulodrome</a></li>
+            <li><a href="services.html#parking" data-i18n="footer.parking">Parking</a></li>
           </ul>
         </div>
         <div class="footer-contact">
-          <h4 class="footer-title">Contact</h4>
+          <h4 class="footer-title" data-i18n="footer.contact">Contact</h4>
           <div class="footer-contact-item">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
               <circle cx="12" cy="10" r="3"/>
             </svg>
-            <span>Tresses, Bordeaux Est<br>Gironde, France</span>
+            <span data-i18n="footer.address">14 Avenue du Périgord. 33370 TRESSES<br>Gironde, France</span>
           </div>
           <div class="footer-contact-item">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
             </svg>
-            <span>+33 5 56 78 90 12</span>
+            <span>+33 5 57 34 13 95</span>
           </div>
           <div class="footer-contact-item">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
               <polyline points="22,6 12,13 2,6"/>
             </svg>
-            <span>contact@hotel-corintel.fr</span>
+            <span>hotel.bordeaux.tresses@gmail.com</span>
           </div>
         </div>
       </div>
       <div class="footer-bottom">
-        <p>&copy; 2024 Hôtel Corintel. Tous droits réservés.</p>
+        <p data-i18n="footer.copyright">&copy; 2024 Hôtel Corintel. Tous droits réservés.</p>
       </div>
     </div>
   </footer>
 
   <!-- Scroll to Top Button -->
-  <button class="scroll-top" id="scrollTop" aria-label="Retour en haut">
+  <button class="scroll-top" id="scrollTop" aria-label="Retour en haut" data-i18n-aria="common.backToTop">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <polyline points="18 15 12 9 6 15"/>
     </svg>
   </button>
 
+  <script src="js/translations.js"></script>
+  <script src="js/i18n.js"></script>
   <script>
     // Mobile menu toggle
     const menuToggle = document.getElementById('menuToggle');
@@ -347,7 +349,7 @@
     contactForm.addEventListener('submit', (e) => {
       e.preventDefault();
       // In production, this would send data to a backend
-      alert('Merci pour votre message ! Nous vous répondrons dans les plus brefs délais.');
+      alert(window.I18n ? window.I18n.t('contact.formSuccess') : 'Merci pour votre message ! Nous vous répondrons dans les plus brefs délais.');
       contactForm.reset();
     });
   </script>
