@@ -16,7 +16,7 @@ require_once __DIR__ . '/../includes/functions.php';
 $section = $_GET['section'] ?? '';
 
 // Validate section
-$validSections = ['home', 'services', 'rooms', 'activities', 'contact'];
+$validSections = ['home', 'services', 'activities', 'contact'];
 
 if (empty($section)) {
     http_response_code(400);

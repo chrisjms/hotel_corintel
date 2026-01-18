@@ -55,10 +55,7 @@ INSERT INTO images (filename, section, position, slot_name, title, alt_text) VAL
 ('images/acceuil/bar.jpg', 'home', 4, 'intro_image', 'Image Introduction', 'Bar de l\'hôtel'),
 ('images/resto/restaurant-hotel-tresses-3.jpg', 'home', 5, 'service_1', 'Service Restaurant', 'Restaurant'),
 ('images/resto/barlounge.jpg', 'home', 6, 'service_2', 'Service Bar', 'Bar Lounge'),
-('images/acceuil/boulodrome.jpg', 'home', 7, 'service_3', 'Service Boulodrome', 'Boulodrome'),
-('images/chambres/chambre1.jpg', 'home', 8, 'room_preview_1', 'Chambre Preview 1', 'Chambre décorée'),
-('images/chambres/confort-twin.jpg', 'home', 9, 'room_preview_2', 'Chambre Preview 2', 'Chambre Twin'),
-('images/chambres/famille-2-adultes-2-enfants.jpg', 'home', 10, 'room_preview_3', 'Chambre Preview 3', 'Chambre Familiale')
+('images/acceuil/boulodrome.jpg', 'home', 7, 'service_3', 'Service Boulodrome', 'Boulodrome')
 ON DUPLICATE KEY UPDATE filename = VALUES(filename);
 
 -- Services page images
@@ -69,19 +66,6 @@ INSERT INTO images (filename, section, position, slot_name, title, alt_text) VAL
 ('images/resto/barlounge.jpg', 'services', 4, 'bar_1', 'Bar Image', 'Bar Lounge'),
 ('images/acceuil/boulodrome.jpg', 'services', 5, 'boulodrome_1', 'Boulodrome Image', 'Terrain de pétanque'),
 ('images/acceuil/bar.jpg', 'services', 6, 'parking_1', 'Parking Image', 'Parking de l\'hôtel')
-ON DUPLICATE KEY UPDATE filename = VALUES(filename);
-
--- Rooms page images
-INSERT INTO images (filename, section, position, slot_name, title, alt_text) VALUES
-('images/chambres/chambre1.jpg', 'rooms', 1, 'hero', 'Rooms Hero', 'Chambre de l\'hôtel'),
-('images/chambres/confort-simple.jpg', 'rooms', 2, 'room_simple', 'Chambre Simple', 'Chambre Confort Simple'),
-('images/chambres/confort-1-personne-lit-double.jpg', 'rooms', 3, 'room_double', 'Chambre Double', 'Chambre Confort Double'),
-('images/chambres/confort-twin.jpg', 'rooms', 4, 'room_twin', 'Chambre Twin', 'Chambre Confort Twin'),
-('images/chambres/confort-2-3-personnes.jpg', 'rooms', 5, 'room_triple', 'Chambre Triple', 'Chambre Confort Triple'),
-('images/chambres/famille-2-adultes-2-enfants.jpg', 'rooms', 6, 'room_family', 'Chambre Familiale', 'Chambre Famille'),
-('images/chambres/salle-de-bain.jpg', 'rooms', 7, 'bathroom', 'Salle de Bain', 'Salle de bain'),
-('images/chambres/hotel-bordeaux-tresses-sdb3.jpg', 'rooms', 8, 'gallery_1', 'Galerie 1', 'Salle de bain moderne'),
-('images/chambres/famille-3-a-5-personnes-standard.jpg', 'rooms', 9, 'gallery_2', 'Galerie 2', 'Chambre familiale spacieuse')
 ON DUPLICATE KEY UPDATE filename = VALUES(filename);
 
 -- Activities page images
