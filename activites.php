@@ -67,10 +67,8 @@ $countrysideImage = $useDatabase ? getImg($images, 8, 'images/acceuil/bar.jpg') 
       <nav class="nav-menu" id="navMenu">
         <a href="index.php" class="nav-link" data-i18n="nav.home">Accueil</a>
         <a href="services.php" class="nav-link" data-i18n="nav.services">Services</a>
-        <a href="chambres.php" class="nav-link" data-i18n="nav.rooms">Chambres</a>
         <a href="activites.php" class="nav-link active" data-i18n="nav.activities">À découvrir</a>
         <a href="contact.php" class="nav-link" data-i18n="nav.contact">Contact</a>
-        <a href="https://www.booking.com/hotel/fr/corintel.fr.html?aid=311089&label=corintel-O0VnbWaGZNr8nXbaU172TQS625028973267%3Apl%3Ata%3Ap1%3Ap2%3Aac%3Aap%3Aneg%3Afi%3Atikwd-924823501370%3Alp9055050%3Ali%3Adec%3Adm%3Appccp%3DUmFuZG9tSVYkc2RlIyh9YVujEjbMrKBV7ahOy8HtCLg&sid=2bd2846f5430642ffc2dfefa4e617e28&dest_id=-1473710&dest_type=city&dist=0&group_adults=2&group_children=0&hapos=1&hpos=1&no_rooms=1&req_adults=2&req_children=0&room1=A%2CA&sb_price_type=total&sr_order=popularity&srepoch=1766942847&srpvid=7a705f51b38eb96dd0ea283227969889&type=total&ucfs=1&" class="btn-book" data-i18n="nav.book">Réserver</a>
       </nav>
       <div class="menu-toggle" id="menuToggle">
         <span></span>
@@ -367,8 +365,8 @@ $countrysideImage = $useDatabase ? getImg($images, 8, 'images/acceuil/bar.jpg') 
   <section class="cta-section">
     <div class="container">
       <h2 data-i18n="activities.ctaTitle">Prêt pour l'aventure ?</h2>
-      <p data-i18n="activities.ctaText">Réservez votre séjour et partez à la découverte de la région bordelaise</p>
-      <a href="https://www.booking.com/hotel/fr/corintel.fr.html?aid=311089&label=corintel-O0VnbWaGZNr8nXbaU172TQS625028973267%3Apl%3Ata%3Ap1%3Ap2%3Aac%3Aap%3Aneg%3Afi%3Atikwd-924823501370%3Alp9055050%3Ali%3Adec%3Adm%3Appccp%3DUmFuZG9tSVYkc2RlIyh9YVujEjbMrKBV7ahOy8HtCLg&sid=2bd2846f5430642ffc2dfefa4e617e28&dest_id=-1473710&dest_type=city&dist=0&group_adults=2&group_children=0&hapos=1&hpos=1&no_rooms=1&req_adults=2&req_children=0&room1=A%2CA&sb_price_type=total&sr_order=popularity&srepoch=1766942847&srpvid=7a705f51b38eb96dd0ea283227969889&type=total&ucfs=1&" class="btn btn-primary" data-i18n="common.bookNow">Réserver maintenant</a>
+      <p data-i18n="activities.ctaText">Contactez-nous pour découvrir la région bordelaise</p>
+      <a href="contact.php" class="btn btn-primary" data-i18n="nav.contact">Nous contacter</a>
     </div>
   </section>
 
@@ -388,7 +386,6 @@ $countrysideImage = $useDatabase ? getImg($images, 8, 'images/acceuil/bar.jpg') 
           <ul class="footer-links">
             <li><a href="index.php" data-i18n="nav.home">Accueil</a></li>
             <li><a href="services.php" data-i18n="nav.services">Services</a></li>
-            <li><a href="chambres.php" data-i18n="nav.rooms">Chambres</a></li>
             <li><a href="activites.php" data-i18n="nav.activities">À découvrir</a></li>
             <li><a href="contact.php" data-i18n="nav.contact">Contact</a></li>
           </ul>

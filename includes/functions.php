@@ -69,7 +69,6 @@ function getAllSections(): array {
     return [
         'home' => 'Accueil',
         'services' => 'Services',
-        'rooms' => 'Chambres',
         'activities' => 'À découvrir',
         'contact' => 'Contact'
     ];

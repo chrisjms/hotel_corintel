@@ -152,15 +152,6 @@ $sections = getAllSections();
                                                 <path d="M2 17l10 5 10-5"/>
                                                 <path d="M2 12l10 5 10-5"/>
                                             </svg>
-                                        <?php elseif ($key === 'rooms'): ?>
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                <path d="M2 4v16"/>
-                                                <path d="M22 4v16"/>
-                                                <path d="M2 8h20"/>
-                                                <path d="M2 16h20"/>
-                                                <path d="M6 8v8"/>
-                                                <path d="M18 8v8"/>
-                                            </svg>
                                         <?php elseif ($key === 'activities'): ?>
                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                                 <circle cx="12" cy="10" r="3"/>
@@ -203,13 +194,13 @@ $sections = getAllSections();
                                 </svg>
                                 <span>Modifier le carrousel</span>
                             </a>
-                            <a href="images.php?section=rooms" class="quick-action">
+                            <a href="images.php?section=services" class="quick-action">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M2 4v16"/>
-                                    <path d="M22 4v16"/>
-                                    <path d="M2 8h20"/>
+                                    <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                                    <path d="M2 17l10 5 10-5"/>
+                                    <path d="M2 12l10 5 10-5"/>
                                 </svg>
-                                <span>Photos des chambres</span>
+                                <span>Photos des services</span>
                             </a>
                             <a href="settings.php" class="quick-action">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

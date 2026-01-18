@@ -19,10 +19,8 @@ const translations = {
     nav: {
       home: 'Accueil',
       services: 'Services',
-      rooms: 'Chambres',
       discover: 'À découvrir',
-      contact: 'Contact',
-      book: 'Réserver'
+      contact: 'Contact'
     },
 
     // Header
@@ -35,8 +33,6 @@ const translations = {
       heroSubtitle: 'Bienvenue à l\'Hôtel Corintel',
       heroTitle: 'Un havre de paix<br>aux portes de Bordeaux',
       heroDescription: 'Découvrez notre hôtel de charme 3 étoiles, niché dans la campagne bordelaise, à quelques minutes de Bordeaux et Saint-Émilion.',
-      bookNow: 'Réserver maintenant',
-      discoverRooms: 'Découvrir nos chambres',
 
       // Introduction section
       introSubtitle: 'Notre philosophie',
@@ -62,20 +58,8 @@ const translations = {
       serviceParkingDesc: 'Stationnement privé et sécurisé offert à tous nos clients, pour un séjour en toute tranquillité.',
       discoverServices: 'Découvrir tous nos services',
 
-      // Rooms preview
-      roomsSubtitle: 'Nos chambres',
-      roomsTitle: '32 chambres uniques',
-      roomsDescription: 'Chaque chambre possède une décoration unique, créant une atmosphère douillette, colorée et accueillante.',
-      roomComfort: 'Chambre Confort',
-      roomComfortDesc: 'Élégance et tranquillité',
-      roomTwin: 'Chambre Twin',
-      roomTwinDesc: 'Parfaite entre amis',
-      roomFamily: 'Chambre Familiale',
-      roomFamilyDesc: 'Espace pour toute la famille',
-      seeAllRooms: 'Voir toutes nos chambres',
-
       // CTA
-      ctaTitle: 'Réservez votre escapade',
+      ctaTitle: 'Découvrez notre hôtel',
       ctaText: 'Offrez-vous un séjour ressourçant au cœur de la campagne bordelaise'
     },
 
@@ -146,91 +130,7 @@ const translations = {
       wifiDesc: 'Connexion internet haut débit disponible gratuitement dans tout l\'établissement.',
 
       ctaTitle: 'Prêt à vivre l\'expérience Corintel ?',
-      ctaText: 'Réservez dès maintenant et profitez de tous nos services'
-    },
-
-    // Rooms page
-    rooms: {
-      heroSubtitle: 'Votre cocon',
-      heroTitle: 'Nos Chambres',
-      heroDescription: '32 chambres au charme unique',
-
-      introSubtitle: 'Confort & espace',
-      introTitle: 'Un nid douillet et coloré',
-      introText: 'Confort et espace définissent les 32 chambres de l\'Hôtel Corintel de Tresses, Bordeaux Est. Chaque chambre possède une décoration unique, créant une atmosphère douillette, colorée et accueillante — un véritable nid où il fait bon se reposer après une journée de découvertes dans la région bordelaise.',
-
-      // Features
-      featureAC: 'Climatisation',
-      featureACDesc: 'Fraîcheur garantie en été',
-      featureNonSmoking: 'Non-fumeur',
-      featureNonSmokingDesc: 'Environnement sain',
-      featureTV: 'Télévision',
-      featureTVDesc: 'Écran plat dans chaque chambre',
-      featureWifi: 'Wi-Fi gratuit',
-      featureWifiDesc: 'Connexion haut débit',
-
-      // Room types
-      typesSubtitle: 'Nos catégories',
-      typesTitle: 'Chambres pour tous les voyageurs',
-      typesDescription: 'Que vous voyagiez seul, en couple, entre amis ou en famille, nous avons la chambre idéale pour vous.',
-
-      simpleSubtitle: 'Pour 1 personne',
-      simpleTitle: 'Chambre Confort Simple',
-      simpleText: 'Idéale pour les voyageurs en solo, notre chambre Confort Simple offre un espace optimisé et un lit confortable pour une nuit reposante. Un refuge parfait après une journée de travail ou de découvertes.',
-      simpleBed: '1 lit simple',
-      simpleBathroom: 'Salle de bain privée',
-      simpleAC: 'Climatisation',
-
-      doubleSubtitle: 'Pour 1-2 personnes',
-      doubleTitle: 'Chambre Confort Double',
-      doubleText: 'Notre chambre Confort avec lit double est parfaite pour les couples ou les voyageurs appréciant l\'espace. Décorée avec goût, elle offre une atmosphère romantique et apaisante.',
-      doubleBed: '1 lit double',
-      doubleDesk: 'Bureau de travail',
-      doubleView: 'Vue sur jardin',
-
-      twinSubtitle: 'Pour 3 personnes',
-      twinTitle: 'Chambre Confort Twin',
-      twinText: 'Parfaite pour voyager entre amis ou collègues, la chambre Twin dispose de deux lits simples séparés. Confort et convivialité sont au rendez-vous pour des séjours réussis.',
-      twinSingleBed: '1 lit simple',
-      twinDoubleBed: '1 lit double',
-      twinSpace: 'Espace généreux',
-      twinFriends: 'Idéale entre amis',
-
-      tripleSubtitle: 'Pour 2-3 personnes',
-      tripleTitle: 'Chambre Confort Triple',
-      tripleText: 'Notre chambre Confort Triple offre tout l\'espace nécessaire pour accueillir jusqu\'à trois personnes confortablement. Une solution flexible pour les petits groupes.',
-      tripleBeds: 'Jusqu\'à 3 couchages',
-      tripleSpacious: 'Spacieuse',
-      tripleFlexible: 'Flexible',
-
-      familySubtitle: 'Pour 3-5 personnes',
-      familyTitle: 'Chambre Familiale',
-      familyText: 'Pensée pour les familles, cette chambre spacieuse peut accueillir jusqu\'à 5 personnes. Parents et enfants profitent d\'un confort optimal pour des vacances sereines en Gironde.',
-      familyCapacity: 'Jusqu\'à 5 personnes',
-      familyLarge: 'Grande surface',
-      familyIdeal: 'Idéale en famille',
-
-      // Bathroom
-      bathroomSubtitle: 'Salles de bain',
-      bathroomTitle: 'Fraîcheur et modernité',
-      bathroomText: 'Chaque chambre dispose de sa propre salle de bain privative, équipée avec soin pour votre confort. Des espaces lumineux et fonctionnels où commencer et terminer chaque journée dans les meilleures conditions.',
-      bathroomShower: 'Douche ou baignoire',
-      bathroomHairdryer: 'Sèche-cheveux',
-      bathroomAmenities: 'Produits d\'accueil',
-      bathroomTowels: 'Serviettes fournies',
-
-      // Gallery
-      gallerySubtitle: 'Galerie',
-      galleryTitle: 'Aperçu de nos chambres',
-      galleryDecor: 'Décoration unique',
-      galleryDecorDesc: 'Chaque chambre a son caractère',
-      galleryBathroom: 'Salle de bain',
-      galleryBathroomDesc: 'Confort et propreté',
-      galleryFamily: 'Espace famille',
-      galleryFamilyDesc: 'Pour les grands et les petits',
-
-      ctaTitle: 'Trouvez votre chambre idéale',
-      ctaText: 'Réservez dès maintenant pour garantir votre séjour'
+      ctaText: 'Contactez-nous pour plus d\'informations'
     },
 
     // Activities page
@@ -298,7 +198,7 @@ const translations = {
       marketsDesc: 'Produits du terroir, fromages, charcuteries et spécialités régionales chaque semaine.',
 
       ctaTitle: 'Prêt pour l\'aventure ?',
-      ctaText: 'Réservez votre séjour et partez à la découverte de la région bordelaise'
+      ctaText: 'Contactez-nous pour découvrir la région bordelaise'
     },
 
     // Contact page
@@ -352,8 +252,9 @@ const translations = {
       byBike: 'À vélo',
       byBikeDesc: 'Pistes cyclables depuis Bordeaux. Local vélo sécurisé disponible pour nos clients cyclotouristes.',
 
-      ctaTitle: 'Prêt à réserver ?',
-      ctaText: 'Contactez-nous directement ou réservez en ligne'
+      ctaTitle: 'Des questions ?',
+      ctaText: 'N\'hésitez pas à nous contacter, notre équipe est à votre écoute',
+      callUs: 'Appelez-nous'
     },
 
     // Footer
@@ -367,7 +268,6 @@ const translations = {
 
     // Common
     common: {
-      bookNow: 'Réserver maintenant',
       learnMore: 'En savoir plus',
       backToTop: 'Retour en haut'
     }
@@ -378,10 +278,8 @@ const translations = {
     nav: {
       home: 'Home',
       services: 'Services',
-      rooms: 'Rooms',
       discover: 'Discover',
-      contact: 'Contact',
-      book: 'Book'
+      contact: 'Contact'
     },
 
     header: {
@@ -392,8 +290,6 @@ const translations = {
       heroSubtitle: 'Welcome to Hôtel Corintel',
       heroTitle: 'A peaceful retreat<br>at the gates of Bordeaux',
       heroDescription: 'Discover our charming 3-star hotel, nestled in the Bordeaux countryside, just minutes from Bordeaux and Saint-Émilion.',
-      bookNow: 'Book now',
-      discoverRooms: 'Discover our rooms',
 
       introSubtitle: 'Our philosophy',
       introTitle: 'A warm and friendly atmosphere',
@@ -417,18 +313,7 @@ const translations = {
       serviceParkingDesc: 'Private and secure parking offered to all our guests for a peaceful stay.',
       discoverServices: 'Discover all our services',
 
-      roomsSubtitle: 'Our rooms',
-      roomsTitle: '32 unique rooms',
-      roomsDescription: 'Each room has unique decor, creating a cozy, colorful, and welcoming atmosphere.',
-      roomComfort: 'Comfort Room',
-      roomComfortDesc: 'Elegance and tranquility',
-      roomTwin: 'Twin Room',
-      roomTwinDesc: 'Perfect for friends',
-      roomFamily: 'Family Room',
-      roomFamilyDesc: 'Space for the whole family',
-      seeAllRooms: 'See all our rooms',
-
-      ctaTitle: 'Book your getaway',
+      ctaTitle: 'Discover our hotel',
       ctaText: 'Treat yourself to a rejuvenating stay in the heart of the Bordeaux countryside'
     },
 
@@ -493,86 +378,7 @@ const translations = {
       wifiDesc: 'High-speed internet connection available for free throughout the property.',
 
       ctaTitle: 'Ready for the Corintel experience?',
-      ctaText: 'Book now and enjoy all our services'
-    },
-
-    rooms: {
-      heroSubtitle: 'Your cocoon',
-      heroTitle: 'Our Rooms',
-      heroDescription: '32 rooms with unique charm',
-
-      introSubtitle: 'Comfort & space',
-      introTitle: 'A cozy and colorful nest',
-      introText: 'Comfort and space define the 32 rooms of Hôtel Corintel in Tresses, Bordeaux East. Each room has unique decor, creating a cozy, colorful, and welcoming atmosphere — a true nest where it\'s good to rest after a day of discoveries in the Bordeaux region.',
-
-      featureAC: 'Air conditioning',
-      featureACDesc: 'Freshness guaranteed in summer',
-      featureNonSmoking: 'Non-smoking',
-      featureNonSmokingDesc: 'Healthy environment',
-      featureTV: 'Television',
-      featureTVDesc: 'Flat screen in each room',
-      featureWifi: 'Free Wi-Fi',
-      featureWifiDesc: 'High-speed connection',
-
-      typesSubtitle: 'Our categories',
-      typesTitle: 'Rooms for all travelers',
-      typesDescription: 'Whether you\'re traveling alone, as a couple, with friends, or as a family, we have the ideal room for you.',
-
-      simpleSubtitle: 'For 1 person',
-      simpleTitle: 'Single Comfort Room',
-      simpleText: 'Ideal for solo travelers, our Single Comfort room offers optimized space and a comfortable bed for a restful night. A perfect refuge after a day of work or discoveries.',
-      simpleBed: '1 single bed',
-      simpleBathroom: 'Private bathroom',
-      simpleAC: 'Air conditioning',
-
-      doubleSubtitle: 'For 1-2 people',
-      doubleTitle: 'Double Comfort Room',
-      doubleText: 'Our Comfort room with double bed is perfect for couples or travelers who appreciate space. Tastefully decorated, it offers a romantic and soothing atmosphere.',
-      doubleBed: '1 double bed',
-      doubleDesk: 'Work desk',
-      doubleView: 'Garden view',
-
-      twinSubtitle: 'For 3 people',
-      twinTitle: 'Twin Comfort Room',
-      twinText: 'Perfect for traveling with friends or colleagues, the Twin room has two separate single beds. Comfort and conviviality come together for successful stays.',
-      twinSingleBed: '1 single bed',
-      twinDoubleBed: '1 double bed',
-      twinSpace: 'Generous space',
-      twinFriends: 'Ideal for friends',
-
-      tripleSubtitle: 'For 2-3 people',
-      tripleTitle: 'Triple Comfort Room',
-      tripleText: 'Our Triple Comfort room offers all the space needed to comfortably accommodate up to three people. A flexible solution for small groups.',
-      tripleBeds: 'Up to 3 beds',
-      tripleSpacious: 'Spacious',
-      tripleFlexible: 'Flexible',
-
-      familySubtitle: 'For 3-5 people',
-      familyTitle: 'Family Room',
-      familyText: 'Designed for families, this spacious room can accommodate up to 5 people. Parents and children enjoy optimal comfort for peaceful holidays in Gironde.',
-      familyCapacity: 'Up to 5 people',
-      familyLarge: 'Large area',
-      familyIdeal: 'Ideal for families',
-
-      bathroomSubtitle: 'Bathrooms',
-      bathroomTitle: 'Freshness and modernity',
-      bathroomText: 'Each room has its own private bathroom, carefully equipped for your comfort. Bright and functional spaces to start and end each day in the best conditions.',
-      bathroomShower: 'Shower or bathtub',
-      bathroomHairdryer: 'Hair dryer',
-      bathroomAmenities: 'Toiletries',
-      bathroomTowels: 'Towels provided',
-
-      gallerySubtitle: 'Gallery',
-      galleryTitle: 'Preview of our rooms',
-      galleryDecor: 'Unique decoration',
-      galleryDecorDesc: 'Each room has its character',
-      galleryBathroom: 'Bathroom',
-      galleryBathroomDesc: 'Comfort and cleanliness',
-      galleryFamily: 'Family space',
-      galleryFamilyDesc: 'For young and old',
-
-      ctaTitle: 'Find your ideal room',
-      ctaText: 'Book now to secure your stay'
+      ctaText: 'Contact us for more information'
     },
 
     activities: {
@@ -634,7 +440,7 @@ const translations = {
       marketsDesc: 'Local products, cheeses, charcuterie, and regional specialties every week.',
 
       ctaTitle: 'Ready for adventure?',
-      ctaText: 'Book your stay and set off to discover the Bordeaux region'
+      ctaText: 'Contact us to discover the Bordeaux region'
     },
 
     contact: {
@@ -684,8 +490,9 @@ const translations = {
       byBike: 'By bike',
       byBikeDesc: 'Bike paths from Bordeaux. Secure bike storage available for our cycling guests.',
 
-      ctaTitle: 'Ready to book?',
-      ctaText: 'Contact us directly or book online'
+      ctaTitle: 'Have questions?',
+      ctaText: 'Don\'t hesitate to contact us, our team is at your service',
+      callUs: 'Call us'
     },
 
     footer: {
@@ -697,7 +504,6 @@ const translations = {
     },
 
     common: {
-      bookNow: 'Book now',
       learnMore: 'Learn more',
       backToTop: 'Back to top'
     }
@@ -708,10 +514,8 @@ const translations = {
     nav: {
       home: 'Inicio',
       services: 'Servicios',
-      rooms: 'Habitaciones',
       discover: 'Descubrir',
-      contact: 'Contacto',
-      book: 'Reservar'
+      contact: 'Contacto'
     },
 
     header: {
@@ -722,8 +526,6 @@ const translations = {
       heroSubtitle: 'Bienvenido al Hôtel Corintel',
       heroTitle: 'Un remanso de paz<br>a las puertas de Burdeos',
       heroDescription: 'Descubra nuestro encantador hotel de 3 estrellas, enclavado en la campiña bordelesa, a pocos minutos de Burdeos y Saint-Émilion.',
-      bookNow: 'Reservar ahora',
-      discoverRooms: 'Descubrir nuestras habitaciones',
 
       introSubtitle: 'Nuestra filosofía',
       introTitle: 'Un ambiente cálido y acogedor',
@@ -747,18 +549,7 @@ const translations = {
       serviceParkingDesc: 'Aparcamiento privado y seguro ofrecido a todos nuestros clientes para una estancia tranquila.',
       discoverServices: 'Descubrir todos nuestros servicios',
 
-      roomsSubtitle: 'Nuestras habitaciones',
-      roomsTitle: '32 habitaciones únicas',
-      roomsDescription: 'Cada habitación tiene una decoración única, creando un ambiente acogedor, colorido y cálido.',
-      roomComfort: 'Habitación Confort',
-      roomComfortDesc: 'Elegancia y tranquilidad',
-      roomTwin: 'Habitación Twin',
-      roomTwinDesc: 'Perfecta para amigos',
-      roomFamily: 'Habitación Familiar',
-      roomFamilyDesc: 'Espacio para toda la familia',
-      seeAllRooms: 'Ver todas nuestras habitaciones',
-
-      ctaTitle: 'Reserve su escapada',
+      ctaTitle: 'Descubra nuestro hotel',
       ctaText: 'Regálese una estancia rejuvenecedora en el corazón del campo bordelés'
     },
 
@@ -823,86 +614,7 @@ const translations = {
       wifiDesc: 'Conexión a internet de alta velocidad disponible gratuitamente en todo el establecimiento.',
 
       ctaTitle: '¿Listo para la experiencia Corintel?',
-      ctaText: 'Reserve ahora y disfrute de todos nuestros servicios'
-    },
-
-    rooms: {
-      heroSubtitle: 'Su refugio',
-      heroTitle: 'Nuestras Habitaciones',
-      heroDescription: '32 habitaciones con encanto único',
-
-      introSubtitle: 'Confort y espacio',
-      introTitle: 'Un nido acogedor y colorido',
-      introText: 'Confort y espacio definen las 32 habitaciones del Hôtel Corintel de Tresses, Burdeos Este. Cada habitación tiene una decoración única, creando un ambiente acogedor, colorido y cálido — un verdadero nido donde es agradable descansar después de un día de descubrimientos en la región bordelesa.',
-
-      featureAC: 'Aire acondicionado',
-      featureACDesc: 'Frescura garantizada en verano',
-      featureNonSmoking: 'No fumadores',
-      featureNonSmokingDesc: 'Ambiente saludable',
-      featureTV: 'Televisión',
-      featureTVDesc: 'Pantalla plana en cada habitación',
-      featureWifi: 'Wi-Fi gratuito',
-      featureWifiDesc: 'Conexión de alta velocidad',
-
-      typesSubtitle: 'Nuestras categorías',
-      typesTitle: 'Habitaciones para todos los viajeros',
-      typesDescription: 'Ya viaje solo, en pareja, con amigos o en familia, tenemos la habitación ideal para usted.',
-
-      simpleSubtitle: 'Para 1 persona',
-      simpleTitle: 'Habitación Confort Individual',
-      simpleText: 'Ideal para viajeros en solitario, nuestra habitación Confort Individual ofrece un espacio optimizado y una cama cómoda para una noche de descanso. Un refugio perfecto después de un día de trabajo o descubrimientos.',
-      simpleBed: '1 cama individual',
-      simpleBathroom: 'Baño privado',
-      simpleAC: 'Aire acondicionado',
-
-      doubleSubtitle: 'Para 1-2 personas',
-      doubleTitle: 'Habitación Confort Doble',
-      doubleText: 'Nuestra habitación Confort con cama doble es perfecta para parejas o viajeros que aprecian el espacio. Decorada con gusto, ofrece un ambiente romántico y relajante.',
-      doubleBed: '1 cama doble',
-      doubleDesk: 'Escritorio',
-      doubleView: 'Vista al jardín',
-
-      twinSubtitle: 'Para 3 personas',
-      twinTitle: 'Habitación Confort Twin',
-      twinText: 'Perfecta para viajar con amigos o colegas, la habitación Twin dispone de dos camas individuales separadas. Confort y convivencia se unen para estancias exitosas.',
-      twinSingleBed: '1 cama individual',
-      twinDoubleBed: '1 cama doble',
-      twinSpace: 'Espacio generoso',
-      twinFriends: 'Ideal para amigos',
-
-      tripleSubtitle: 'Para 2-3 personas',
-      tripleTitle: 'Habitación Confort Triple',
-      tripleText: 'Nuestra habitación Confort Triple ofrece todo el espacio necesario para alojar cómodamente hasta tres personas. Una solución flexible para grupos pequeños.',
-      tripleBeds: 'Hasta 3 camas',
-      tripleSpacious: 'Espaciosa',
-      tripleFlexible: 'Flexible',
-
-      familySubtitle: 'Para 3-5 personas',
-      familyTitle: 'Habitación Familiar',
-      familyText: 'Pensada para familias, esta espaciosa habitación puede alojar hasta 5 personas. Padres e hijos disfrutan de un confort óptimo para unas vacaciones tranquilas en Gironda.',
-      familyCapacity: 'Hasta 5 personas',
-      familyLarge: 'Gran superficie',
-      familyIdeal: 'Ideal para familias',
-
-      bathroomSubtitle: 'Baños',
-      bathroomTitle: 'Frescura y modernidad',
-      bathroomText: 'Cada habitación dispone de su propio baño privado, equipado con esmero para su comodidad. Espacios luminosos y funcionales para comenzar y terminar cada día en las mejores condiciones.',
-      bathroomShower: 'Ducha o bañera',
-      bathroomHairdryer: 'Secador de pelo',
-      bathroomAmenities: 'Artículos de aseo',
-      bathroomTowels: 'Toallas incluidas',
-
-      gallerySubtitle: 'Galería',
-      galleryTitle: 'Vista previa de nuestras habitaciones',
-      galleryDecor: 'Decoración única',
-      galleryDecorDesc: 'Cada habitación tiene su carácter',
-      galleryBathroom: 'Baño',
-      galleryBathroomDesc: 'Confort y limpieza',
-      galleryFamily: 'Espacio familiar',
-      galleryFamilyDesc: 'Para grandes y pequeños',
-
-      ctaTitle: 'Encuentre su habitación ideal',
-      ctaText: 'Reserve ahora para asegurar su estancia'
+      ctaText: 'Contáctenos para más información'
     },
 
     activities: {
@@ -964,7 +676,7 @@ const translations = {
       marketsDesc: 'Productos del terroir, quesos, embutidos y especialidades regionales cada semana.',
 
       ctaTitle: '¿Listo para la aventura?',
-      ctaText: 'Reserve su estancia y parta a descubrir la región bordelesa'
+      ctaText: 'Contáctenos para descubrir la región bordelesa'
     },
 
     contact: {
@@ -1014,8 +726,9 @@ const translations = {
       byBike: 'En bicicleta',
       byBikeDesc: 'Carriles bici desde Burdeos. Almacenamiento seguro de bicicletas disponible para nuestros clientes ciclistas.',
 
-      ctaTitle: '¿Listo para reservar?',
-      ctaText: 'Contáctenos directamente o reserve en línea'
+      ctaTitle: '¿Tiene preguntas?',
+      ctaText: 'No dude en contactarnos, nuestro equipo está a su servicio',
+      callUs: 'Llámenos'
     },
 
     footer: {
@@ -1027,7 +740,6 @@ const translations = {
     },
 
     common: {
-      bookNow: 'Reservar ahora',
       learnMore: 'Saber más',
       backToTop: 'Volver arriba'
     }
@@ -1038,10 +750,8 @@ const translations = {
     nav: {
       home: 'Home',
       services: 'Servizi',
-      rooms: 'Camere',
       discover: 'Da scoprire',
-      contact: 'Contatti',
-      book: 'Prenota'
+      contact: 'Contatti'
     },
 
     header: {
@@ -1052,8 +762,6 @@ const translations = {
       heroSubtitle: 'Benvenuti all\'Hôtel Corintel',
       heroTitle: 'Un\'oasi di pace<br>alle porte di Bordeaux',
       heroDescription: 'Scoprite il nostro affascinante hotel 3 stelle, immerso nella campagna bordolese, a pochi minuti da Bordeaux e Saint-Émilion.',
-      bookNow: 'Prenota ora',
-      discoverRooms: 'Scopri le nostre camere',
 
       introSubtitle: 'La nostra filosofia',
       introTitle: 'Un\'atmosfera calda e accogliente',
@@ -1077,18 +785,7 @@ const translations = {
       serviceParkingDesc: 'Parcheggio privato e sicuro offerto a tutti i nostri clienti per un soggiorno tranquillo.',
       discoverServices: 'Scopri tutti i nostri servizi',
 
-      roomsSubtitle: 'Le nostre camere',
-      roomsTitle: '32 camere uniche',
-      roomsDescription: 'Ogni camera ha un arredamento unico, creando un\'atmosfera accogliente, colorata e calorosa.',
-      roomComfort: 'Camera Comfort',
-      roomComfortDesc: 'Eleganza e tranquillità',
-      roomTwin: 'Camera Twin',
-      roomTwinDesc: 'Perfetta tra amici',
-      roomFamily: 'Camera Familiare',
-      roomFamilyDesc: 'Spazio per tutta la famiglia',
-      seeAllRooms: 'Vedi tutte le nostre camere',
-
-      ctaTitle: 'Prenotate la vostra fuga',
+      ctaTitle: 'Scoprite il nostro hotel',
       ctaText: 'Concedetevi un soggiorno rigenerante nel cuore della campagna bordolese'
     },
 
@@ -1153,86 +850,7 @@ const translations = {
       wifiDesc: 'Connessione internet ad alta velocità disponibile gratuitamente in tutta la struttura.',
 
       ctaTitle: 'Pronti per l\'esperienza Corintel?',
-      ctaText: 'Prenotate ora e godetevi tutti i nostri servizi'
-    },
-
-    rooms: {
-      heroSubtitle: 'Il vostro rifugio',
-      heroTitle: 'Le Nostre Camere',
-      heroDescription: '32 camere dal fascino unico',
-
-      introSubtitle: 'Comfort e spazio',
-      introTitle: 'Un nido accogliente e colorato',
-      introText: 'Comfort e spazio definiscono le 32 camere dell\'Hôtel Corintel di Tresses, Bordeaux Est. Ogni camera ha un arredamento unico, creando un\'atmosfera accogliente, colorata e calorosa — un vero nido dove è piacevole riposare dopo una giornata di scoperte nella regione bordolese.',
-
-      featureAC: 'Aria condizionata',
-      featureACDesc: 'Freschezza garantita in estate',
-      featureNonSmoking: 'Non fumatori',
-      featureNonSmokingDesc: 'Ambiente sano',
-      featureTV: 'Televisione',
-      featureTVDesc: 'Schermo piatto in ogni camera',
-      featureWifi: 'Wi-Fi gratuito',
-      featureWifiDesc: 'Connessione ad alta velocità',
-
-      typesSubtitle: 'Le nostre categorie',
-      typesTitle: 'Camere per tutti i viaggiatori',
-      typesDescription: 'Che viaggiate da soli, in coppia, con amici o in famiglia, abbiamo la camera ideale per voi.',
-
-      simpleSubtitle: 'Per 1 persona',
-      simpleTitle: 'Camera Comfort Singola',
-      simpleText: 'Ideale per viaggiatori singoli, la nostra camera Comfort Singola offre uno spazio ottimizzato e un letto confortevole per una notte riposante. Un rifugio perfetto dopo una giornata di lavoro o scoperte.',
-      simpleBed: '1 letto singolo',
-      simpleBathroom: 'Bagno privato',
-      simpleAC: 'Aria condizionata',
-
-      doubleSubtitle: 'Per 1-2 persone',
-      doubleTitle: 'Camera Comfort Doppia',
-      doubleText: 'La nostra camera Comfort con letto matrimoniale è perfetta per coppie o viaggiatori che apprezzano lo spazio. Arredata con gusto, offre un\'atmosfera romantica e rilassante.',
-      doubleBed: '1 letto matrimoniale',
-      doubleDesk: 'Scrivania',
-      doubleView: 'Vista sul giardino',
-
-      twinSubtitle: 'Per 3 persone',
-      twinTitle: 'Camera Comfort Twin',
-      twinText: 'Perfetta per viaggiare con amici o colleghi, la camera Twin dispone di due letti singoli separati. Comfort e convivialità si uniscono per soggiorni di successo.',
-      twinSingleBed: '1 letto singolo',
-      twinDoubleBed: '1 letto matrimoniale',
-      twinSpace: 'Spazio generoso',
-      twinFriends: 'Ideale tra amici',
-
-      tripleSubtitle: 'Per 2-3 persone',
-      tripleTitle: 'Camera Comfort Tripla',
-      tripleText: 'La nostra camera Comfort Tripla offre tutto lo spazio necessario per ospitare comodamente fino a tre persone. Una soluzione flessibile per piccoli gruppi.',
-      tripleBeds: 'Fino a 3 letti',
-      tripleSpacious: 'Spaziosa',
-      tripleFlexible: 'Flessibile',
-
-      familySubtitle: 'Per 3-5 persone',
-      familyTitle: 'Camera Familiare',
-      familyText: 'Pensata per le famiglie, questa spaziosa camera può ospitare fino a 5 persone. Genitori e bambini godono di un comfort ottimale per vacanze serene in Gironda.',
-      familyCapacity: 'Fino a 5 persone',
-      familyLarge: 'Grande superficie',
-      familyIdeal: 'Ideale per famiglie',
-
-      bathroomSubtitle: 'Bagni',
-      bathroomTitle: 'Freschezza e modernità',
-      bathroomText: 'Ogni camera dispone del proprio bagno privato, attrezzato con cura per il vostro comfort. Spazi luminosi e funzionali per iniziare e concludere ogni giornata nelle migliori condizioni.',
-      bathroomShower: 'Doccia o vasca',
-      bathroomHairdryer: 'Asciugacapelli',
-      bathroomAmenities: 'Set di cortesia',
-      bathroomTowels: 'Asciugamani forniti',
-
-      gallerySubtitle: 'Galleria',
-      galleryTitle: 'Anteprima delle nostre camere',
-      galleryDecor: 'Arredamento unico',
-      galleryDecorDesc: 'Ogni camera ha il suo carattere',
-      galleryBathroom: 'Bagno',
-      galleryBathroomDesc: 'Comfort e pulizia',
-      galleryFamily: 'Spazio famiglia',
-      galleryFamilyDesc: 'Per grandi e piccoli',
-
-      ctaTitle: 'Trovate la vostra camera ideale',
-      ctaText: 'Prenotate ora per assicurarvi il vostro soggiorno'
+      ctaText: 'Contattateci per maggiori informazioni'
     },
 
     activities: {
@@ -1294,7 +912,7 @@ const translations = {
       marketsDesc: 'Prodotti del territorio, formaggi, salumi e specialità regionali ogni settimana.',
 
       ctaTitle: 'Pronti per l\'avventura?',
-      ctaText: 'Prenotate il vostro soggiorno e partite alla scoperta della regione bordolese'
+      ctaText: 'Contattateci per scoprire la regione bordolese'
     },
 
     contact: {
@@ -1344,8 +962,9 @@ const translations = {
       byBike: 'In bicicletta',
       byBikeDesc: 'Piste ciclabili da Bordeaux. Deposito bici sicuro disponibile per i nostri clienti ciclisti.',
 
-      ctaTitle: 'Pronti a prenotare?',
-      ctaText: 'Contattateci direttamente o prenotate online'
+      ctaTitle: 'Avete domande?',
+      ctaText: 'Non esitate a contattarci, il nostro team è a vostra disposizione',
+      callUs: 'Chiamateci'
     },
 
     footer: {
@@ -1357,7 +976,6 @@ const translations = {
     },
 
     common: {
-      bookNow: 'Prenota ora',
       learnMore: 'Scopri di più',
       backToTop: 'Torna su'
     }

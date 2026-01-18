@@ -31,9 +31,6 @@ $heroSlide1 = $useDatabase ? getImg($images, 1, 'images/acceuil/plan-large3.png'
 $heroSlide2 = $useDatabase ? getImg($images, 2, 'images/resto/restaurant-hotel-bordeaux-1.jpg') : 'images/resto/restaurant-hotel-bordeaux-1.jpg';
 $heroSlide3 = $useDatabase ? getImg($images, 3, 'images/acceuil/bar.jpg') : 'images/acceuil/bar.jpg';
 $introImage = $useDatabase ? getImg($images, 4, 'images/acceuil/entree-hotel.jpeg') : 'images/acceuil/entree-hotel.jpeg';
-$roomPreview1 = $useDatabase ? getImg($images, 8, 'images/chambres/chambre1.jpg') : 'images/chambres/chambre1.jpg';
-$roomPreview2 = $useDatabase ? getImg($images, 9, 'images/chambres/confort-twin.jpg') : 'images/chambres/confort-twin.jpg';
-$roomPreview3 = $useDatabase ? getImg($images, 10, 'images/chambres/famille-2-adultes-2-enfants.jpg') : 'images/chambres/famille-2-adultes-2-enfants.jpg';
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -64,10 +61,8 @@ $roomPreview3 = $useDatabase ? getImg($images, 10, 'images/chambres/famille-2-ad
       <nav class="nav-menu" id="navMenu">
         <a href="index.php" class="nav-link active" data-i18n="nav.home">Accueil</a>
         <a href="services.php" class="nav-link" data-i18n="nav.services">Services</a>
-        <a href="chambres.php" class="nav-link" data-i18n="nav.rooms">Chambres</a>
         <a href="activites.php" class="nav-link" data-i18n="nav.discover">À découvrir</a>
         <a href="contact.php" class="nav-link" data-i18n="nav.contact">Contact</a>
-        <a href="https://www.booking.com/hotel/fr/corintel.fr.html?aid=311089&label=corintel-O0VnbWaGZNr8nXbaU172TQS625028973267%3Apl%3Ata%3Ap1%3Ap2%3Aac%3Aap%3Aneg%3Afi%3Atikwd-924823501370%3Alp9055050%3Ali%3Adec%3Adm%3Appccp%3DUmFuZG9tSVYkc2RlIyh9YVujEjbMrKBV7ahOy8HtCLg&sid=2bd2846f5430642ffc2dfefa4e617e28&dest_id=-1473710&dest_type=city&dist=0&group_adults=2&group_children=0&hapos=1&hpos=1&no_rooms=1&req_adults=2&req_children=0&room1=A%2CA&sb_price_type=total&sr_order=popularity&srepoch=1766942847&srpvid=7a705f51b38eb96dd0ea283227969889&type=total&ucfs=1&" class="btn-book" data-i18n="nav.book">Réserver</a>
       </nav>
       <div class="menu-toggle" id="menuToggle">
         <span></span>
@@ -101,8 +96,8 @@ $roomPreview3 = $useDatabase ? getImg($images, 10, 'images/chambres/famille-2-ad
         à quelques minutes de Bordeaux et Saint-Émilion.
       </p>
       <div class="hero-buttons">
-        <a href="https://www.booking.com/hotel/fr/corintel.fr.html?aid=311089&label=corintel-O0VnbWaGZNr8nXbaU172TQS625028973267%3Apl%3Ata%3Ap1%3Ap2%3Aac%3Aap%3Aneg%3Afi%3Atikwd-924823501370%3Alp9055050%3Ali%3Adec%3Adm%3Appccp%3DUmFuZG9tSVYkc2RlIyh9YVujEjbMrKBV7ahOy8HtCLg&sid=2bd2846f5430642ffc2dfefa4e617e28&dest_id=-1473710&dest_type=city&dist=0&group_adults=2&group_children=0&hapos=1&hpos=1&no_rooms=1&req_adults=2&req_children=0&room1=A%2CA&sb_price_type=total&sr_order=popularity&srepoch=1766942847&srpvid=7a705f51b38eb96dd0ea283227969889&type=total&ucfs=1&" class="btn btn-primary" data-i18n="home.bookNow">Réserver maintenant</a>
-        <a href="chambres.php" class="btn btn-outline" data-i18n="home.discoverRooms">Découvrir nos chambres</a>
+        <a href="services.php" class="btn btn-primary" data-i18n="home.discoverServices">Découvrir nos services</a>
+        <a href="contact.php" class="btn btn-outline" data-i18n="nav.contact">Contact</a>
       </div>
     </div>
     <div class="carousel-nav" id="carouselNav">
@@ -227,52 +222,12 @@ $roomPreview3 = $useDatabase ? getImg($images, 10, 'images/chambres/famille-2-ad
     </div>
   </section>
 
-  <!-- Rooms Preview Section -->
-  <section class="section section-light">
-    <div class="container">
-      <div class="section-header">
-        <p class="section-subtitle" data-i18n="home.roomsSubtitle">Nos chambres</p>
-        <h2 class="section-title" data-i18n="home.roomsTitle">32 chambres uniques</h2>
-        <p class="section-description" data-i18n="home.roomsDescription">
-          Chaque chambre possède une décoration unique, créant une atmosphère
-          douillette, colorée et accueillante.
-        </p>
-      </div>
-      <div class="rooms-gallery">
-        <div class="room-card">
-          <img src="<?= htmlspecialchars($roomPreview1) ?>" alt="Chambre confort de l'Hôtel Corintel">
-          <div class="room-card-overlay">
-            <h4 data-i18n="home.roomComfort">Chambre Confort</h4>
-            <p data-i18n="home.roomComfortDesc">Élégance et tranquillité</p>
-          </div>
-        </div>
-        <div class="room-card">
-          <img src="<?= htmlspecialchars($roomPreview2) ?>" alt="Chambre twin de l'Hôtel Corintel">
-          <div class="room-card-overlay">
-            <h4 data-i18n="home.roomTwin">Chambre Twin</h4>
-            <p data-i18n="home.roomTwinDesc">Parfaite entre amis</p>
-          </div>
-        </div>
-        <div class="room-card">
-          <img src="<?= htmlspecialchars($roomPreview3) ?>" alt="Chambre familiale de l'Hôtel Corintel">
-          <div class="room-card-overlay">
-            <h4 data-i18n="home.roomFamily">Chambre Familiale</h4>
-            <p data-i18n="home.roomFamilyDesc">Espace pour toute la famille</p>
-          </div>
-        </div>
-      </div>
-      <div style="text-align: center; margin-top: 3rem;">
-        <a href="chambres.php" class="btn btn-primary" data-i18n="home.seeAllRooms">Voir toutes nos chambres</a>
-      </div>
-    </div>
-  </section>
-
   <!-- CTA Section -->
   <section class="cta-section">
     <div class="container">
-      <h2 data-i18n="home.ctaTitle">Réservez votre escapade</h2>
+      <h2 data-i18n="home.ctaTitle">Découvrez notre hôtel</h2>
       <p data-i18n="home.ctaText">Offrez-vous un séjour ressourçant au cœur de la campagne bordelaise</p>
-      <a href="https://www.booking.com/hotel/fr/corintel.fr.html?aid=311089&label=corintel-O0VnbWaGZNr8nXbaU172TQS625028973267%3Apl%3Ata%3Ap1%3Ap2%3Aac%3Aap%3Aneg%3Afi%3Atikwd-924823501370%3Alp9055050%3Ali%3Adec%3Adm%3Appccp%3DUmFuZG9tSVYkc2RlIyh9YVujEjbMrKBV7ahOy8HtCLg&sid=2bd2846f5430642ffc2dfefa4e617e28&dest_id=-1473710&dest_type=city&dist=0&group_adults=2&group_children=0&hapos=1&hpos=1&no_rooms=1&req_adults=2&req_children=0&room1=A%2CA&sb_price_type=total&sr_order=popularity&srepoch=1766942847&srpvid=7a705f51b38eb96dd0ea283227969889&type=total&ucfs=1&" class="btn btn-primary" data-i18n="common.bookNow">Réserver maintenant</a>
+      <a href="contact.php" class="btn btn-primary" data-i18n="nav.contact">Nous contacter</a>
     </div>
   </section>
 
@@ -292,7 +247,6 @@ $roomPreview3 = $useDatabase ? getImg($images, 10, 'images/chambres/famille-2-ad
           <ul class="footer-links">
             <li><a href="index.php" data-i18n="nav.home">Accueil</a></li>
             <li><a href="services.php" data-i18n="nav.services">Services</a></li>
-            <li><a href="chambres.php" data-i18n="nav.rooms">Chambres</a></li>
             <li><a href="activites.php" data-i18n="nav.discover">À découvrir</a></li>
             <li><a href="contact.php" data-i18n="nav.contact">Contact</a></li>
           </ul>
