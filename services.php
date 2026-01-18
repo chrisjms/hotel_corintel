@@ -1,3 +1,43 @@
+<?php
+/**
+ * Services Page - Hôtel Corintel
+ * Dynamic image loading from database
+ */
+
+// Initialize database images
+$useDatabase = false;
+$images = [];
+
+try {
+    require_once __DIR__ . '/includes/images-helper.php';
+    $images = sectionImages('services');
+    $useDatabase = !empty($images);
+} catch (Exception $e) {
+    // Database unavailable, use fallback images
+}
+
+/**
+ * Get image URL by position, with fallback
+ */
+function getImg($images, $position, $fallback) {
+    foreach ($images as $img) {
+        if ($img['position'] == $position) {
+            return $img['filename'];
+        }
+    }
+    return $fallback;
+}
+
+// Define image variables with fallbacks
+$heroImage = $useDatabase ? getImg($images, 1, 'images/resto/restaurant-hotel-bordeaux-1.jpg') : 'images/resto/restaurant-hotel-bordeaux-1.jpg';
+$restaurantImage = $useDatabase ? getImg($images, 2, 'images/resto/petit_dej.jpg') : 'images/resto/petit_dej.jpg';
+$galleryImage1 = $useDatabase ? getImg($images, 3, 'images/resto/restaurant-hotel-tresses-1.jpg') : 'images/resto/restaurant-hotel-tresses-1.jpg';
+$galleryImage2 = $useDatabase ? getImg($images, 4, 'images/resto/restaurant-hotel-tresses-2.jpg') : 'images/resto/restaurant-hotel-tresses-2.jpg';
+$galleryImage3 = $useDatabase ? getImg($images, 5, 'images/resto/property-amenity.jpg') : 'images/resto/property-amenity.jpg';
+$barImage = $useDatabase ? getImg($images, 6, 'images/acceuil/bar.jpg') : 'images/acceuil/bar.jpg';
+$boulodromeImage = $useDatabase ? getImg($images, 7, 'images/acceuil/boulodrome.jpg') : 'images/acceuil/boulodrome.jpg';
+$parkingImage = $useDatabase ? getImg($images, 8, 'images/parking/hotel-bordeaux-parking.jpg') : 'images/parking/hotel-bordeaux-parking.jpg';
+?>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -15,7 +55,7 @@
   <!-- Header -->
   <header class="header" id="header">
     <div class="container">
-      <a href="index.html" class="logo">
+      <a href="index.php" class="logo">
         <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
           <path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6M9 9h.01M15 9h.01M9 13h.01M15 13h.01"/>
         </svg>
@@ -25,11 +65,11 @@
         </div>
       </a>
       <nav class="nav-menu" id="navMenu">
-        <a href="index.html" class="nav-link" data-i18n="nav.home">Accueil</a>
-        <a href="services.html" class="nav-link active" data-i18n="nav.services">Services</a>
-        <a href="chambres.html" class="nav-link" data-i18n="nav.rooms">Chambres</a>
-        <a href="activites.html" class="nav-link" data-i18n="nav.discover">À découvrir</a>
-        <a href="contact.html" class="nav-link" data-i18n="nav.contact">Contact</a>
+        <a href="index.php" class="nav-link" data-i18n="nav.home">Accueil</a>
+        <a href="services.php" class="nav-link active" data-i18n="nav.services">Services</a>
+        <a href="chambres.php" class="nav-link" data-i18n="nav.rooms">Chambres</a>
+        <a href="activites.php" class="nav-link" data-i18n="nav.discover">À découvrir</a>
+        <a href="contact.php" class="nav-link" data-i18n="nav.contact">Contact</a>
         <a href="https://www.booking.com/hotel/fr/corintel.fr.html?aid=311089&label=corintel-O0VnbWaGZNr8nXbaU172TQS625028973267%3Apl%3Ata%3Ap1%3Ap2%3Aac%3Aap%3Aneg%3Afi%3Atikwd-924823501370%3Alp9055050%3Ali%3Adec%3Adm%3Appccp%3DUmFuZG9tSVYkc2RlIyh9YVujEjbMrKBV7ahOy8HtCLg&sid=2bd2846f5430642ffc2dfefa4e617e28&dest_id=-1473710&dest_type=city&dist=0&group_adults=2&group_children=0&hapos=1&hpos=1&no_rooms=1&req_adults=2&req_children=0&room1=A%2CA&sb_price_type=total&sr_order=popularity&srepoch=1766942847&srpvid=7a705f51b38eb96dd0ea283227969889&type=total&ucfs=1&" class="btn-book" data-i18n="nav.book">Réserver</a>
       </nav>
       <div class="menu-toggle" id="menuToggle">
@@ -41,7 +81,7 @@
   </header>
 
   <!-- Page Hero -->
-  <section class="page-hero" style="background-image: url('images/resto/restaurant-hotel-bordeaux-1.jpg');">
+  <section class="page-hero" style="background-image: url('<?= htmlspecialchars($heroImage) ?>');">
     <div class="page-hero-content">
       <p class="hero-subtitle" data-i18n="services.heroSubtitle">L'Hôtel Corintel</p>
       <h1 class="page-hero-title" data-i18n="services.heroTitle">Nos Services</h1>
@@ -69,7 +109,7 @@
     <div class="container">
       <div class="service-detail">
         <div class="service-detail-image">
-          <img src="images/resto/petit_dej.jpg" alt="Petit-déjeuner au restaurant de l'Hôtel Corintel">
+          <img src="<?= htmlspecialchars($restaurantImage) ?>" alt="Petit-déjeuner au restaurant de l'Hôtel Corintel">
         </div>
         <div class="service-detail-content">
           <p class="section-subtitle" data-i18n="services.restaurantSubtitle">Restauration</p>
@@ -120,21 +160,21 @@
     <div class="container">
       <div class="rooms-gallery">
         <div class="room-card">
-          <img src="images/resto/restaurant-hotel-tresses-1.jpg" alt="Salle du restaurant">
+          <img src="<?= htmlspecialchars($galleryImage1) ?>" alt="Salle du restaurant">
           <div class="room-card-overlay">
             <h4 data-i18n="services.galleryRoom">Salle du restaurant</h4>
             <p data-i18n="services.galleryRoomDesc">Ambiance chaleureuse</p>
           </div>
         </div>
         <div class="room-card">
-          <img src="images/resto/restaurant-hotel-tresses-2.jpg" alt="Décoration du restaurant">
+          <img src="<?= htmlspecialchars($galleryImage2) ?>" alt="Décoration du restaurant">
           <div class="room-card-overlay">
             <h4 data-i18n="services.galleryDecor">Décoration soignée</h4>
             <p data-i18n="services.galleryDecorDesc">Charme authentique</p>
           </div>
         </div>
         <div class="room-card">
-          <img src="images/resto/property-amenity.jpg" alt="Service du restaurant">
+          <img src="<?= htmlspecialchars($galleryImage3) ?>" alt="Service du restaurant">
           <div class="room-card-overlay">
             <h4 data-i18n="services.galleryService">Service attentionné</h4>
             <p data-i18n="services.galleryServiceDesc">À votre écoute</p>
@@ -183,7 +223,7 @@
           </div>
         </div>
         <div class="service-detail-image">
-          <img src="images/acceuil/bar.jpg" alt="Bar de l'Hôtel Corintel">
+          <img src="<?= htmlspecialchars($barImage) ?>" alt="Bar de l'Hôtel Corintel">
         </div>
       </div>
     </div>
@@ -194,7 +234,7 @@
     <div class="container">
       <div class="service-detail">
         <div class="service-detail-image">
-          <img src="images/acceuil/boulodrome.jpg" alt="Espace extérieur de l'Hôtel Corintel">
+          <img src="<?= htmlspecialchars($boulodromeImage) ?>" alt="Espace extérieur de l'Hôtel Corintel">
         </div>
         <div class="service-detail-content">
           <p class="section-subtitle" data-i18n="services.boulodromeSubtitle">Loisirs</p>
@@ -272,7 +312,7 @@
           </div>
         </div>
         <div class="service-detail-image">
-          <img src="images/parking/hotel-bordeaux-parking.jpg" alt="Parking de l'Hôtel Corintel">
+          <img src="<?= htmlspecialchars($parkingImage) ?>" alt="Parking de l'Hôtel Corintel">
         </div>
       </div>
     </div>
@@ -362,20 +402,20 @@
         <div class="footer-nav">
           <h4 class="footer-title" data-i18n="footer.navigation">Navigation</h4>
           <ul class="footer-links">
-            <li><a href="index.html" data-i18n="nav.home">Accueil</a></li>
-            <li><a href="services.html" data-i18n="nav.services">Services</a></li>
-            <li><a href="chambres.html" data-i18n="nav.rooms">Chambres</a></li>
-            <li><a href="activites.html" data-i18n="nav.discover">À découvrir</a></li>
-            <li><a href="contact.html" data-i18n="nav.contact">Contact</a></li>
+            <li><a href="index.php" data-i18n="nav.home">Accueil</a></li>
+            <li><a href="services.php" data-i18n="nav.services">Services</a></li>
+            <li><a href="chambres.php" data-i18n="nav.rooms">Chambres</a></li>
+            <li><a href="activites.php" data-i18n="nav.discover">À découvrir</a></li>
+            <li><a href="contact.php" data-i18n="nav.contact">Contact</a></li>
           </ul>
         </div>
         <div class="footer-nav">
           <h4 class="footer-title" data-i18n="footer.services">Services</h4>
           <ul class="footer-links">
-            <li><a href="services.html#restaurant">Restaurant</a></li>
-            <li><a href="services.html#bar">Bar</a></li>
-            <li><a href="services.html#boulodrome">Boulodrome</a></li>
-            <li><a href="services.html#parking">Parking</a></li>
+            <li><a href="services.php#restaurant">Restaurant</a></li>
+            <li><a href="services.php#bar">Bar</a></li>
+            <li><a href="services.php#boulodrome">Boulodrome</a></li>
+            <li><a href="services.php#parking">Parking</a></li>
           </ul>
         </div>
         <div class="footer-contact">

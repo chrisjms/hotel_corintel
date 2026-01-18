@@ -1,3 +1,43 @@
+<?php
+/**
+ * Activities Page - Hôtel Corintel
+ * Dynamic image loading from database
+ */
+
+// Initialize database images
+$useDatabase = false;
+$images = [];
+
+try {
+    require_once __DIR__ . '/includes/images-helper.php';
+    $images = sectionImages('activities');
+    $useDatabase = !empty($images);
+} catch (Exception $e) {
+    // Database unavailable, use fallback images
+}
+
+/**
+ * Get image URL by position, with fallback
+ */
+function getImg($images, $position, $fallback) {
+    foreach ($images as $img) {
+        if ($img['position'] == $position) {
+            return $img['filename'];
+        }
+    }
+    return $fallback;
+}
+
+// Define image variables with fallbacks
+$heroImage = $useDatabase ? getImg($images, 1, 'images/acceuil/plan_large.jpg') : 'images/acceuil/plan_large.jpg';
+$bordeauxImage = $useDatabase ? getImg($images, 2, 'images/acceuil/plan_large-2.png') : 'images/acceuil/plan_large-2.png';
+$saintEmilionImage = $useDatabase ? getImg($images, 3, 'images/resto/21968112.jpg') : 'images/resto/21968112.jpg';
+$tastingImage = $useDatabase ? getImg($images, 4, 'images/resto/property-amenity-2.jpg') : 'images/resto/property-amenity-2.jpg';
+$cellarsImage = $useDatabase ? getImg($images, 5, 'images/resto/restaurant-hotel-tresses-3.jpg') : 'images/resto/restaurant-hotel-tresses-3.jpg';
+$walksImage = $useDatabase ? getImg($images, 6, 'images/resto/barlounge.jpg') : 'images/resto/barlounge.jpg';
+$gastronomyImage = $useDatabase ? getImg($images, 7, 'images/acceuil/1759071986_IMG_2108.jpeg') : 'images/acceuil/1759071986_IMG_2108.jpeg';
+$countrysideImage = $useDatabase ? getImg($images, 8, 'images/acceuil/bar.jpg') : 'images/acceuil/bar.jpg';
+?>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -15,7 +55,7 @@
   <!-- Header -->
   <header class="header" id="header">
     <div class="container">
-      <a href="index.html" class="logo">
+      <a href="index.php" class="logo">
         <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
           <path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6M9 9h.01M15 9h.01M9 13h.01M15 13h.01"/>
         </svg>
@@ -25,11 +65,11 @@
         </div>
       </a>
       <nav class="nav-menu" id="navMenu">
-        <a href="index.html" class="nav-link" data-i18n="nav.home">Accueil</a>
-        <a href="services.html" class="nav-link" data-i18n="nav.services">Services</a>
-        <a href="chambres.html" class="nav-link" data-i18n="nav.rooms">Chambres</a>
-        <a href="activites.html" class="nav-link active" data-i18n="nav.activities">À découvrir</a>
-        <a href="contact.html" class="nav-link" data-i18n="nav.contact">Contact</a>
+        <a href="index.php" class="nav-link" data-i18n="nav.home">Accueil</a>
+        <a href="services.php" class="nav-link" data-i18n="nav.services">Services</a>
+        <a href="chambres.php" class="nav-link" data-i18n="nav.rooms">Chambres</a>
+        <a href="activites.php" class="nav-link active" data-i18n="nav.activities">À découvrir</a>
+        <a href="contact.php" class="nav-link" data-i18n="nav.contact">Contact</a>
         <a href="https://www.booking.com/hotel/fr/corintel.fr.html?aid=311089&label=corintel-O0VnbWaGZNr8nXbaU172TQS625028973267%3Apl%3Ata%3Ap1%3Ap2%3Aac%3Aap%3Aneg%3Afi%3Atikwd-924823501370%3Alp9055050%3Ali%3Adec%3Adm%3Appccp%3DUmFuZG9tSVYkc2RlIyh9YVujEjbMrKBV7ahOy8HtCLg&sid=2bd2846f5430642ffc2dfefa4e617e28&dest_id=-1473710&dest_type=city&dist=0&group_adults=2&group_children=0&hapos=1&hpos=1&no_rooms=1&req_adults=2&req_children=0&room1=A%2CA&sb_price_type=total&sr_order=popularity&srepoch=1766942847&srpvid=7a705f51b38eb96dd0ea283227969889&type=total&ucfs=1&" class="btn-book" data-i18n="nav.book">Réserver</a>
       </nav>
       <div class="menu-toggle" id="menuToggle">
@@ -41,7 +81,7 @@
   </header>
 
   <!-- Page Hero -->
-  <section class="page-hero" style="background-image: url('images/acceuil/plan_large.jpg');">
+  <section class="page-hero" style="background-image: url('<?= htmlspecialchars($heroImage) ?>');">
     <div class="page-hero-content">
       <p class="hero-subtitle" data-i18n="activities.heroSubtitle">Explorez la région</p>
       <h1 class="page-hero-title" data-i18n="activities.heroTitle">À Découvrir</h1>
@@ -69,7 +109,7 @@
     <div class="container">
       <div class="service-detail">
         <div class="service-detail-image">
-          <img src="images/acceuil/plan_large-2.png" alt="Vue de Saint-Emilion">
+          <img src="<?= htmlspecialchars($bordeauxImage) ?>" alt="Vue de Saint-Emilion">
         </div>
         <div class="service-detail-content">
           <p class="section-subtitle" data-i18n="activities.bordeauxSubtitle">Patrimoine mondial UNESCO</p>
@@ -153,7 +193,7 @@
           </div>
         </div>
         <div class="service-detail-image">
-          <img src="images/resto/21968112.jpg" alt="Vignobles de la région bordelaise">
+          <img src="<?= htmlspecialchars($saintEmilionImage) ?>" alt="Vignobles de la région bordelaise">
         </div>
       </div>
     </div>
@@ -173,7 +213,7 @@
 
       <div class="activities-grid">
         <div class="activity-card">
-          <img src="images/resto/property-amenity-2.jpg" alt="Dégustation de vins">
+          <img src="<?= htmlspecialchars($tastingImage) ?>" alt="Dégustation de vins">
           <div class="activity-card-content">
             <h3 data-i18n="activities.tastingTitle">Dégustations</h3>
             <p data-i18n="activities.tastingDesc">
@@ -184,7 +224,7 @@
           </div>
         </div>
         <div class="activity-card">
-          <img src="images/resto/restaurant-hotel-tresses-3.jpg" alt="Visite de cave">
+          <img src="<?= htmlspecialchars($cellarsImage) ?>" alt="Visite de cave">
           <div class="activity-card-content">
             <h3 data-i18n="activities.cellarsTitle">Visites de caves</h3>
             <p data-i18n="activities.cellarsDesc">
@@ -195,7 +235,7 @@
           </div>
         </div>
         <div class="activity-card">
-          <img src="images/resto/barlounge.jpg" alt="Balades dans les vignes">
+          <img src="<?= htmlspecialchars($walksImage) ?>" alt="Balades dans les vignes">
           <div class="activity-card-content">
             <h3 data-i18n="activities.walksTitle">Balades dans les vignes</h3>
             <p data-i18n="activities.walksDesc">
@@ -206,7 +246,7 @@
           </div>
         </div>
         <div class="activity-card">
-          <img src="images/acceuil/1759071986_IMG_2108.jpeg" alt="Gastronomie locale">
+          <img src="<?= htmlspecialchars($gastronomyImage) ?>" alt="Gastronomie locale">
           <div class="activity-card-content">
             <h3 data-i18n="activities.gastronomyTitle">Gastronomie locale</h3>
             <p data-i18n="activities.gastronomyDesc">
@@ -225,7 +265,7 @@
     <div class="container">
       <div class="intro-grid">
         <div class="intro-image">
-          <img src="images/acceuil/bar.jpg" alt="Ambiance campagne bordelaise">
+          <img src="<?= htmlspecialchars($countrysideImage) ?>" alt="Ambiance campagne bordelaise">
         </div>
         <div class="intro-content">
           <p class="section-subtitle" data-i18n="activities.countrysideSubtitle">Nature & détente</p>
@@ -346,20 +386,20 @@
         <div class="footer-nav">
           <h4 class="footer-title" data-i18n="footer.navigation">Navigation</h4>
           <ul class="footer-links">
-            <li><a href="index.html" data-i18n="nav.home">Accueil</a></li>
-            <li><a href="services.html" data-i18n="nav.services">Services</a></li>
-            <li><a href="chambres.html" data-i18n="nav.rooms">Chambres</a></li>
-            <li><a href="activites.html" data-i18n="nav.activities">À découvrir</a></li>
-            <li><a href="contact.html" data-i18n="nav.contact">Contact</a></li>
+            <li><a href="index.php" data-i18n="nav.home">Accueil</a></li>
+            <li><a href="services.php" data-i18n="nav.services">Services</a></li>
+            <li><a href="chambres.php" data-i18n="nav.rooms">Chambres</a></li>
+            <li><a href="activites.php" data-i18n="nav.activities">À découvrir</a></li>
+            <li><a href="contact.php" data-i18n="nav.contact">Contact</a></li>
           </ul>
         </div>
         <div class="footer-nav">
           <h4 class="footer-title" data-i18n="footer.services">Services</h4>
           <ul class="footer-links">
-            <li><a href="services.html#restaurant" data-i18n="footer.restaurant">Restaurant</a></li>
-            <li><a href="services.html#bar" data-i18n="footer.bar">Bar</a></li>
-            <li><a href="services.html#boulodrome" data-i18n="footer.boulodrome">Boulodrome</a></li>
-            <li><a href="services.html#parking" data-i18n="footer.parking">Parking</a></li>
+            <li><a href="services.php#restaurant" data-i18n="footer.restaurant">Restaurant</a></li>
+            <li><a href="services.php#bar" data-i18n="footer.bar">Bar</a></li>
+            <li><a href="services.php#boulodrome" data-i18n="footer.boulodrome">Boulodrome</a></li>
+            <li><a href="services.php#parking" data-i18n="footer.parking">Parking</a></li>
           </ul>
         </div>
         <div class="footer-contact">
