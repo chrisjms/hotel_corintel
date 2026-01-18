@@ -1,3 +1,36 @@
+<?php
+/**
+ * Contact Page - Hôtel Corintel
+ * Dynamic image loading from database
+ */
+
+// Initialize database images
+$useDatabase = false;
+$images = [];
+
+try {
+    require_once __DIR__ . '/includes/images-helper.php';
+    $images = sectionImages('contact');
+    $useDatabase = !empty($images);
+} catch (Exception $e) {
+    // Database unavailable, use fallback images
+}
+
+/**
+ * Get image URL by position, with fallback
+ */
+function getImg($images, $position, $fallback) {
+    foreach ($images as $img) {
+        if ($img['position'] == $position) {
+            return $img['filename'];
+        }
+    }
+    return $fallback;
+}
+
+// Define image variables with fallbacks
+$heroImage = $useDatabase ? getImg($images, 1, 'images/acceuil/dehors_nuit.jpg') : 'images/acceuil/dehors_nuit.jpg';
+?>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -15,7 +48,7 @@
   <!-- Header -->
   <header class="header" id="header">
     <div class="container">
-      <a href="index.html" class="logo">
+      <a href="index.php" class="logo">
         <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
           <path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6M9 9h.01M15 9h.01M9 13h.01M15 13h.01"/>
         </svg>
@@ -25,11 +58,11 @@
         </div>
       </a>
       <nav class="nav-menu" id="navMenu">
-        <a href="index.html" class="nav-link" data-i18n="nav.home">Accueil</a>
-        <a href="services.html" class="nav-link" data-i18n="nav.services">Services</a>
-        <a href="chambres.html" class="nav-link" data-i18n="nav.rooms">Chambres</a>
-        <a href="activites.html" class="nav-link" data-i18n="nav.activities">À découvrir</a>
-        <a href="contact.html" class="nav-link active" data-i18n="nav.contact">Contact</a>
+        <a href="index.php" class="nav-link" data-i18n="nav.home">Accueil</a>
+        <a href="services.php" class="nav-link" data-i18n="nav.services">Services</a>
+        <a href="chambres.php" class="nav-link" data-i18n="nav.rooms">Chambres</a>
+        <a href="activites.php" class="nav-link" data-i18n="nav.activities">À découvrir</a>
+        <a href="contact.php" class="nav-link active" data-i18n="nav.contact">Contact</a>
         <a href="https://www.booking.com/hotel/fr/corintel.fr.html?aid=311089&label=corintel-O0VnbWaGZNr8nXbaU172TQS625028973267%3Apl%3Ata%3Ap1%3Ap2%3Aac%3Aap%3Aneg%3Afi%3Atikwd-924823501370%3Alp9055050%3Ali%3Adec%3Adm%3Appccp%3DUmFuZG9tSVYkc2RlIyh9YVujEjbMrKBV7ahOy8HtCLg&sid=2bd2846f5430642ffc2dfefa4e617e28&dest_id=-1473710&dest_type=city&dist=0&group_adults=2&group_children=0&hapos=1&hpos=1&no_rooms=1&req_adults=2&req_children=0&room1=A%2CA&sb_price_type=total&sr_order=popularity&srepoch=1766942847&srpvid=7a705f51b38eb96dd0ea283227969889&type=total&ucfs=1&" class="btn-book" data-i18n="nav.book">Réserver</a>
       </nav>
       <div class="menu-toggle" id="menuToggle">
@@ -41,7 +74,7 @@
   </header>
 
   <!-- Page Hero -->
-  <section class="page-hero" style="background-image: url('images/acceuil/dehors_nuit.jpg');">
+  <section class="page-hero" style="background-image: url('<?= htmlspecialchars($heroImage) ?>');">
     <div class="page-hero-content">
       <p class="hero-subtitle" data-i18n="contact.heroSubtitle">Nous contacter</p>
       <h1 class="page-hero-title" data-i18n="contact.heroTitle">Contact</h1>
@@ -76,8 +109,8 @@
                 <h4 data-i18n="contact.addressLabel">Adresse</h4>
                 <p>
                   Hôtel Corintel<br>
-                  Tresses, Bordeaux Est<br>
-                  33370 Gironde, France
+                  14 Avenue du Périgord<br>
+                  33370 TRESSES, France
                 </p>
               </div>
             </div>
@@ -87,7 +120,7 @@
               </svg>
               <div class="contact-item-text">
                 <h4 data-i18n="contact.phoneLabel">Téléphone</h4>
-                <p><a href="tel:+33556789012">+33 5 56 78 90 12</a></p>
+                <p><a href="tel:+33557341395">+33 5 57 34 13 95</a></p>
               </div>
             </div>
             <div class="contact-item">
@@ -119,7 +152,7 @@
           <h3 data-i18n="contact.findUs">Nous trouver</h3>
           <div class="contact-map">
             <iframe
-              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d45257.87474670947!2d-0.5!3d44.85!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0xd5527c2be4e47ed%3A0x40665174817a4b0!2sTresses!5e0!3m2!1sfr!2sfr!4v1704000000000!5m2!1sfr!2sfr"
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2829.8!2d-0.4833!3d44.8556!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zNDTCsDUxJzIwLjIiTiAwwrAyOScwMC4wIlc!5e0!3m2!1sfr!2sfr!4v1704000000000!5m2!1sfr!2sfr"
               allowfullscreen=""
               loading="lazy"
               referrerpolicy="no-referrer-when-downgrade"
@@ -237,7 +270,7 @@
     <div class="container">
       <h2 data-i18n="contact.ctaTitle">Prêt à réserver ?</h2>
       <p data-i18n="contact.ctaText">Contactez-nous directement ou réservez en ligne</p>
-      <a href="#reservation" class="btn btn-primary" data-i18n="common.bookNow">Réserver maintenant</a>
+      <a href="https://www.booking.com/hotel/fr/corintel.fr.html?aid=311089&label=corintel-O0VnbWaGZNr8nXbaU172TQS625028973267%3Apl%3Ata%3Ap1%3Ap2%3Aac%3Aap%3Aneg%3Afi%3Atikwd-924823501370%3Alp9055050%3Ali%3Adec%3Adm%3Appccp%3DUmFuZG9tSVYkc2RlIyh9YVujEjbMrKBV7ahOy8HtCLg&sid=2bd2846f5430642ffc2dfefa4e617e28&dest_id=-1473710&dest_type=city&dist=0&group_adults=2&group_children=0&hapos=1&hpos=1&no_rooms=1&req_adults=2&req_children=0&room1=A%2CA&sb_price_type=total&sr_order=popularity&srepoch=1766942847&srpvid=7a705f51b38eb96dd0ea283227969889&type=total&ucfs=1&" class="btn btn-primary" data-i18n="common.bookNow">Réserver maintenant</a>
     </div>
   </section>
 
@@ -255,20 +288,20 @@
         <div class="footer-nav">
           <h4 class="footer-title" data-i18n="footer.navigation">Navigation</h4>
           <ul class="footer-links">
-            <li><a href="index.html" data-i18n="nav.home">Accueil</a></li>
-            <li><a href="services.html" data-i18n="nav.services">Services</a></li>
-            <li><a href="chambres.html" data-i18n="nav.rooms">Chambres</a></li>
-            <li><a href="activites.html" data-i18n="nav.activities">À découvrir</a></li>
-            <li><a href="contact.html" data-i18n="nav.contact">Contact</a></li>
+            <li><a href="index.php" data-i18n="nav.home">Accueil</a></li>
+            <li><a href="services.php" data-i18n="nav.services">Services</a></li>
+            <li><a href="chambres.php" data-i18n="nav.rooms">Chambres</a></li>
+            <li><a href="activites.php" data-i18n="nav.activities">À découvrir</a></li>
+            <li><a href="contact.php" data-i18n="nav.contact">Contact</a></li>
           </ul>
         </div>
         <div class="footer-nav">
           <h4 class="footer-title" data-i18n="footer.services">Services</h4>
           <ul class="footer-links">
-            <li><a href="services.html#restaurant" data-i18n="footer.restaurant">Restaurant</a></li>
-            <li><a href="services.html#bar" data-i18n="footer.bar">Bar</a></li>
-            <li><a href="services.html#boulodrome" data-i18n="footer.boulodrome">Boulodrome</a></li>
-            <li><a href="services.html#parking" data-i18n="footer.parking">Parking</a></li>
+            <li><a href="services.php#restaurant" data-i18n="footer.restaurant">Restaurant</a></li>
+            <li><a href="services.php#bar" data-i18n="footer.bar">Bar</a></li>
+            <li><a href="services.php#boulodrome" data-i18n="footer.boulodrome">Boulodrome</a></li>
+            <li><a href="services.php#parking" data-i18n="footer.parking">Parking</a></li>
           </ul>
         </div>
         <div class="footer-contact">

@@ -1,3 +1,45 @@
+<?php
+/**
+ * Rooms Page - Hôtel Corintel
+ * Dynamic image loading from database
+ */
+
+// Initialize database images
+$useDatabase = false;
+$images = [];
+
+try {
+    require_once __DIR__ . '/includes/images-helper.php';
+    $images = sectionImages('rooms');
+    $useDatabase = !empty($images);
+} catch (Exception $e) {
+    // Database unavailable, use fallback images
+}
+
+/**
+ * Get image URL by position, with fallback
+ */
+function getImg($images, $position, $fallback) {
+    foreach ($images as $img) {
+        if ($img['position'] == $position) {
+            return $img['filename'];
+        }
+    }
+    return $fallback;
+}
+
+// Define image variables with fallbacks
+$heroImage = $useDatabase ? getImg($images, 1, 'images/chambres/chambre1.jpg') : 'images/chambres/chambre1.jpg';
+$confortSimple = $useDatabase ? getImg($images, 2, 'images/chambres/confort-simple.jpg') : 'images/chambres/confort-simple.jpg';
+$confortDouble = $useDatabase ? getImg($images, 3, 'images/chambres/confort-1-personne-lit-double.jpg') : 'images/chambres/confort-1-personne-lit-double.jpg';
+$confortTwin = $useDatabase ? getImg($images, 4, 'images/chambres/confort-twin.jpg') : 'images/chambres/confort-twin.jpg';
+$confortTriple = $useDatabase ? getImg($images, 5, 'images/chambres/confort-2-3-personnes.jpg') : 'images/chambres/confort-2-3-personnes.jpg';
+$familiale = $useDatabase ? getImg($images, 6, 'images/chambres/famille-2-adultes-2-enfants.jpg') : 'images/chambres/famille-2-adultes-2-enfants.jpg';
+$salleDeBain = $useDatabase ? getImg($images, 7, 'images/chambres/salle-de-bain.jpg') : 'images/chambres/salle-de-bain.jpg';
+$gallery1 = $useDatabase ? getImg($images, 8, 'images/chambres/chambre1.jpg') : 'images/chambres/chambre1.jpg';
+$gallery2 = $useDatabase ? getImg($images, 9, 'images/chambres/hotel-bordeaux-tresses-sdb3.jpg') : 'images/chambres/hotel-bordeaux-tresses-sdb3.jpg';
+$gallery3 = $useDatabase ? getImg($images, 10, 'images/chambres/famille-3-a-5-personnes-standard.jpg') : 'images/chambres/famille-3-a-5-personnes-standard.jpg';
+?>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -15,7 +57,7 @@
   <!-- Header -->
   <header class="header" id="header">
     <div class="container">
-      <a href="index.html" class="logo">
+      <a href="index.php" class="logo">
         <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
           <path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6M9 9h.01M15 9h.01M9 13h.01M15 13h.01"/>
         </svg>
@@ -25,11 +67,11 @@
         </div>
       </a>
       <nav class="nav-menu" id="navMenu">
-        <a href="index.html" class="nav-link" data-i18n="nav.home">Accueil</a>
-        <a href="services.html" class="nav-link" data-i18n="nav.services">Services</a>
-        <a href="chambres.html" class="nav-link active" data-i18n="nav.rooms">Chambres</a>
-        <a href="activites.html" class="nav-link" data-i18n="nav.activities">À découvrir</a>
-        <a href="contact.html" class="nav-link" data-i18n="nav.contact">Contact</a>
+        <a href="index.php" class="nav-link" data-i18n="nav.home">Accueil</a>
+        <a href="services.php" class="nav-link" data-i18n="nav.services">Services</a>
+        <a href="chambres.php" class="nav-link active" data-i18n="nav.rooms">Chambres</a>
+        <a href="activites.php" class="nav-link" data-i18n="nav.activities">À découvrir</a>
+        <a href="contact.php" class="nav-link" data-i18n="nav.contact">Contact</a>
         <a href="https://www.booking.com/hotel/fr/corintel.fr.html?aid=311089&label=corintel-O0VnbWaGZNr8nXbaU172TQS625028973267%3Apl%3Ata%3Ap1%3Ap2%3Aac%3Aap%3Aneg%3Afi%3Atikwd-924823501370%3Alp9055050%3Ali%3Adec%3Adm%3Appccp%3DUmFuZG9tSVYkc2RlIyh9YVujEjbMrKBV7ahOy8HtCLg&sid=2bd2846f5430642ffc2dfefa4e617e28&dest_id=-1473710&dest_type=city&dist=0&group_adults=2&group_children=0&hapos=1&hpos=1&no_rooms=1&req_adults=2&req_children=0&room1=A%2CA&sb_price_type=total&sr_order=popularity&srepoch=1766942847&srpvid=7a705f51b38eb96dd0ea283227969889&type=total&ucfs=1&" class="btn-book" data-i18n="nav.book">Réserver</a>
       </nav>
       <div class="menu-toggle" id="menuToggle">
@@ -41,7 +83,7 @@
   </header>
 
   <!-- Page Hero -->
-  <section class="page-hero" style="background-image: url('images/chambres/chambre1.jpg');">
+  <section class="page-hero" style="background-image: url('<?= htmlspecialchars($heroImage) ?>');">
     <div class="page-hero-content">
       <p class="hero-subtitle" data-i18n="rooms.heroSubtitle">Votre cocon</p>
       <h1 class="page-hero-title" data-i18n="rooms.heroTitle">Nos Chambres</h1>
@@ -128,7 +170,7 @@
       <!-- Room Type 1: Confort Simple -->
       <div class="service-detail">
         <div class="service-detail-image">
-          <img src="images/chambres/confort-simple.jpg" alt="Chambre Confort Simple">
+          <img src="<?= htmlspecialchars($confortSimple) ?>" alt="Chambre Confort Simple">
         </div>
         <div class="service-detail-content">
           <p class="section-subtitle" data-i18n="rooms.simpleFor">Pour 1 personne</p>
@@ -194,14 +236,14 @@
           </div>
         </div>
         <div class="service-detail-image">
-          <img src="images/chambres/confort-1-personne-lit-double.jpg" alt="Chambre Confort Double">
+          <img src="<?= htmlspecialchars($confortDouble) ?>" alt="Chambre Confort Double">
         </div>
       </div>
 
       <!-- Room Type 3: Confort Twin -->
       <div class="service-detail">
         <div class="service-detail-image">
-          <img src="images/chambres/confort-twin.jpg" alt="Chambre Confort Twin">
+          <img src="<?= htmlspecialchars($confortTwin) ?>" alt="Chambre Confort Twin">
         </div>
         <div class="service-detail-content">
           <p class="section-subtitle" data-i18n="rooms.twinFor">Pour 3 personnes</p>
@@ -272,14 +314,14 @@
           </div>
         </div>
         <div class="service-detail-image">
-          <img src="images/chambres/confort-2-3-personnes.jpg" alt="Chambre Confort Triple">
+          <img src="<?= htmlspecialchars($confortTriple) ?>" alt="Chambre Confort Triple">
         </div>
       </div>
 
       <!-- Room Type 5: Familiale -->
       <div class="service-detail">
         <div class="service-detail-image">
-          <img src="images/chambres/famille-2-adultes-2-enfants.jpg" alt="Chambre Familiale">
+          <img src="<?= htmlspecialchars($familiale) ?>" alt="Chambre Familiale">
         </div>
         <div class="service-detail-content">
           <p class="section-subtitle" data-i18n="rooms.familyFor">Pour 3-5 personnes</p>
@@ -355,7 +397,7 @@
           </div>
         </div>
         <div class="intro-image">
-          <img src="images/chambres/salle-de-bain.jpg" alt="Salle de bain de l'Hôtel Corintel">
+          <img src="<?= htmlspecialchars($salleDeBain) ?>" alt="Salle de bain de l'Hôtel Corintel">
         </div>
       </div>
     </div>
@@ -370,21 +412,21 @@
       </div>
       <div class="rooms-gallery">
         <div class="room-card">
-          <img src="images/chambres/chambre1.jpg" alt="Chambre décorée avec soin">
+          <img src="<?= htmlspecialchars($gallery1) ?>" alt="Chambre décorée avec soin">
           <div class="room-card-overlay">
             <h4 data-i18n="rooms.galleryDecor">Décoration unique</h4>
             <p data-i18n="rooms.galleryDecorDesc">Chaque chambre a son caractère</p>
           </div>
         </div>
         <div class="room-card">
-          <img src="images/chambres/hotel-bordeaux-tresses-sdb3.jpg" alt="Salle de bain moderne">
+          <img src="<?= htmlspecialchars($gallery2) ?>" alt="Salle de bain moderne">
           <div class="room-card-overlay">
             <h4 data-i18n="rooms.galleryBathroom">Salle de bain</h4>
             <p data-i18n="rooms.galleryBathroomDesc">Confort et propreté</p>
           </div>
         </div>
         <div class="room-card">
-          <img src="images/chambres/famille-3-a-5-personnes-standard.jpg" alt="Chambre familiale spacieuse">
+          <img src="<?= htmlspecialchars($gallery3) ?>" alt="Chambre familiale spacieuse">
           <div class="room-card-overlay">
             <h4 data-i18n="rooms.galleryFamily">Espace famille</h4>
             <p data-i18n="rooms.galleryFamilyDesc">Pour les grands et les petits</p>
@@ -417,20 +459,20 @@
         <div class="footer-nav">
           <h4 class="footer-title" data-i18n="footer.navigation">Navigation</h4>
           <ul class="footer-links">
-            <li><a href="index.html" data-i18n="nav.home">Accueil</a></li>
-            <li><a href="services.html" data-i18n="nav.services">Services</a></li>
-            <li><a href="chambres.html" data-i18n="nav.rooms">Chambres</a></li>
-            <li><a href="activites.html" data-i18n="nav.activities">À découvrir</a></li>
-            <li><a href="contact.html" data-i18n="nav.contact">Contact</a></li>
+            <li><a href="index.php" data-i18n="nav.home">Accueil</a></li>
+            <li><a href="services.php" data-i18n="nav.services">Services</a></li>
+            <li><a href="chambres.php" data-i18n="nav.rooms">Chambres</a></li>
+            <li><a href="activites.php" data-i18n="nav.activities">À découvrir</a></li>
+            <li><a href="contact.php" data-i18n="nav.contact">Contact</a></li>
           </ul>
         </div>
         <div class="footer-nav">
           <h4 class="footer-title" data-i18n="footer.services">Services</h4>
           <ul class="footer-links">
-            <li><a href="services.html#restaurant" data-i18n="footer.restaurant">Restaurant</a></li>
-            <li><a href="services.html#bar" data-i18n="footer.bar">Bar</a></li>
-            <li><a href="services.html#boulodrome" data-i18n="footer.boulodrome">Boulodrome</a></li>
-            <li><a href="services.html#parking" data-i18n="footer.parking">Parking</a></li>
+            <li><a href="services.php#restaurant" data-i18n="footer.restaurant">Restaurant</a></li>
+            <li><a href="services.php#bar" data-i18n="footer.bar">Bar</a></li>
+            <li><a href="services.php#boulodrome" data-i18n="footer.boulodrome">Boulodrome</a></li>
+            <li><a href="services.php#parking" data-i18n="footer.parking">Parking</a></li>
           </ul>
         </div>
         <div class="footer-contact">
