@@ -33,7 +33,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     } else {
         switch ($_POST['action']) {
             case 'upload':
-                if (isset($_FILES['image']) && isset($_POST['image_id'])) {
+                if (!isset($_FILES['image'])) {
+                    $message = 'Aucun fichier reçu. Vérifiez la taille du fichier (max 5 Mo).';
+                    $messageType = 'error';
+                } elseif (!isset($_POST['image_id'])) {
+                    $message = 'ID d\'image manquant.';
+                    $messageType = 'error';
+                } else {
                     $result = handleFileUpload($_FILES['image'], (int)$_POST['image_id']);
                     if ($result['valid']) {
                         $message = $result['message'];

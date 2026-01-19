@@ -6,6 +6,20 @@
 
 require_once __DIR__ . '/../config/database.php';
 
+// Define upload constants if not already defined in config
+if (!defined('UPLOAD_DIR')) {
+    define('UPLOAD_DIR', __DIR__ . '/../uploads/');
+}
+if (!defined('MAX_FILE_SIZE')) {
+    define('MAX_FILE_SIZE', 5 * 1024 * 1024); // 5MB
+}
+if (!defined('ALLOWED_TYPES')) {
+    define('ALLOWED_TYPES', ['image/jpeg', 'image/png', 'image/webp']);
+}
+if (!defined('ALLOWED_EXTENSIONS')) {
+    define('ALLOWED_EXTENSIONS', ['jpg', 'jpeg', 'png', 'webp']);
+}
+
 /**
  * Get all images for a section
  */
@@ -173,14 +187,27 @@ function handleFileUpload(array $file, int $imageId): array {
 
     // Ensure upload directory exists
     if (!is_dir(UPLOAD_DIR)) {
-        mkdir(UPLOAD_DIR, 0755, true);
+        if (!@mkdir(UPLOAD_DIR, 0755, true)) {
+            return [
+                'valid' => false,
+                'message' => 'Impossible de créer le dossier uploads. Créez-le manuellement via FTP avec les permissions 755.'
+            ];
+        }
+    }
+
+    // Check if directory is writable
+    if (!is_writable(UPLOAD_DIR)) {
+        return [
+            'valid' => false,
+            'message' => 'Le dossier uploads n\'est pas accessible en écriture. Vérifiez les permissions (755).'
+        ];
     }
 
     // Move uploaded file
     if (!move_uploaded_file($file['tmp_name'], $uploadPath)) {
         return [
             'valid' => false,
-            'message' => 'Erreur lors de l\'enregistrement du fichier.'
+            'message' => 'Erreur lors de l\'enregistrement du fichier. Vérifiez les permissions du dossier uploads.'
         ];
     }
 
