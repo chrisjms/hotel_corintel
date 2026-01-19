@@ -122,21 +122,40 @@ try {
     $pdo = getDatabase();
     $messages[] = "Connexion à la base de données réussie.";
 
-    // Read and execute schema
+    // Read schema file
     $schema = file_get_contents(__DIR__ . '/schema.sql');
 
-    // Split by semicolon and execute each statement
-    $statements = array_filter(array_map('trim', explode(';', $schema)));
+    // Remove SQL comments (-- style)
+    $lines = explode("\n", $schema);
+    $cleanedLines = [];
+    foreach ($lines as $line) {
+        // Remove inline comments but keep the rest of the line
+        $commentPos = strpos($line, '--');
+        if ($commentPos !== false) {
+            $line = substr($line, 0, $commentPos);
+        }
+        $cleanedLines[] = $line;
+    }
+    $schema = implode("\n", $cleanedLines);
+
+    // Split statements by semicolon followed by newline (safer than just semicolon)
+    // This regex splits on semicolon that is followed by whitespace/newline
+    $statements = preg_split('/;\s*[\r\n]+/', $schema);
 
     foreach ($statements as $statement) {
-        if (!empty($statement) && strpos($statement, '--') !== 0) {
-            try {
-                $pdo->exec($statement);
-            } catch (PDOException $e) {
-                // Ignore duplicate key errors (expected for ON DUPLICATE KEY UPDATE)
-                if (strpos($e->getMessage(), 'Duplicate') === false) {
-                    throw $e;
-                }
+        $statement = trim($statement);
+        // Skip empty statements
+        if (empty($statement)) {
+            continue;
+        }
+
+        try {
+            $pdo->exec($statement);
+        } catch (PDOException $e) {
+            // Ignore duplicate key errors (expected for ON DUPLICATE KEY UPDATE)
+            if (strpos($e->getMessage(), 'Duplicate') === false &&
+                strpos($e->getMessage(), '1062') === false) {
+                throw $e;
             }
         }
     }
@@ -157,10 +176,10 @@ try {
     // Create .htaccess for uploads
     $htaccess = $uploadsDir . '.htaccess';
     if (!file_exists($htaccess)) {
-        $htaccessContent = "# Disable PHP execution\n";
-        $htaccessContent .= "php_flag engine off\n";
-        $htaccessContent .= "<FilesMatch \"\\.(php|php5|phtml)$\">\n";
-        $htaccessContent .= "    Deny from all\n";
+        // OVH compatible version - block PHP execution without php_flag
+        $htaccessContent = "# Disable PHP execution in uploads folder\n";
+        $htaccessContent .= "<FilesMatch \"\\.(php|php5|phtml|php7|phps)$\">\n";
+        $htaccessContent .= "    Require all denied\n";
         $htaccessContent .= "</FilesMatch>\n";
 
         if (file_put_contents($htaccess, $htaccessContent)) {
