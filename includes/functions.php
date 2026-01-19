@@ -54,12 +54,104 @@ function getImageUrl(string $section, int $position, string $fallback = ''): str
 }
 
 /**
- * Update image record
+ * Update image record (basic - for file uploads)
  */
 function updateImage(int $id, string $filename, ?string $title = null, ?string $altText = null): bool {
     $pdo = getDatabase();
     $stmt = $pdo->prepare('UPDATE images SET filename = ?, title = ?, alt_text = ?, updated_at = NOW() WHERE id = ?');
     return $stmt->execute([$filename, $title, $altText, $id]);
+}
+
+/**
+ * Update content block (image info + text content)
+ */
+function updateContentBlock(int $id, array $data): bool {
+    $pdo = getDatabase();
+
+    // Build dynamic update query based on provided data
+    $fields = [];
+    $values = [];
+
+    $allowedFields = ['title', 'alt_text', 'heading', 'content'];
+
+    foreach ($allowedFields as $field) {
+        if (array_key_exists($field, $data)) {
+            $fields[] = "$field = ?";
+            $values[] = $data[$field];
+        }
+    }
+
+    if (empty($fields)) {
+        return false;
+    }
+
+    $fields[] = 'updated_at = NOW()';
+    $values[] = $id;
+
+    $sql = 'UPDATE images SET ' . implode(', ', $fields) . ' WHERE id = ?';
+    $stmt = $pdo->prepare($sql);
+    return $stmt->execute($values);
+}
+
+/**
+ * Get content block by section and position
+ * Returns image data with all associated text content
+ */
+function getContentBlock(string $section, int $position): ?array {
+    $image = getImage($section, $position);
+
+    if (!$image) {
+        return null;
+    }
+
+    return [
+        'id' => $image['id'],
+        'image' => $image['filename'],
+        'title' => $image['title'] ?? '',
+        'alt' => $image['alt_text'] ?? '',
+        'heading' => $image['heading'] ?? '',
+        'content' => $image['content'] ?? '',
+        'slot' => $image['slot_name'] ?? '',
+        'updated' => $image['updated_at']
+    ];
+}
+
+/**
+ * Get all content blocks for a section
+ */
+function getContentBlocks(string $section): array {
+    $images = getImagesBySection($section);
+    $blocks = [];
+
+    foreach ($images as $image) {
+        $blocks[$image['position']] = [
+            'id' => $image['id'],
+            'image' => $image['filename'],
+            'title' => $image['title'] ?? '',
+            'alt' => $image['alt_text'] ?? '',
+            'heading' => $image['heading'] ?? '',
+            'content' => $image['content'] ?? '',
+            'slot' => $image['slot_name'] ?? '',
+            'position' => $image['position'],
+            'updated' => $image['updated_at']
+        ];
+    }
+
+    return $blocks;
+}
+
+/**
+ * Render a content block's text with fallback
+ */
+function blockText(array $block, string $field, string $fallback = ''): string {
+    return !empty($block[$field]) ? $block[$field] : $fallback;
+}
+
+/**
+ * Render a content block's image URL with fallback
+ */
+function blockImage(array $block, string $fallback = ''): string {
+    return !empty($block['image']) ? $block['image'] : $fallback;
 }
 
 /**

@@ -52,10 +52,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     $imageId = (int)$_POST['image_id'];
                     $image = getImageById($imageId);
                     if ($image) {
-                        $title = $_POST['title'] ?? $image['title'];
-                        $altText = $_POST['alt_text'] ?? $image['alt_text'];
-                        if (updateImage($imageId, $image['filename'], $title, $altText)) {
-                            $message = 'Informations mises à jour.';
+                        $data = [
+                            'title' => $_POST['title'] ?? '',
+                            'alt_text' => $_POST['alt_text'] ?? '',
+                            'heading' => $_POST['heading'] ?? '',
+                            'content' => $_POST['content'] ?? ''
+                        ];
+                        if (updateContentBlock($imageId, $data)) {
+                            $message = 'Bloc de contenu mis à jour.';
                             $messageType = 'success';
                             $images = getImagesBySection($currentSection);
                         } else {
@@ -192,6 +196,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                                         <div class="image-info">
                                             <span class="image-slot"><?= h($image['slot_name'] ?? 'Position ' . $image['position']) ?></span>
                                             <span class="image-title"><?= h($image['title'] ?? 'Sans titre') ?></span>
+                                            <?php if (!empty($image['heading']) || !empty($image['content'])): ?>
+                                                <span class="content-badge">
+                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
+                                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                                        <polyline points="14 2 14 8 20 8"/>
+                                                        <line x1="16" y1="13" x2="8" y2="13"/>
+                                                        <line x1="16" y1="17" x2="8" y2="17"/>
+                                                    </svg>
+                                                    Contenu
+                                                </span>
+                                            <?php endif; ?>
                                             <span class="image-date">Modifié: <?= formatDate($image['updated_at']) ?></span>
                                         </div>
                                         <div class="image-actions">
@@ -200,7 +215,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                                                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                                                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                                                 </svg>
-                                                Modifier infos
+                                                Modifier contenu
                                             </button>
                                         </div>
                                     </div>
@@ -217,13 +232,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     </div>
                     <div class="card-body">
                         <div class="help-content">
-                            <h4>Comment remplacer une image ?</h4>
+                            <h4>Blocs de contenu</h4>
+                            <p>Chaque image est un "bloc de contenu" qui peut inclure :</p>
+                            <ul>
+                                <li><strong>Image :</strong> L'image affichée sur le site</li>
+                                <li><strong>Titre / En-tête :</strong> Titre affiché avec l'image</li>
+                                <li><strong>Texte / Description :</strong> Description accompagnant l'image</li>
+                                <li><strong>Texte alternatif :</strong> Description pour le SEO et l'accessibilité</li>
+                            </ul>
+
+                            <h4>Comment modifier un bloc ?</h4>
                             <ol>
-                                <li>Cliquez sur le bouton "Remplacer" sur l'image à modifier</li>
-                                <li>Sélectionnez une nouvelle image depuis votre ordinateur</li>
-                                <li>Formats acceptés : JPG, PNG, WEBP</li>
-                                <li>Taille maximale : 5 Mo</li>
-                                <li>L'image sera immédiatement visible sur le site public</li>
+                                <li>Cliquez sur "Modifier contenu" pour éditer le titre et la description</li>
+                                <li>Cliquez sur "Remplacer" pour changer l'image</li>
+                                <li>Les modifications sont visibles immédiatement sur le site</li>
                             </ol>
 
                             <h4>Recommandations pour les images</h4>
@@ -231,6 +253,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                                 <li><strong>Carrousel (Hero) :</strong> 1920x800 pixels minimum</li>
                                 <li><strong>Images de section :</strong> 800x600 pixels minimum</li>
                                 <li><strong>Vignettes :</strong> 400x300 pixels minimum</li>
+                                <li><strong>Formats acceptés :</strong> JPG, PNG, WEBP</li>
+                                <li><strong>Taille maximale :</strong> 5 Mo</li>
                             </ul>
                         </div>
                     </div>
@@ -276,11 +300,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         </div>
     </div>
 
-    <!-- Edit Info Modal -->
+    <!-- Edit Content Block Modal -->
     <div id="editModal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content modal-large">
             <div class="modal-header">
-                <h3>Modifier les informations</h3>
+                <h3>Modifier le bloc de contenu</h3>
                 <button type="button" class="modal-close" onclick="closeModal('editModal')">&times;</button>
             </div>
             <form method="POST" id="editForm">
@@ -289,14 +313,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 <input type="hidden" name="image_id" id="editImageId">
 
                 <div class="modal-body">
-                    <div class="form-group">
-                        <label for="editTitle">Titre</label>
-                        <input type="text" id="editTitle" name="title" maxlength="255">
+                    <div class="edit-preview" id="editPreview">
+                        <img src="" alt="Aperçu" id="editPreviewImage">
                     </div>
-                    <div class="form-group">
-                        <label for="editAltText">Texte alternatif (SEO)</label>
-                        <input type="text" id="editAltText" name="alt_text" maxlength="255">
-                        <small>Description de l'image pour l'accessibilité et le référencement</small>
+
+                    <div class="form-section">
+                        <h4>Informations de l'image</h4>
+                        <div class="form-group">
+                            <label for="editTitle">Titre interne</label>
+                            <input type="text" id="editTitle" name="title" maxlength="255" placeholder="Titre pour l'administration">
+                            <small>Utilisé uniquement dans l'administration</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="editAltText">Texte alternatif (SEO)</label>
+                            <input type="text" id="editAltText" name="alt_text" maxlength="255" placeholder="Description de l'image">
+                            <small>Description de l'image pour l'accessibilité et le référencement</small>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h4>Contenu associé</h4>
+                        <div class="form-group">
+                            <label for="editHeading">Titre / En-tête</label>
+                            <input type="text" id="editHeading" name="heading" maxlength="255" placeholder="Titre affiché sur le site">
+                            <small>Titre affiché avec l'image sur le site public</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="editContent">Texte / Description</label>
+                            <textarea id="editContent" name="content" rows="4" placeholder="Description ou texte d'accompagnement"></textarea>
+                            <small>Texte affiché avec l'image sur le site public</small>
+                        </div>
                     </div>
                 </div>
 
@@ -320,6 +366,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             document.getElementById('editImageId').value = image.id;
             document.getElementById('editTitle').value = image.title || '';
             document.getElementById('editAltText').value = image.alt_text || '';
+            document.getElementById('editHeading').value = image.heading || '';
+            document.getElementById('editContent').value = image.content || '';
+
+            // Show image preview
+            const previewImg = document.getElementById('editPreviewImage');
+            previewImg.src = '../' + image.filename;
+            previewImg.onerror = function() {
+                this.src = 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect fill=%22%23ddd%22 width=%22100%22 height=%22100%22/><text x=%2250%22 y=%2250%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22%23999%22>No Image</text></svg>';
+            };
+
             document.getElementById('editModal').classList.add('active');
         }
 

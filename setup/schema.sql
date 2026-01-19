@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS admins (
     INDEX idx_username (username)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Images table
+-- Images table (content blocks - each image has associated text content)
 CREATE TABLE IF NOT EXISTS images (
     id INT AUTO_INCREMENT PRIMARY KEY,
     filename VARCHAR(255) NOT NULL,
@@ -26,11 +26,17 @@ CREATE TABLE IF NOT EXISTS images (
     slot_name VARCHAR(100),
     title VARCHAR(255),
     alt_text VARCHAR(255),
+    heading VARCHAR(255),
+    content TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     UNIQUE KEY unique_section_position (section, position),
     INDEX idx_section (section)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Migration: Add heading and content columns if they don't exist (for existing installations)
+-- ALTER TABLE images ADD COLUMN heading VARCHAR(255) AFTER alt_text;
+-- ALTER TABLE images ADD COLUMN content TEXT AFTER heading;
 
 -- Login attempts table (for security)
 CREATE TABLE IF NOT EXISTS login_attempts (

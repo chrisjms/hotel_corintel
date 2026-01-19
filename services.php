@@ -37,6 +37,12 @@ $galleryImage3 = $useDatabase ? getImg($images, 5, 'images/resto/property-amenit
 $barImage = $useDatabase ? getImg($images, 6, 'images/acceuil/bar.jpg') : 'images/acceuil/bar.jpg';
 $boulodromeImage = $useDatabase ? getImg($images, 7, 'images/acceuil/boulodrome.jpg') : 'images/acceuil/boulodrome.jpg';
 $parkingImage = $useDatabase ? getImg($images, 8, 'images/parking/hotel-bordeaux-parking.jpg') : 'images/parking/hotel-bordeaux-parking.jpg';
+
+// Load content blocks for gallery items (positions 3, 4, 5)
+// Content blocks allow editing both image and associated text from admin
+$galleryBlock1 = $useDatabase ? block('services', 3) : null;
+$galleryBlock2 = $useDatabase ? block('services', 4) : null;
+$galleryBlock3 = $useDatabase ? block('services', 5) : null;
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -153,29 +159,53 @@ $parkingImage = $useDatabase ? getImg($images, 8, 'images/parking/hotel-bordeaux
     </div>
   </section>
 
-  <!-- Restaurant Gallery -->
+  <!-- Restaurant Gallery - Using Content Blocks -->
   <section class="section section-light">
     <div class="container">
       <div class="rooms-gallery">
         <div class="room-card">
-          <img src="<?= htmlspecialchars($galleryImage1) ?>" alt="Salle du restaurant">
+          <img src="<?= htmlspecialchars($galleryImage1) ?>" alt="<?= htmlspecialchars($galleryBlock1['alt'] ?? 'Salle du restaurant') ?>">
           <div class="room-card-overlay">
-            <h4 data-i18n="services.galleryRoom">Salle du restaurant</h4>
-            <p data-i18n="services.galleryRoomDesc">Ambiance chaleureuse</p>
+            <?php if ($galleryBlock1 && !empty($galleryBlock1['heading'])): ?>
+              <h4><?= htmlspecialchars($galleryBlock1['heading']) ?></h4>
+            <?php else: ?>
+              <h4 data-i18n="services.galleryRoom">Salle du restaurant</h4>
+            <?php endif; ?>
+            <?php if ($galleryBlock1 && !empty($galleryBlock1['content'])): ?>
+              <p><?= htmlspecialchars($galleryBlock1['content']) ?></p>
+            <?php else: ?>
+              <p data-i18n="services.galleryRoomDesc">Ambiance chaleureuse</p>
+            <?php endif; ?>
           </div>
         </div>
         <div class="room-card">
-          <img src="<?= htmlspecialchars($galleryImage2) ?>" alt="Décoration du restaurant">
+          <img src="<?= htmlspecialchars($galleryImage2) ?>" alt="<?= htmlspecialchars($galleryBlock2['alt'] ?? 'Décoration du restaurant') ?>">
           <div class="room-card-overlay">
-            <h4 data-i18n="services.galleryDecor">Décoration soignée</h4>
-            <p data-i18n="services.galleryDecorDesc">Charme authentique</p>
+            <?php if ($galleryBlock2 && !empty($galleryBlock2['heading'])): ?>
+              <h4><?= htmlspecialchars($galleryBlock2['heading']) ?></h4>
+            <?php else: ?>
+              <h4 data-i18n="services.galleryDecor">Décoration soignée</h4>
+            <?php endif; ?>
+            <?php if ($galleryBlock2 && !empty($galleryBlock2['content'])): ?>
+              <p><?= htmlspecialchars($galleryBlock2['content']) ?></p>
+            <?php else: ?>
+              <p data-i18n="services.galleryDecorDesc">Charme authentique</p>
+            <?php endif; ?>
           </div>
         </div>
         <div class="room-card">
-          <img src="<?= htmlspecialchars($galleryImage3) ?>" alt="Service du restaurant">
+          <img src="<?= htmlspecialchars($galleryImage3) ?>" alt="<?= htmlspecialchars($galleryBlock3['alt'] ?? 'Service du restaurant') ?>">
           <div class="room-card-overlay">
-            <h4 data-i18n="services.galleryService">Service attentionné</h4>
-            <p data-i18n="services.galleryServiceDesc">À votre écoute</p>
+            <?php if ($galleryBlock3 && !empty($galleryBlock3['heading'])): ?>
+              <h4><?= htmlspecialchars($galleryBlock3['heading']) ?></h4>
+            <?php else: ?>
+              <h4 data-i18n="services.galleryService">Service attentionné</h4>
+            <?php endif; ?>
+            <?php if ($galleryBlock3 && !empty($galleryBlock3['content'])): ?>
+              <p><?= htmlspecialchars($galleryBlock3['content']) ?></p>
+            <?php else: ?>
+              <p data-i18n="services.galleryServiceDesc">À votre écoute</p>
+            <?php endif; ?>
           </div>
         </div>
       </div>

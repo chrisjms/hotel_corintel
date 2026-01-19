@@ -76,3 +76,81 @@ function bgImg(string $section, int $position, string $fallback): string {
     $src = img($section, $position, $fallback);
     return "background-image: url('" . htmlspecialchars($src) . "');";
 }
+
+/**
+ * Get a content block (image + associated text)
+ *
+ * @param string $section Section name
+ * @param int $position Position number
+ * @return array|null Content block data or null
+ */
+function block(string $section, int $position): ?array {
+    static $cache = [];
+    $key = $section . '_' . $position;
+
+    if (!isset($cache[$key])) {
+        try {
+            $cache[$key] = getContentBlock($section, $position);
+        } catch (Exception $e) {
+            $cache[$key] = null;
+        }
+    }
+
+    return $cache[$key];
+}
+
+/**
+ * Get all content blocks for a section
+ *
+ * @param string $section Section name
+ * @return array Array of content blocks indexed by position
+ */
+function blocks(string $section): array {
+    try {
+        return getContentBlocks($section);
+    } catch (Exception $e) {
+        return [];
+    }
+}
+
+/**
+ * Get text from a content block with fallback
+ * Useful for displaying database content or falling back to translation/default
+ *
+ * @param string $section Section name
+ * @param int $position Position number
+ * @param string $field Field name (heading, content, alt)
+ * @param string $fallback Fallback text (can be a translation key value)
+ * @return string The text content
+ */
+function blockField(string $section, int $position, string $field, string $fallback = ''): string {
+    $contentBlock = block($section, $position);
+    if ($contentBlock && !empty($contentBlock[$field])) {
+        return $contentBlock[$field];
+    }
+    return $fallback;
+}
+
+/**
+ * Output escaped text from a content block
+ *
+ * @param string $section Section name
+ * @param int $position Position number
+ * @param string $field Field name
+ * @param string $fallback Fallback text
+ */
+function echoBlock(string $section, int $position, string $field, string $fallback = ''): void {
+    echo htmlspecialchars(blockField($section, $position, $field, $fallback));
+}
+
+/**
+ * Check if a content block has text content
+ *
+ * @param string $section Section name
+ * @param int $position Position number
+ * @return bool True if block has heading or content
+ */
+function hasBlockContent(string $section, int $position): bool {
+    $contentBlock = block($section, $position);
+    return $contentBlock && (!empty($contentBlock['heading']) || !empty($contentBlock['content']));
+}
