@@ -300,6 +300,7 @@ $introImage = $useDatabase ? getImg($images, 4, 'images/acceuil/entree-hotel.jpe
   <!-- Scripts -->
   <script src="js/translations.js"></script>
   <script src="js/i18n.js"></script>
+  <script src="js/animations.js"></script>
   <script>
     // Mobile menu toggle
     const menuToggle = document.getElementById('menuToggle');
@@ -365,20 +366,6 @@ $introImage = $useDatabase ? getImg($images, 4, 'images/acceuil/entree-hotel.jpe
     scrollTop.addEventListener('click', () => {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     });
-
-    // Reveal animations on scroll
-    const reveals = document.querySelectorAll('.reveal');
-    const revealOnScroll = () => {
-      reveals.forEach(element => {
-        const elementTop = element.getBoundingClientRect().top;
-        const windowHeight = window.innerHeight;
-        if (elementTop < windowHeight - 100) {
-          element.classList.add('active');
-        }
-      });
-    };
-    window.addEventListener('scroll', revealOnScroll);
-    revealOnScroll();
   </script>
 </body>
 </html>

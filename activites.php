@@ -438,6 +438,7 @@ $countrysideImage = $useDatabase ? getImg($images, 8, 'images/acceuil/bar.jpg') 
 
   <script src="js/translations.js"></script>
   <script src="js/i18n.js"></script>
+  <script src="js/animations.js"></script>
   <script>
     // Mobile menu toggle
     const menuToggle = document.getElementById('menuToggle');
