@@ -42,8 +42,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 // Filter by status
 $statusFilter = $_GET['status'] ?? 'all';
 
+// Sort options
+$sortBy = $_GET['sort'] ?? 'delivery_datetime';
+$sortOrder = $_GET['order'] ?? 'ASC';
+
+// Filter by delivery date
+$deliveryDateFilter = $_GET['delivery_date'] ?? null;
+
 // Get orders
-$orders = getRoomServiceOrders($statusFilter);
+$orders = getRoomServiceOrders($statusFilter, $sortBy, $sortOrder, $deliveryDateFilter);
 $stats = getRoomServiceStats();
 
 // Get order details if viewing specific order
@@ -348,6 +355,10 @@ if (isset($_GET['view'])) {
                                 <span><?= h($paymentMethods[$viewOrder['payment_method']] ?? $viewOrder['payment_method']) ?></span>
                             </div>
                             <div class="order-meta-item">
+                                <label>Livraison souhaitée</label>
+                                <span style="color: var(--admin-primary); font-weight: 600;"><?= formatDate($viewOrder['delivery_datetime'] ?? null) ?></span>
+                            </div>
+                            <div class="order-meta-item">
                                 <label>Date de commande</label>
                                 <span><?= formatDate($viewOrder['created_at']) ?></span>
                             </div>
@@ -458,14 +469,47 @@ if (isset($_GET['view'])) {
 
                     <!-- Status Filter Tabs -->
                     <div class="section-tabs">
-                        <a href="?status=all" class="section-tab <?= $statusFilter === 'all' ? 'active' : '' ?>">
+                        <a href="?status=all&sort=<?= h($sortBy) ?>&order=<?= h($sortOrder) ?><?= $deliveryDateFilter ? '&delivery_date=' . h($deliveryDateFilter) : '' ?>" class="section-tab <?= $statusFilter === 'all' ? 'active' : '' ?>">
                             Toutes
                         </a>
                         <?php foreach ($statuses as $key => $label): ?>
-                            <a href="?status=<?= h($key) ?>" class="section-tab <?= $statusFilter === $key ? 'active' : '' ?>">
+                            <a href="?status=<?= h($key) ?>&sort=<?= h($sortBy) ?>&order=<?= h($sortOrder) ?><?= $deliveryDateFilter ? '&delivery_date=' . h($deliveryDateFilter) : '' ?>" class="section-tab <?= $statusFilter === $key ? 'active' : '' ?>">
                                 <?= h($label) ?>
                             </a>
                         <?php endforeach; ?>
+                    </div>
+
+                    <!-- Filter and Sort Controls -->
+                    <div class="card" style="margin-bottom: 1rem;">
+                        <div class="card-body" style="padding: 1rem;">
+                            <form method="GET" style="display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap;">
+                                <input type="hidden" name="status" value="<?= h($statusFilter) ?>">
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label style="font-size: 0.75rem; text-transform: uppercase; color: var(--admin-text-light);">Filtrer par date de livraison</label>
+                                    <input type="date" name="delivery_date" value="<?= h($deliveryDateFilter ?? '') ?>" style="padding: 0.5rem; border: 1px solid var(--admin-border); border-radius: 6px;">
+                                </div>
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label style="font-size: 0.75rem; text-transform: uppercase; color: var(--admin-text-light);">Trier par</label>
+                                    <select name="sort" style="padding: 0.5rem; border: 1px solid var(--admin-border); border-radius: 6px;">
+                                        <option value="delivery_datetime" <?= $sortBy === 'delivery_datetime' ? 'selected' : '' ?>>Livraison</option>
+                                        <option value="created_at" <?= $sortBy === 'created_at' ? 'selected' : '' ?>>Date commande</option>
+                                        <option value="total_amount" <?= $sortBy === 'total_amount' ? 'selected' : '' ?>>Montant</option>
+                                        <option value="room_number" <?= $sortBy === 'room_number' ? 'selected' : '' ?>>Chambre</option>
+                                    </select>
+                                </div>
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label style="font-size: 0.75rem; text-transform: uppercase; color: var(--admin-text-light);">Ordre</label>
+                                    <select name="order" style="padding: 0.5rem; border: 1px solid var(--admin-border); border-radius: 6px;">
+                                        <option value="ASC" <?= $sortOrder === 'ASC' ? 'selected' : '' ?>>Croissant</option>
+                                        <option value="DESC" <?= $sortOrder === 'DESC' ? 'selected' : '' ?>>Décroissant</option>
+                                    </select>
+                                </div>
+                                <button type="submit" class="btn btn-sm btn-primary">Filtrer</button>
+                                <?php if ($deliveryDateFilter): ?>
+                                    <a href="?status=<?= h($statusFilter) ?>&sort=<?= h($sortBy) ?>&order=<?= h($sortOrder) ?>" class="btn btn-sm btn-outline">Effacer date</a>
+                                <?php endif; ?>
+                            </form>
+                        </div>
                     </div>
 
                     <!-- Orders Table -->
@@ -485,20 +529,35 @@ if (isset($_GET['view'])) {
                                             <th>Chambre</th>
                                             <th>Client</th>
                                             <th>Total</th>
-                                            <th>Paiement</th>
+                                            <th>Livraison</th>
                                             <th>Statut</th>
-                                            <th>Date</th>
+                                            <th>Commandé le</th>
                                             <th>Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <?php foreach ($orders as $order): ?>
-                                            <tr>
+                                            <?php
+                                            // Check if delivery is upcoming (within next 2 hours)
+                                            $deliveryTime = strtotime($order['delivery_datetime'] ?? '');
+                                            $isUrgent = $deliveryTime && $deliveryTime <= time() + (2 * 60 * 60) && $deliveryTime > time() && $order['status'] !== 'delivered' && $order['status'] !== 'cancelled';
+                                            $isPast = $deliveryTime && $deliveryTime < time() && $order['status'] !== 'delivered' && $order['status'] !== 'cancelled';
+                                            ?>
+                                            <tr<?= $isUrgent ? ' style="background: rgba(237, 137, 54, 0.05);"' : ($isPast ? ' style="background: rgba(245, 101, 101, 0.05);"' : '') ?>>
                                                 <td><?= $order['id'] ?></td>
                                                 <td><strong><?= h($order['room_number']) ?></strong></td>
                                                 <td><?= h($order['guest_name'] ?? '-') ?></td>
                                                 <td><span class="price"><?= number_format($order['total_amount'], 2, ',', ' ') ?> €</span></td>
-                                                <td><?= h($paymentMethods[$order['payment_method']] ?? $order['payment_method']) ?></td>
+                                                <td>
+                                                    <span style="<?= $isUrgent ? 'color: #C05621; font-weight: 600;' : ($isPast ? 'color: #C53030; font-weight: 600;' : '') ?>">
+                                                        <?= formatDate($order['delivery_datetime'] ?? null) ?>
+                                                    </span>
+                                                    <?php if ($isUrgent): ?>
+                                                        <span style="display: block; font-size: 0.7rem; color: #C05621;">Bientôt</span>
+                                                    <?php elseif ($isPast): ?>
+                                                        <span style="display: block; font-size: 0.7rem; color: #C53030;">En retard</span>
+                                                    <?php endif; ?>
+                                                </td>
                                                 <td>
                                                     <span class="status-badge status-<?= $order['status'] ?>">
                                                         <?= h($statuses[$order['status']] ?? $order['status']) ?>

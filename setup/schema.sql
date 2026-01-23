@@ -115,13 +115,19 @@ CREATE TABLE IF NOT EXISTS room_service_orders (
     total_amount DECIMAL(10, 2) NOT NULL,
     payment_method ENUM('cash', 'card', 'room_charge') NOT NULL DEFAULT 'room_charge',
     status ENUM('pending', 'confirmed', 'preparing', 'delivered', 'cancelled') NOT NULL DEFAULT 'pending',
+    delivery_datetime DATETIME NOT NULL,
     notes TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_room (room_number),
     INDEX idx_status (status),
-    INDEX idx_created (created_at)
+    INDEX idx_created (created_at),
+    INDEX idx_delivery (delivery_datetime)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Migration: Add delivery_datetime to existing installations
+-- ALTER TABLE room_service_orders ADD COLUMN delivery_datetime DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP AFTER status;
+-- ALTER TABLE room_service_orders ADD INDEX idx_delivery (delivery_datetime);
 
 -- Room service order items (line items)
 CREATE TABLE IF NOT EXISTS room_service_order_items (

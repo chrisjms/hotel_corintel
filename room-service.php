@@ -31,6 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $guestName = trim($_POST['guest_name'] ?? '');
     $phone = trim($_POST['phone'] ?? '');
     $paymentMethod = $_POST['payment_method'] ?? 'room_charge';
+    $deliveryDatetime = trim($_POST['delivery_datetime'] ?? '');
     $notes = trim($_POST['notes'] ?? '');
     $orderItems = isset($_POST['items']) ? json_decode($_POST['items'], true) : [];
 
@@ -42,43 +43,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     } elseif (!array_key_exists($paymentMethod, $paymentMethods)) {
         $orderError = 'Mode de paiement invalide.';
     } else {
-        // Validate items and build order items array
-        $validItems = [];
-        foreach ($orderItems as $orderItem) {
-            if (!isset($orderItem['id']) || !isset($orderItem['quantity'])) {
-                continue;
-            }
-            $itemId = intval($orderItem['id']);
-            $quantity = intval($orderItem['quantity']);
-            if ($quantity < 1) {
-                continue;
-            }
-            $dbItem = getRoomServiceItemById($itemId);
-            if ($dbItem && $dbItem['is_active']) {
-                $validItems[] = [
-                    'id' => $dbItem['id'],
-                    'name' => $dbItem['name'],
-                    'price' => $dbItem['price'],
-                    'quantity' => $quantity
-                ];
-            }
-        }
-
-        if (empty($validItems)) {
-            $orderError = 'Aucun article valide sélectionné.';
+        // Validate delivery datetime
+        $deliveryValidation = validateDeliveryDatetime($deliveryDatetime);
+        if (!$deliveryValidation['valid']) {
+            $orderError = $deliveryValidation['message'];
         } else {
-            $orderId = createRoomServiceOrder([
-                'room_number' => $roomNumber,
-                'guest_name' => $guestName,
-                'phone' => $phone,
-                'payment_method' => $paymentMethod,
-                'notes' => $notes
-            ], $validItems);
+            // Validate items and build order items array
+            $validItems = [];
+            foreach ($orderItems as $orderItem) {
+                if (!isset($orderItem['id']) || !isset($orderItem['quantity'])) {
+                    continue;
+                }
+                $itemId = intval($orderItem['id']);
+                $quantity = intval($orderItem['quantity']);
+                if ($quantity < 1) {
+                    continue;
+                }
+                $dbItem = getRoomServiceItemById($itemId);
+                if ($dbItem && $dbItem['is_active']) {
+                    $validItems[] = [
+                        'id' => $dbItem['id'],
+                        'name' => $dbItem['name'],
+                        'price' => $dbItem['price'],
+                        'quantity' => $quantity
+                    ];
+                }
+            }
 
-            if ($orderId) {
-                $orderSuccess = true;
+            if (empty($validItems)) {
+                $orderError = 'Aucun article valide sélectionné.';
             } else {
-                $orderError = 'Une erreur est survenue. Veuillez réessayer.';
+                $orderId = createRoomServiceOrder([
+                    'room_number' => $roomNumber,
+                    'guest_name' => $guestName,
+                    'phone' => $phone,
+                    'payment_method' => $paymentMethod,
+                    'delivery_datetime' => $deliveryValidation['datetime'],
+                    'notes' => $notes
+                ], $validItems);
+
+                if ($orderId) {
+                    $orderSuccess = true;
+                } else {
+                    $orderError = 'Une erreur est survenue. Veuillez réessayer.';
+                }
             }
         }
     }
@@ -585,6 +593,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 </div>
 
                 <div class="form-group">
+                  <label for="delivery_datetime">Date et heure de livraison *</label>
+                  <input type="datetime-local" id="delivery_datetime" name="delivery_datetime" required>
+                  <small>Minimum 30 minutes à l'avance</small>
+                </div>
+
+                <div class="form-group">
                   <label for="payment_method">Mode de paiement</label>
                   <select id="payment_method" name="payment_method">
                     <?php foreach ($paymentMethods as $key => $label): ?>
@@ -774,6 +788,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
       });
     });
 
+    // Set minimum delivery datetime (30 minutes from now)
+    function updateMinDeliveryTime() {
+      const deliveryInput = document.getElementById('delivery_datetime');
+      if (deliveryInput) {
+        const now = new Date();
+        now.setMinutes(now.getMinutes() + 30);
+        // Round up to next 15 minutes
+        const minutes = now.getMinutes();
+        const roundedMinutes = Math.ceil(minutes / 15) * 15;
+        now.setMinutes(roundedMinutes);
+        now.setSeconds(0);
+
+        // Format for datetime-local input (YYYY-MM-DDTHH:MM)
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const hours = String(now.getHours()).padStart(2, '0');
+        const mins = String(now.getMinutes()).padStart(2, '0');
+
+        const minDatetime = `${year}-${month}-${day}T${hours}:${mins}`;
+        deliveryInput.min = minDatetime;
+
+        // Set max to 7 days from now
+        const maxDate = new Date();
+        maxDate.setDate(maxDate.getDate() + 7);
+        const maxYear = maxDate.getFullYear();
+        const maxMonth = String(maxDate.getMonth() + 1).padStart(2, '0');
+        const maxDay = String(maxDate.getDate()).padStart(2, '0');
+        deliveryInput.max = `${maxYear}-${maxMonth}-${maxDay}T23:59`;
+
+        // Set default value to minimum time if empty
+        if (!deliveryInput.value) {
+          deliveryInput.value = minDatetime;
+        }
+      }
+    }
+    updateMinDeliveryTime();
+    // Update every minute
+    setInterval(updateMinDeliveryTime, 60000);
+
     // Form validation
     document.getElementById('orderForm')?.addEventListener('submit', (e) => {
       const items = JSON.parse(document.getElementById('orderItems').value);
@@ -786,6 +840,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
       if (!roomNumber) {
         e.preventDefault();
         alert('Veuillez indiquer votre numéro de chambre.');
+        return false;
+      }
+      const deliveryDatetime = document.getElementById('delivery_datetime').value;
+      if (!deliveryDatetime) {
+        e.preventDefault();
+        alert('Veuillez indiquer la date et heure de livraison.');
+        return false;
+      }
+      // Check if delivery time is in the future
+      const deliveryTime = new Date(deliveryDatetime);
+      const minTime = new Date();
+      minTime.setMinutes(minTime.getMinutes() + 25); // 25 min buffer for form submission
+      if (deliveryTime < minTime) {
+        e.preventDefault();
+        alert('La livraison doit être prévue au moins 30 minutes à l\'avance.');
         return false;
       }
     });

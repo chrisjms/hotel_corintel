@@ -427,15 +427,34 @@ function handleRoomServiceItemImageUpload(array $file, int $itemId): array {
 /**
  * Get all room service orders
  */
-function getRoomServiceOrders(string $status = ''): array {
+function getRoomServiceOrders(string $status = '', string $sortBy = 'created_at', string $sortOrder = 'DESC', ?string $deliveryDate = null): array {
     $pdo = getDatabase();
     $sql = 'SELECT * FROM room_service_orders';
     $params = [];
+    $conditions = [];
+
     if ($status && $status !== 'all') {
-        $sql .= ' WHERE status = ?';
+        $conditions[] = 'status = ?';
         $params[] = $status;
     }
-    $sql .= ' ORDER BY created_at DESC';
+
+    if ($deliveryDate) {
+        $conditions[] = 'DATE(delivery_datetime) = ?';
+        $params[] = $deliveryDate;
+    }
+
+    if (!empty($conditions)) {
+        $sql .= ' WHERE ' . implode(' AND ', $conditions);
+    }
+
+    // Validate sort column
+    $allowedSortColumns = ['created_at', 'delivery_datetime', 'total_amount', 'room_number'];
+    if (!in_array($sortBy, $allowedSortColumns)) {
+        $sortBy = 'created_at';
+    }
+    $sortOrder = strtoupper($sortOrder) === 'ASC' ? 'ASC' : 'DESC';
+
+    $sql .= ' ORDER BY ' . $sortBy . ' ' . $sortOrder;
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
     return $stmt->fetchAll();
@@ -478,8 +497,8 @@ function createRoomServiceOrder(array $orderData, array $items): int|false {
 
         // Create order
         $stmt = $pdo->prepare('
-            INSERT INTO room_service_orders (room_number, guest_name, phone, total_amount, payment_method, notes)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO room_service_orders (room_number, guest_name, phone, total_amount, payment_method, delivery_datetime, notes)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
         ');
         $stmt->execute([
             $orderData['room_number'],
@@ -487,6 +506,7 @@ function createRoomServiceOrder(array $orderData, array $items): int|false {
             $orderData['phone'] ?? null,
             $total,
             $orderData['payment_method'] ?? 'room_charge',
+            $orderData['delivery_datetime'],
             $orderData['notes'] ?? null
         ]);
         $orderId = (int)$pdo->lastInsertId();
@@ -516,6 +536,34 @@ function createRoomServiceOrder(array $orderData, array $items): int|false {
         error_log('Room service order creation failed: ' . $e->getMessage());
         return false;
     }
+}
+
+/**
+ * Validate delivery datetime
+ */
+function validateDeliveryDatetime(string $datetime): array {
+    if (empty($datetime)) {
+        return ['valid' => false, 'message' => 'La date et heure de livraison sont obligatoires.'];
+    }
+
+    $deliveryTime = strtotime($datetime);
+    if ($deliveryTime === false) {
+        return ['valid' => false, 'message' => 'Format de date/heure invalide.'];
+    }
+
+    // Must be at least 30 minutes in the future
+    $minTime = time() + (30 * 60);
+    if ($deliveryTime < $minTime) {
+        return ['valid' => false, 'message' => 'La livraison doit être prévue au moins 30 minutes à l\'avance.'];
+    }
+
+    // Cannot be more than 7 days in the future
+    $maxTime = time() + (7 * 24 * 60 * 60);
+    if ($deliveryTime > $maxTime) {
+        return ['valid' => false, 'message' => 'La livraison ne peut pas être prévue plus de 7 jours à l\'avance.'];
+    }
+
+    return ['valid' => true, 'datetime' => date('Y-m-d H:i:s', $deliveryTime)];
 }
 
 /**
