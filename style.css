@@ -101,7 +101,10 @@ p {
   background-color: var(--color-white);
   box-shadow: var(--shadow-soft);
   z-index: 1000;
-  transition: var(--transition);
+  transition: height 0.3s ease, box-shadow 0.3s ease;
+  /* Prevent any animation transforms from affecting the header */
+  animation: none !important;
+  transform: none !important;
 }
 
 .header.scrolled {
@@ -1146,32 +1149,490 @@ p {
   }
 }
 
-/* ---------- Animations ---------- */
+/* ==========================================================================
+   ANIMATIONS - Client Site Only
+   ========================================================================== */
+
+/* ---------- Keyframe Definitions ---------- */
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-.animate-fade-in {
-  animation: fadeIn 0.6s ease forwards;
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(40px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-/* Intersection Observer animations */
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInLeft {
+  from { opacity: 0; transform: translateX(-40px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes fadeInRight {
+  from { opacity: 0; transform: translateX(40px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ---------- Page Load Animation ---------- */
+/* Body animation removed - was causing header position jump on page load */
+
+
+/* ---------- Scroll-Triggered Animations ---------- */
 .reveal {
   opacity: 0;
-  transform: translateY(30px);
-  transition: all 0.8s ease;
+  transform: translateY(40px);
+  transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .reveal.active {
   opacity: 1;
   transform: translateY(0);
+}
+
+/* Reveal variations */
+.reveal-left {
+  opacity: 0;
+  transform: translateX(-50px);
+  transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.reveal-left.active {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.reveal-right {
+  opacity: 0;
+  transform: translateX(50px);
+  transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.reveal-right.active {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.reveal-scale {
+  opacity: 0;
+  transform: scale(0.85);
+  transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.reveal-scale.active {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Staggered children animation */
+.stagger-children > * {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+.stagger-children.active > *:nth-child(1) { transition-delay: 0.1s; }
+.stagger-children.active > *:nth-child(2) { transition-delay: 0.2s; }
+.stagger-children.active > *:nth-child(3) { transition-delay: 0.3s; }
+.stagger-children.active > *:nth-child(4) { transition-delay: 0.4s; }
+.stagger-children.active > *:nth-child(5) { transition-delay: 0.5s; }
+.stagger-children.active > *:nth-child(6) { transition-delay: 0.6s; }
+
+.stagger-children.active > * {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ---------- Section Header Animation ---------- */
+.section-header .section-subtitle {
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+.section-header .section-title {
+  transition: opacity 0.6s ease 0.15s, transform 0.6s ease 0.15s;
+}
+
+.section-header .section-description {
+  transition: opacity 0.6s ease 0.3s, transform 0.6s ease 0.3s;
+}
+
+/* ---------- Enhanced Card Hover Effects ---------- */
+.service-card {
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.service-card:hover {
+  transform: translateY(-12px) scale(1.02);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+}
+
+.service-icon {
+  transition: background-color 0.4s ease, transform 0.4s ease;
+}
+
+.service-card:hover .service-icon {
+  transform: scale(1.1) rotate(5deg);
+}
+
+.service-icon svg {
+  transition: color 0.4s ease, transform 0.4s ease;
+}
+
+.service-card:hover .service-icon svg {
+  transform: scale(1.1);
+}
+
+/* Activity card enhanced hover */
+.activity-card {
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.activity-card:hover {
+  transform: scale(1.03);
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2);
+}
+
+.activity-card img {
+  transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.activity-card:hover img {
+  transform: scale(1.15);
+}
+
+.activity-card-content {
+  transition: transform 0.4s ease, padding 0.4s ease;
+}
+
+.activity-card:hover .activity-card-content {
+  transform: translateY(-5px);
+  padding-bottom: 2.5rem;
+}
+
+/* Room card enhanced hover */
+.room-card {
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.room-card:hover {
+  transform: translateY(-10px) scale(1.02);
+}
+
+.room-card img {
+  transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.room-card:hover img {
+  transform: scale(1.15);
+}
+
+/* Room feature hover */
+.room-feature {
+  transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
+}
+
+.room-feature:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  background-color: var(--color-beige);
+}
+
+.room-feature svg {
+  transition: transform 0.3s ease, color 0.3s ease;
+}
+
+.room-feature:hover svg {
+  transform: scale(1.15);
+  color: var(--color-accent);
+}
+
+/* ---------- Button Animations ---------- */
+.btn {
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
+}
+
+.btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: width 0.6s ease, height 0.6s ease;
+}
+
+.btn:hover::before {
+  width: 300px;
+  height: 300px;
+}
+
+.btn-primary:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 25px rgba(139, 111, 71, 0.35);
+}
+
+.btn-outline:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+}
+
+/* Book button pulse on hover */
+.btn-book {
+  position: relative;
+}
+
+.btn-book::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 6px;
+  background: var(--color-primary);
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.btn-book:hover::after {
+  animation: pulse 1.5s ease infinite;
+  opacity: 0.3;
+}
+
+/* ---------- Image Animations ---------- */
+.intro-image {
+  overflow: hidden;
+  transition: box-shadow 0.4s ease;
+}
+
+.intro-image:hover {
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+}
+
+.intro-image img {
+  transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.intro-image:hover img {
+  transform: scale(1.08);
+}
+
+.service-detail-image {
+  overflow: hidden;
+  transition: box-shadow 0.4s ease;
+}
+
+.service-detail-image:hover {
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+}
+
+.service-detail-image img {
+  transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.service-detail-image:hover img {
+  transform: scale(1.08);
+}
+
+
+/* ---------- Form Input Animations ---------- */
+.form-group input,
+.form-group textarea {
+  transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 20px rgba(139, 111, 71, 0.15);
+}
+
+/* Submit button loading state */
+.btn-submit {
+  transition: background-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.btn-submit:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(139, 111, 71, 0.3);
+}
+
+.btn-submit:active {
+  transform: translateY(0);
+}
+
+/* ---------- Scroll to Top Animation ---------- */
+.scroll-top {
+  transition: opacity 0.4s ease, visibility 0.4s ease,
+              transform 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+              background-color 0.3s ease;
+}
+
+.scroll-top.visible {
+  animation: slideUp 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.scroll-top:hover {
+  transform: translateY(-5px) scale(1.1);
+}
+
+.scroll-top svg {
+  transition: transform 0.3s ease;
+}
+
+.scroll-top:hover svg {
+  transform: translateY(-3px);
+}
+
+/* ---------- Footer Animations ---------- */
+.footer-links a {
+  position: relative;
+  transition: color 0.3s ease, padding-left 0.3s ease;
+}
+
+.footer-links a::before {
+  content: '';
+  position: absolute;
+  left: -10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0;
+  height: 2px;
+  background-color: var(--color-primary);
+  transition: width 0.3s ease;
+}
+
+.footer-links a:hover {
+  padding-left: 15px;
+}
+
+.footer-links a:hover::before {
+  width: 10px;
+}
+
+/* ---------- Contact Item Animations ---------- */
+.contact-item {
+  transition: transform 0.3s ease;
+}
+
+.contact-item:hover {
+  transform: translateX(5px);
+}
+
+.contact-item svg {
+  transition: transform 0.3s ease, color 0.3s ease;
+}
+
+.contact-item:hover svg {
+  transform: scale(1.2);
+  color: var(--color-accent);
+}
+
+/* ---------- Tag/Feature Animations ---------- */
+.service-feature-tag {
+  transition: background-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.service-feature-tag:hover {
+  background-color: var(--color-primary);
+  color: var(--color-white);
+  transform: translateY(-3px);
+  box-shadow: 0 5px 15px rgba(139, 111, 71, 0.3);
+}
+
+.service-feature-tag:hover svg {
+  color: var(--color-white);
+}
+
+/* Intro feature hover */
+.intro-feature {
+  transition: transform 0.3s ease;
+}
+
+.intro-feature:hover {
+  transform: translateX(5px);
+}
+
+.intro-feature svg {
+  transition: transform 0.3s ease;
+}
+
+.intro-feature:hover svg {
+  transform: scale(1.2) rotate(10deg);
+}
+
+/* ---------- Map Animation ---------- */
+.contact-map {
+  transition: box-shadow 0.4s ease, transform 0.4s ease;
+}
+
+.contact-map:hover {
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+  transform: translateY(-5px);
+}
+
+/* ---------- Reduced Motion Preference ---------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .reveal,
+  .reveal-left,
+  .reveal-right,
+  .reveal-scale {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 /* ---------- Language Selector ---------- */

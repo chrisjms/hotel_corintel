@@ -340,6 +340,7 @@ $heroImage = $useDatabase ? getImg($images, 1, 'images/acceuil/dehors_nuit.jpg')
 
   <script src="js/translations.js"></script>
   <script src="js/i18n.js"></script>
+  <script src="js/animations.js"></script>
   <script>
     // Mobile menu toggle
     const menuToggle = document.getElementById('menuToggle');
