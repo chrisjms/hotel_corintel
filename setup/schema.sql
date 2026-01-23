@@ -84,3 +84,55 @@ ON DUPLICATE KEY UPDATE filename = VALUES(filename);
 INSERT INTO images (filename, section, position, slot_name, title, alt_text) VALUES
 ('images/acceuil/dehors_nuit.jpg', 'contact', 1, 'hero', 'Contact Hero', 'Hôtel de nuit')
 ON DUPLICATE KEY UPDATE filename = VALUES(filename);
+
+-- =====================================================
+-- ROOM SERVICE SYSTEM
+-- =====================================================
+
+-- Room service items (menu items)
+CREATE TABLE IF NOT EXISTS room_service_items (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    description TEXT,
+    price DECIMAL(10, 2) NOT NULL,
+    image VARCHAR(255) DEFAULT NULL,
+    category VARCHAR(50) DEFAULT 'general',
+    is_active BOOLEAN DEFAULT 1,
+    position INT DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_active (is_active),
+    INDEX idx_category (category),
+    INDEX idx_position (position)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Room service orders
+CREATE TABLE IF NOT EXISTS room_service_orders (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    room_number VARCHAR(20) NOT NULL,
+    guest_name VARCHAR(100) DEFAULT NULL,
+    phone VARCHAR(30) DEFAULT NULL,
+    total_amount DECIMAL(10, 2) NOT NULL,
+    payment_method ENUM('cash', 'card', 'room_charge') NOT NULL DEFAULT 'room_charge',
+    status ENUM('pending', 'confirmed', 'preparing', 'delivered', 'cancelled') NOT NULL DEFAULT 'pending',
+    notes TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_room (room_number),
+    INDEX idx_status (status),
+    INDEX idx_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Room service order items (line items)
+CREATE TABLE IF NOT EXISTS room_service_order_items (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    order_id INT NOT NULL,
+    item_id INT NOT NULL,
+    item_name VARCHAR(100) NOT NULL,
+    item_price DECIMAL(10, 2) NOT NULL,
+    quantity INT NOT NULL DEFAULT 1,
+    subtotal DECIMAL(10, 2) NOT NULL,
+    FOREIGN KEY (order_id) REFERENCES room_service_orders(id) ON DELETE CASCADE,
+    FOREIGN KEY (item_id) REFERENCES room_service_items(id) ON DELETE RESTRICT,
+    INDEX idx_order (order_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

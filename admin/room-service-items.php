@@ -1,0 +1,713 @@
+<?php
+/**
+ * Room Service Items Management
+ * Hotel Corintel
+ */
+
+require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/functions.php';
+
+requireAuth();
+
+$admin = getCurrentAdmin();
+$csrfToken = generateCsrfToken();
+$categories = getRoomServiceCategories();
+
+// Handle POST requests
+$message = '';
+$messageType = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
+        $message = 'Session expirée. Veuillez réessayer.';
+        $messageType = 'error';
+    } else {
+        switch ($_POST['action']) {
+            case 'create':
+                $name = trim($_POST['name'] ?? '');
+                $description = trim($_POST['description'] ?? '');
+                $price = floatval($_POST['price'] ?? 0);
+                $category = $_POST['category'] ?? 'general';
+                $position = intval($_POST['position'] ?? 0);
+
+                if (empty($name)) {
+                    $message = 'Le nom est obligatoire.';
+                    $messageType = 'error';
+                } elseif ($price <= 0) {
+                    $message = 'Le prix doit être supérieur à 0.';
+                    $messageType = 'error';
+                } else {
+                    $itemId = createRoomServiceItem([
+                        'name' => $name,
+                        'description' => $description,
+                        'price' => $price,
+                        'category' => $category,
+                        'position' => $position,
+                        'is_active' => 1
+                    ]);
+                    if ($itemId) {
+                        // Handle image upload if provided
+                        if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
+                            handleRoomServiceItemImageUpload($_FILES['image'], $itemId);
+                        }
+                        $message = 'Article créé avec succès.';
+                        $messageType = 'success';
+                    } else {
+                        $message = 'Erreur lors de la création.';
+                        $messageType = 'error';
+                    }
+                }
+                break;
+
+            case 'update':
+                $id = intval($_POST['id'] ?? 0);
+                $name = trim($_POST['name'] ?? '');
+                $description = trim($_POST['description'] ?? '');
+                $price = floatval($_POST['price'] ?? 0);
+                $category = $_POST['category'] ?? 'general';
+                $position = intval($_POST['position'] ?? 0);
+                $isActive = isset($_POST['is_active']) ? 1 : 0;
+
+                $item = getRoomServiceItemById($id);
+                if (!$item) {
+                    $message = 'Article non trouvé.';
+                    $messageType = 'error';
+                } elseif (empty($name)) {
+                    $message = 'Le nom est obligatoire.';
+                    $messageType = 'error';
+                } elseif ($price <= 0) {
+                    $message = 'Le prix doit être supérieur à 0.';
+                    $messageType = 'error';
+                } else {
+                    $success = updateRoomServiceItem($id, [
+                        'name' => $name,
+                        'description' => $description,
+                        'price' => $price,
+                        'image' => $item['image'],
+                        'category' => $category,
+                        'position' => $position,
+                        'is_active' => $isActive
+                    ]);
+                    if ($success) {
+                        $message = 'Article mis à jour.';
+                        $messageType = 'success';
+                    } else {
+                        $message = 'Erreur lors de la mise à jour.';
+                        $messageType = 'error';
+                    }
+                }
+                break;
+
+            case 'upload_image':
+                $id = intval($_POST['id'] ?? 0);
+                if (!isset($_FILES['image'])) {
+                    $message = 'Aucun fichier reçu.';
+                    $messageType = 'error';
+                } else {
+                    $result = handleRoomServiceItemImageUpload($_FILES['image'], $id);
+                    $message = $result['message'];
+                    $messageType = $result['valid'] ? 'success' : 'error';
+                }
+                break;
+
+            case 'toggle':
+                $id = intval($_POST['id'] ?? 0);
+                if (toggleRoomServiceItemStatus($id)) {
+                    $message = 'Statut mis à jour.';
+                    $messageType = 'success';
+                } else {
+                    $message = 'Erreur lors de la mise à jour.';
+                    $messageType = 'error';
+                }
+                break;
+
+            case 'delete':
+                $id = intval($_POST['id'] ?? 0);
+                if (deleteRoomServiceItem($id)) {
+                    $message = 'Article supprimé.';
+                    $messageType = 'success';
+                } else {
+                    $message = 'Impossible de supprimer cet article (utilisé dans des commandes).';
+                    $messageType = 'error';
+                }
+                break;
+        }
+    }
+}
+
+// Get all items
+$items = getRoomServiceItems();
+$stats = getRoomServiceStats();
+?>
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Room Service - Articles | Admin Hôtel Corintel</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Lato:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="admin-style.css">
+    <style>
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .items-table th,
+        .items-table td {
+            padding: 0.875rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--admin-border);
+        }
+        .items-table th {
+            font-weight: 600;
+            color: var(--admin-text-light);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .items-table tr:hover {
+            background: var(--admin-bg);
+        }
+        .item-image {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 8px;
+            background: var(--admin-bg);
+        }
+        .item-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .item-details h4 {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+        .item-details p {
+            font-size: 0.8125rem;
+            color: var(--admin-text-light);
+            margin: 0;
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .badge-active {
+            background: rgba(72, 187, 120, 0.1);
+            color: #276749;
+        }
+        .badge-inactive {
+            background: rgba(245, 101, 101, 0.1);
+            color: #C53030;
+        }
+        .price {
+            font-weight: 600;
+            color: var(--admin-primary);
+        }
+        .actions-cell {
+            display: flex;
+            gap: 0.5rem;
+        }
+        .btn-icon {
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .btn-icon svg {
+            width: 16px;
+            height: 16px;
+        }
+        .btn-success {
+            background: var(--admin-success);
+            color: #fff;
+        }
+        .btn-success:hover {
+            background: #38a169;
+            color: #fff;
+        }
+        .btn-danger {
+            background: var(--admin-error);
+            color: #fff;
+        }
+        .btn-danger:hover {
+            background: #e53e3e;
+            color: #fff;
+        }
+        .modal-lg {
+            max-width: 600px;
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-layout">
+        <!-- Sidebar -->
+        <aside class="admin-sidebar">
+            <div class="sidebar-header">
+                <h2>Hôtel Corintel</h2>
+                <span>Administration</span>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a href="index.php" class="nav-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                        <polyline points="9 22 9 12 15 12 15 22"/>
+                    </svg>
+                    Tableau de bord
+                </a>
+                <a href="images.php" class="nav-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                        <circle cx="8.5" cy="8.5" r="1.5"/>
+                        <polyline points="21 15 16 10 5 21"/>
+                    </svg>
+                    Gestion des images
+                </a>
+                <a href="room-service-items.php" class="nav-item active">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 8h1a4 4 0 0 1 0 8h-1"/>
+                        <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/>
+                        <line x1="6" y1="1" x2="6" y2="4"/>
+                        <line x1="10" y1="1" x2="10" y2="4"/>
+                        <line x1="14" y1="1" x2="14" y2="4"/>
+                    </svg>
+                    Room Service - Articles
+                </a>
+                <a href="room-service-orders.php" class="nav-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                        <line x1="16" y1="13" x2="8" y2="13"/>
+                        <line x1="16" y1="17" x2="8" y2="17"/>
+                        <polyline points="10 9 9 9 8 9"/>
+                    </svg>
+                    Room Service - Commandes
+                </a>
+                <a href="settings.php" class="nav-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                    </svg>
+                    Paramètres
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <span class="user-name"><?= h($admin['username']) ?></span>
+                </div>
+                <a href="logout.php" class="logout-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                        <polyline points="16 17 21 12 16 7"/>
+                        <line x1="21" y1="12" x2="9" y2="12"/>
+                    </svg>
+                    Déconnexion
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="admin-main">
+            <header class="admin-header">
+                <h1>Room Service - Articles</h1>
+                <button type="button" class="btn btn-primary" onclick="openCreateModal()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"/>
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                    </svg>
+                    Ajouter un article
+                </button>
+            </header>
+
+            <div class="admin-content">
+                <?php if ($message): ?>
+                    <div class="alert alert-<?= $messageType ?>">
+                        <?= h($message) ?>
+                    </div>
+                <?php endif; ?>
+
+                <!-- Stats -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M18 8h1a4 4 0 0 1 0 8h-1"/>
+                                <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/>
+                            </svg>
+                        </div>
+                        <div class="stat-content">
+                            <span class="stat-value"><?= $stats['total_items'] ?></span>
+                            <span class="stat-label">Articles total</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                        </div>
+                        <div class="stat-content">
+                            <span class="stat-value"><?= $stats['active_items'] ?></span>
+                            <span class="stat-label">Articles actifs</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                <polyline points="14 2 14 8 20 8"/>
+                            </svg>
+                        </div>
+                        <div class="stat-content">
+                            <span class="stat-value"><?= $stats['today_orders'] ?></span>
+                            <span class="stat-label">Commandes aujourd'hui</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Items Table -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Liste des articles</h2>
+                        <span class="badge"><?= count($items) ?> articles</span>
+                    </div>
+                    <div class="card-body" style="padding: 0;">
+                        <?php if (empty($items)): ?>
+                            <p class="empty-state">Aucun article. Cliquez sur "Ajouter un article" pour commencer.</p>
+                        <?php else: ?>
+                            <table class="items-table">
+                                <thead>
+                                    <tr>
+                                        <th>Article</th>
+                                        <th>Catégorie</th>
+                                        <th>Prix</th>
+                                        <th>Position</th>
+                                        <th>Statut</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($items as $item): ?>
+                                        <tr>
+                                            <td>
+                                                <div class="item-info">
+                                                    <?php if ($item['image']): ?>
+                                                        <img src="../<?= h($item['image']) ?>" alt="<?= h($item['name']) ?>" class="item-image">
+                                                    <?php else: ?>
+                                                        <div class="item-image" style="display: flex; align-items: center; justify-content: center;">
+                                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 24px; height: 24px; color: var(--admin-text-light);">
+                                                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                                                <circle cx="8.5" cy="8.5" r="1.5"/>
+                                                                <polyline points="21 15 16 10 5 21"/>
+                                                            </svg>
+                                                        </div>
+                                                    <?php endif; ?>
+                                                    <div class="item-details">
+                                                        <h4><?= h($item['name']) ?></h4>
+                                                        <p><?= h($item['description'] ?? '') ?></p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td><?= h($categories[$item['category']] ?? $item['category']) ?></td>
+                                            <td><span class="price"><?= number_format($item['price'], 2, ',', ' ') ?> €</span></td>
+                                            <td><?= $item['position'] ?></td>
+                                            <td>
+                                                <span class="badge <?= $item['is_active'] ? 'badge-active' : 'badge-inactive' ?>">
+                                                    <?= $item['is_active'] ? 'Actif' : 'Inactif' ?>
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <div class="actions-cell">
+                                                    <button type="button" class="btn btn-sm btn-outline btn-icon" onclick="openEditModal(<?= htmlspecialchars(json_encode($item)) ?>)" title="Modifier">
+                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                                        </svg>
+                                                    </button>
+                                                    <button type="button" class="btn btn-sm btn-outline btn-icon" onclick="openImageModal(<?= $item['id'] ?>)" title="Changer l'image">
+                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                                            <circle cx="8.5" cy="8.5" r="1.5"/>
+                                                            <polyline points="21 15 16 10 5 21"/>
+                                                        </svg>
+                                                    </button>
+                                                    <form method="POST" style="display: inline;">
+                                                        <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
+                                                        <input type="hidden" name="action" value="toggle">
+                                                        <input type="hidden" name="id" value="<?= $item['id'] ?>">
+                                                        <button type="submit" class="btn btn-sm <?= $item['is_active'] ? 'btn-outline' : 'btn-success' ?> btn-icon" title="<?= $item['is_active'] ? 'Désactiver' : 'Activer' ?>">
+                                                            <?php if ($item['is_active']): ?>
+                                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                                    <path d="M18.36 6.64a9 9 0 1 1-12.73 0"/>
+                                                                    <line x1="12" y1="2" x2="12" y2="12"/>
+                                                                </svg>
+                                                            <?php else: ?>
+                                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                                    <polyline points="20 6 9 17 4 12"/>
+                                                                </svg>
+                                                            <?php endif; ?>
+                                                        </button>
+                                                    </form>
+                                                    <form method="POST" style="display: inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cet article ?');">
+                                                        <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
+                                                        <input type="hidden" name="action" value="delete">
+                                                        <input type="hidden" name="id" value="<?= $item['id'] ?>">
+                                                        <button type="submit" class="btn btn-sm btn-danger btn-icon" title="Supprimer">
+                                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                                <polyline points="3 6 5 6 21 6"/>
+                                                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                                            </svg>
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Create Modal -->
+    <div id="createModal" class="modal">
+        <div class="modal-content modal-lg">
+            <div class="modal-header">
+                <h3>Ajouter un article</h3>
+                <button type="button" class="modal-close" onclick="closeModal('createModal')">&times;</button>
+            </div>
+            <form method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
+                <input type="hidden" name="action" value="create">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="createName">Nom *</label>
+                        <input type="text" id="createName" name="name" required maxlength="100">
+                    </div>
+                    <div class="form-group">
+                        <label for="createDescription">Description</label>
+                        <textarea id="createDescription" name="description" rows="3" maxlength="500"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="createPrice">Prix (€) *</label>
+                        <input type="number" id="createPrice" name="price" required min="0.01" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label for="createCategory">Catégorie</label>
+                        <select id="createCategory" name="category">
+                            <?php foreach ($categories as $key => $label): ?>
+                                <option value="<?= h($key) ?>"><?= h($label) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="createPosition">Position (ordre d'affichage)</label>
+                        <input type="number" id="createPosition" name="position" value="0" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="createImage">Image</label>
+                        <input type="file" id="createImage" name="image" accept="image/jpeg,image/png,image/webp">
+                        <small>JPG, PNG, WEBP - Max 5 Mo</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('createModal')">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Créer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div id="editModal" class="modal">
+        <div class="modal-content modal-lg">
+            <div class="modal-header">
+                <h3>Modifier l'article</h3>
+                <button type="button" class="modal-close" onclick="closeModal('editModal')">&times;</button>
+            </div>
+            <form method="POST">
+                <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
+                <input type="hidden" name="action" value="update">
+                <input type="hidden" name="id" id="editId">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="editName">Nom *</label>
+                        <input type="text" id="editName" name="name" required maxlength="100">
+                    </div>
+                    <div class="form-group">
+                        <label for="editDescription">Description</label>
+                        <textarea id="editDescription" name="description" rows="3" maxlength="500"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="editPrice">Prix (€) *</label>
+                        <input type="number" id="editPrice" name="price" required min="0.01" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label for="editCategory">Catégorie</label>
+                        <select id="editCategory" name="category">
+                            <?php foreach ($categories as $key => $label): ?>
+                                <option value="<?= h($key) ?>"><?= h($label) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="editPosition">Position (ordre d'affichage)</label>
+                        <input type="number" id="editPosition" name="position" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="editActive" name="is_active" value="1">
+                            Article actif
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('editModal')">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Image Upload Modal -->
+    <div id="imageModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Changer l'image</h3>
+                <button type="button" class="modal-close" onclick="closeModal('imageModal')">&times;</button>
+            </div>
+            <form method="POST" enctype="multipart/form-data" id="imageForm">
+                <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
+                <input type="hidden" name="action" value="upload_image">
+                <input type="hidden" name="id" id="imageItemId">
+                <div class="modal-body">
+                    <div class="upload-area" id="uploadArea">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="17 8 12 3 7 8"/>
+                            <line x1="12" y1="3" x2="12" y2="15"/>
+                        </svg>
+                        <p>Glissez une image ici ou cliquez pour sélectionner</p>
+                        <span class="upload-info">JPG, PNG, WEBP - Max 5 Mo</span>
+                        <input type="file" name="image" id="imageInput" accept="image/jpeg,image/png,image/webp" required>
+                    </div>
+                    <div id="previewContainer" class="preview-container" style="display: none;">
+                        <img id="imagePreview" src="" alt="Aperçu">
+                        <button type="button" class="btn btn-sm btn-outline" onclick="clearPreview()">Changer</button>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('imageModal')">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function openCreateModal() {
+            document.getElementById('createModal').classList.add('active');
+        }
+
+        function openEditModal(item) {
+            document.getElementById('editId').value = item.id;
+            document.getElementById('editName').value = item.name || '';
+            document.getElementById('editDescription').value = item.description || '';
+            document.getElementById('editPrice').value = item.price;
+            document.getElementById('editCategory').value = item.category || 'general';
+            document.getElementById('editPosition').value = item.position || 0;
+            document.getElementById('editActive').checked = item.is_active == 1;
+            document.getElementById('editModal').classList.add('active');
+        }
+
+        function openImageModal(itemId) {
+            document.getElementById('imageItemId').value = itemId;
+            clearPreview();
+            document.getElementById('imageModal').classList.add('active');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        // Close modal on outside click
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.classList.remove('active');
+                }
+            });
+        });
+
+        // Close modal on escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.modal.active').forEach(modal => {
+                    modal.classList.remove('active');
+                });
+            }
+        });
+
+        // File upload preview
+        const imageInput = document.getElementById('imageInput');
+        const uploadArea = document.getElementById('uploadArea');
+        const previewContainer = document.getElementById('previewContainer');
+        const imagePreview = document.getElementById('imagePreview');
+
+        imageInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    imagePreview.src = e.target.result;
+                    uploadArea.style.display = 'none';
+                    previewContainer.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        function clearPreview() {
+            imageInput.value = '';
+            uploadArea.style.display = 'flex';
+            previewContainer.style.display = 'none';
+            imagePreview.src = '';
+        }
+
+        // Drag and drop
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                imageInput.files = files;
+                imageInput.dispatchEvent(new Event('change'));
+            }
+        });
+
+        uploadArea.addEventListener('click', () => {
+            imageInput.click();
+        });
+    </script>
+</body>
+</html>
