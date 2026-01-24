@@ -444,11 +444,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         </div>
       </a>
       <nav class="nav-menu" id="navMenu">
-        <a href="index.php" class="nav-link">Accueil</a>
-        <a href="services.php" class="nav-link">Services</a>
-        <a href="activites.php" class="nav-link">À découvrir</a>
-        <a href="contact.php" class="nav-link">Contact</a>
-        <a href="room-service.php" class="nav-link active">Room Service</a>
+        <a href="index.php" class="nav-link" data-i18n="nav.home">Accueil</a>
+        <a href="services.php" class="nav-link" data-i18n="nav.services">Services</a>
+        <a href="room-service.php" class="nav-link active" data-i18n="nav.roomService">Room Service</a>
+        <a href="activites.php" class="nav-link" data-i18n="nav.activities">À découvrir</a>
+        <a href="contact.php" class="nav-link" data-i18n="nav.contact">Contact</a>
       </nav>
       <div class="menu-toggle" id="menuToggle">
         <span></span>
@@ -693,6 +693,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     </svg>
   </button>
 
+  <script src="js/translations.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/animations.js"></script>
   <script>
     // Cart management
     const cart = {};
