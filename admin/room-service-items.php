@@ -28,7 +28,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $description = trim($_POST['description'] ?? '');
                 $price = floatval($_POST['price'] ?? 0);
                 $category = $_POST['category'] ?? 'general';
-                $position = intval($_POST['position'] ?? 0);
 
                 if (empty($name)) {
                     $message = 'Le nom est obligatoire.';
@@ -42,7 +41,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                         'description' => $description,
                         'price' => $price,
                         'category' => $category,
-                        'position' => $position,
                         'is_active' => 1
                     ]);
                     if ($itemId) {
@@ -65,7 +63,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $description = trim($_POST['description'] ?? '');
                 $price = floatval($_POST['price'] ?? 0);
                 $category = $_POST['category'] ?? 'general';
-                $position = intval($_POST['position'] ?? 0);
                 $isActive = isset($_POST['is_active']) ? 1 : 0;
 
                 $item = getRoomServiceItemById($id);
@@ -85,7 +82,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                         'price' => $price,
                         'image' => $item['image'],
                         'category' => $category,
-                        'position' => $position,
                         'is_active' => $isActive
                     ]);
                     if ($success) {
@@ -389,7 +385,6 @@ $stats = getRoomServiceStats();
                                         <th>Article</th>
                                         <th>Catégorie</th>
                                         <th>Prix</th>
-                                        <th>Position</th>
                                         <th>Statut</th>
                                         <th>Actions</th>
                                     </tr>
@@ -418,7 +413,6 @@ $stats = getRoomServiceStats();
                                             </td>
                                             <td><?= h($categories[$item['category']] ?? $item['category']) ?></td>
                                             <td><span class="price"><?= number_format($item['price'], 2, ',', ' ') ?> €</span></td>
-                                            <td><?= $item['position'] ?></td>
                                             <td>
                                                 <span class="badge <?= $item['is_active'] ? 'badge-active' : 'badge-inactive' ?>">
                                                     <?= $item['is_active'] ? 'Actif' : 'Inactif' ?>
@@ -512,10 +506,6 @@ $stats = getRoomServiceStats();
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="createPosition">Position (ordre d'affichage)</label>
-                        <input type="number" id="createPosition" name="position" value="0" min="0">
-                    </div>
-                    <div class="form-group">
                         <label for="createImage">Image</label>
                         <input type="file" id="createImage" name="image" accept="image/jpeg,image/png,image/webp">
                         <small>JPG, PNG, WEBP - Max 5 Mo</small>
@@ -560,10 +550,6 @@ $stats = getRoomServiceStats();
                                 <option value="<?= h($key) ?>"><?= h($label) ?></option>
                             <?php endforeach; ?>
                         </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="editPosition">Position (ordre d'affichage)</label>
-                        <input type="number" id="editPosition" name="position" min="0">
                     </div>
                     <div class="form-group">
                         <label>
@@ -626,7 +612,6 @@ $stats = getRoomServiceStats();
             document.getElementById('editDescription').value = item.description || '';
             document.getElementById('editPrice').value = item.price;
             document.getElementById('editCategory').value = item.category || 'general';
-            document.getElementById('editPosition').value = item.position || 0;
             document.getElementById('editActive').checked = item.is_active == 1;
             document.getElementById('editModal').classList.add('active');
         }
