@@ -12,6 +12,52 @@ requireAuth();
 $admin = getCurrentAdmin();
 $stats = getImageStats();
 $sections = getAllSections();
+
+// Room Service Statistics
+$rsTodayTotal = 0;
+$rsStatusCounts = ['pending' => 0, 'confirmed' => 0, 'preparing' => 0, 'delivered' => 0, 'cancelled' => 0];
+$rsUpcomingCount = 0;
+$rsUrgentOrders = [];
+$rsEnabled = false;
+
+try {
+    $pdo = getDatabase();
+    $today = date('Y-m-d');
+
+    // Total orders today
+    $stmtTodayTotal = $pdo->prepare("SELECT COUNT(*) FROM room_service_orders WHERE DATE(created_at) = ?");
+    $stmtTodayTotal->execute([$today]);
+    $rsTodayTotal = $stmtTodayTotal->fetchColumn();
+
+    // Orders by status
+    $stmtByStatus = $pdo->query("SELECT status, COUNT(*) as count FROM room_service_orders WHERE DATE(created_at) = CURDATE() GROUP BY status");
+    while ($row = $stmtByStatus->fetch(PDO::FETCH_ASSOC)) {
+        $rsStatusCounts[$row['status']] = (int)$row['count'];
+    }
+
+    // Upcoming deliveries (not delivered/cancelled, delivery in the future)
+    $stmtUpcoming = $pdo->prepare("SELECT COUNT(*) FROM room_service_orders WHERE delivery_datetime >= NOW() AND status NOT IN ('delivered', 'cancelled')");
+    $stmtUpcoming->execute();
+    $rsUpcomingCount = $stmtUpcoming->fetchColumn();
+
+    // 3 most urgent orders (nearest delivery, not delivered/cancelled)
+    $stmtUrgent = $pdo->prepare("SELECT id, room_number, delivery_datetime, status FROM room_service_orders WHERE delivery_datetime >= NOW() AND status NOT IN ('delivered', 'cancelled') ORDER BY delivery_datetime ASC LIMIT 3");
+    $stmtUrgent->execute();
+    $rsUrgentOrders = $stmtUrgent->fetchAll(PDO::FETCH_ASSOC);
+
+    $rsEnabled = true;
+} catch (PDOException $e) {
+    // Table doesn't exist yet or other DB error
+    $rsEnabled = false;
+}
+
+$statusLabels = [
+    'pending' => 'En attente',
+    'confirmed' => 'Confirmée',
+    'preparing' => 'En préparation',
+    'delivered' => 'Livrée',
+    'cancelled' => 'Annulée'
+];
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -151,6 +197,70 @@ $sections = getAllSections();
                     </div>
                 </div>
 
+                <!-- Room Service Activity -->
+                <?php if ($rsEnabled): ?>
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Room Service - Activité du jour</h2>
+                        <a href="room-service-orders.php" class="btn btn-sm">Voir les commandes</a>
+                    </div>
+                    <div class="card-body">
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-content">
+                                    <span class="stat-value"><?= $rsTodayTotal ?></span>
+                                    <span class="stat-label">Commandes aujourd'hui</span>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-content">
+                                    <span class="stat-value"><?= $rsUpcomingCount ?></span>
+                                    <span class="stat-label">Livraisons à venir</span>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-content">
+                                    <span class="stat-value"><?= $rsStatusCounts['pending'] ?></span>
+                                    <span class="stat-label">En attente</span>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-content">
+                                    <span class="stat-value"><?= $rsStatusCounts['preparing'] ?></span>
+                                    <span class="stat-label">En préparation</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <?php if (!empty($rsUrgentOrders)): ?>
+                        <h3 style="margin: 1.5rem 0 1rem; font-size: 1rem;">Commandes urgentes</h3>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Chambre</th>
+                                    <th>Livraison prévue</th>
+                                    <th>Statut</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($rsUrgentOrders as $order): ?>
+                                <tr>
+                                    <td><strong><?= h($order['room_number']) ?></strong></td>
+                                    <td><?= date('d/m/Y H:i', strtotime($order['delivery_datetime'])) ?></td>
+                                    <td><span class="status-badge status-<?= $order['status'] ?>"><?= $statusLabels[$order['status']] ?></span></td>
+                                    <td><a href="room-service-orders.php?id=<?= $order['id'] ?>" class="btn btn-sm">Voir</a></td>
+                                </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                        <?php else: ?>
+                        <p style="margin-top: 1rem; color: #666;">Aucune commande urgente.</p>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                <?php endif; ?>
+
                 <!-- Sections Overview -->
                 <div class="card">
                     <div class="card-header">
@@ -228,6 +338,25 @@ $sections = getAllSections();
                                     <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
                                 </svg>
                                 <span>Changer le mot de passe</span>
+                            </a>
+                            <a href="room-service-orders.php" class="quick-action">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                    <polyline points="14 2 14 8 20 8"/>
+                                    <line x1="16" y1="13" x2="8" y2="13"/>
+                                    <line x1="16" y1="17" x2="8" y2="17"/>
+                                </svg>
+                                <span>Commandes Room Service</span>
+                            </a>
+                            <a href="room-service-items.php" class="quick-action">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M18 8h1a4 4 0 0 1 0 8h-1"/>
+                                    <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/>
+                                    <line x1="6" y1="1" x2="6" y2="4"/>
+                                    <line x1="10" y1="1" x2="10" y2="4"/>
+                                    <line x1="14" y1="1" x2="14" y2="4"/>
+                                </svg>
+                                <span>Gérer le menu</span>
                             </a>
                         </div>
                     </div>
