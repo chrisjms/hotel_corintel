@@ -129,6 +129,33 @@ CREATE TABLE IF NOT EXISTS room_service_orders (
 -- ALTER TABLE room_service_orders ADD COLUMN delivery_datetime DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP AFTER status;
 -- ALTER TABLE room_service_orders ADD INDEX idx_delivery (delivery_datetime);
 
+-- Room service categories with time availability
+CREATE TABLE IF NOT EXISTS room_service_categories (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    code VARCHAR(50) NOT NULL UNIQUE,
+    name VARCHAR(100) NOT NULL,
+    time_start TIME DEFAULT NULL COMMENT 'NULL means always available',
+    time_end TIME DEFAULT NULL COMMENT 'NULL means always available',
+    is_active BOOLEAN DEFAULT 1,
+    position INT DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_code (code),
+    INDEX idx_active (is_active),
+    INDEX idx_position (position)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Insert default categories with typical time windows
+INSERT INTO room_service_categories (code, name, time_start, time_end, position) VALUES
+('breakfast', 'Petit-déjeuner', '07:00', '11:00', 1),
+('lunch', 'Déjeuner', '12:00', '14:30', 2),
+('dinner', 'Dîner', '19:00', '22:00', 3),
+('snacks', 'Snacks', NULL, NULL, 4),
+('drinks', 'Boissons', NULL, NULL, 5),
+('desserts', 'Desserts', '12:00', '22:00', 6),
+('general', 'Général', NULL, NULL, 7)
+ON DUPLICATE KEY UPDATE name = VALUES(name);
+
 -- Room service order items (line items)
 CREATE TABLE IF NOT EXISTS room_service_order_items (
     id INT AUTO_INCREMENT PRIMARY KEY,

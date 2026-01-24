@@ -73,19 +73,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             if (empty($validItems)) {
                 $orderError = 'Aucun article valide sélectionné.';
             } else {
-                $orderId = createRoomServiceOrder([
-                    'room_number' => $roomNumber,
-                    'guest_name' => $guestName,
-                    'phone' => $phone,
-                    'payment_method' => $paymentMethod,
-                    'delivery_datetime' => $deliveryValidation['datetime'],
-                    'notes' => $notes
-                ], $validItems);
-
-                if ($orderId) {
-                    $orderSuccess = true;
+                // Validate item availability at delivery time
+                $availabilityCheck = validateOrderItemsAvailability(
+                    array_map(fn($i) => ['item_id' => $i['id']], $validItems),
+                    $deliveryValidation['datetime']
+                );
+                if (!$availabilityCheck['valid']) {
+                    $orderError = implode(' ', $availabilityCheck['errors']);
                 } else {
-                    $orderError = 'Une erreur est survenue. Veuillez réessayer.';
+                    $orderId = createRoomServiceOrder([
+                        'room_number' => $roomNumber,
+                        'guest_name' => $guestName,
+                        'phone' => $phone,
+                        'payment_method' => $paymentMethod,
+                        'delivery_datetime' => $deliveryValidation['datetime'],
+                        'notes' => $notes
+                    ], $validItems);
+
+                    if ($orderId) {
+                        $orderSuccess = true;
+                    } else {
+                        $orderError = 'Une erreur est survenue. Veuillez réessayer.';
+                    }
                 }
             }
         }
@@ -134,13 +143,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     .category-section {
       margin-bottom: 2.5rem;
     }
+    .category-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 2px solid var(--color-beige);
+    }
     .category-title {
       font-family: var(--font-heading);
       font-size: 1.5rem;
       color: var(--color-primary);
-      margin-bottom: 1rem;
-      padding-bottom: 0.5rem;
-      border-bottom: 2px solid var(--color-beige);
+      margin: 0;
+    }
+    .category-availability {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+    .category-availability.available {
+      background: rgba(72, 187, 120, 0.15);
+      color: #276749;
+    }
+    .category-availability.unavailable {
+      background: rgba(245, 101, 101, 0.15);
+      color: #C53030;
+    }
+    .category-availability.always-available {
+      background: rgba(66, 153, 225, 0.15);
+      color: #2B6CB0;
     }
     .items-grid {
       display: grid;
@@ -513,11 +551,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
           <!-- Menu Items -->
           <div class="menu-items">
             <?php foreach ($itemsByCategory as $categoryKey => $categoryItems): ?>
-              <div class="category-section">
-                <h2 class="category-title"><?= htmlspecialchars($categories[$categoryKey] ?? ucfirst($categoryKey)) ?></h2>
+              <?php $catAvailability = getCategoryAvailabilityInfo($categoryKey); ?>
+              <div class="category-section" data-category="<?= htmlspecialchars($categoryKey) ?>">
+                <div class="category-header">
+                  <h2 class="category-title"><?= htmlspecialchars($categories[$categoryKey] ?? ucfirst($categoryKey)) ?></h2>
+                  <?php if ($catAvailability['time_start'] && $catAvailability['time_end']): ?>
+                    <span class="category-availability <?= $catAvailability['available'] ? 'available' : 'unavailable' ?>">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;">
+                        <circle cx="12" cy="12" r="10"/>
+                        <polyline points="12 6 12 12 16 14"/>
+                      </svg>
+                      <?= htmlspecialchars($catAvailability['time_start']) ?> - <?= htmlspecialchars($catAvailability['time_end']) ?>
+                    </span>
+                  <?php else: ?>
+                    <span class="category-availability always-available">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;">
+                        <polyline points="20 6 9 17 4 12"/>
+                      </svg>
+                      24h/24
+                    </span>
+                  <?php endif; ?>
+                </div>
                 <div class="items-grid">
                   <?php foreach ($categoryItems as $item): ?>
-                    <div class="item-card" data-item-id="<?= $item['id'] ?>" data-item-name="<?= htmlspecialchars($item['name']) ?>" data-item-price="<?= $item['price'] ?>">
+                    <div class="item-card" data-item-id="<?= $item['id'] ?>" data-item-name="<?= htmlspecialchars($item['name']) ?>" data-item-price="<?= $item['price'] ?>" data-item-category="<?= htmlspecialchars($item['category'] ?? 'general') ?>">
                       <div class="item-image">
                         <?php if ($item['image']): ?>
                           <img src="<?= htmlspecialchars($item['image']) ?>" alt="<?= htmlspecialchars($item['name']) ?>">

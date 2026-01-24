@@ -620,9 +620,24 @@ function getRoomServiceStats(): array {
 }
 
 /**
- * Get room service item categories
+ * Get room service categories from database
+ * Falls back to hardcoded values if table doesn't exist
  */
 function getRoomServiceCategories(): array {
+    try {
+        $pdo = getDatabase();
+        $stmt = $pdo->query('SELECT code, name FROM room_service_categories WHERE is_active = 1 ORDER BY position ASC');
+        $categories = [];
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $categories[$row['code']] = $row['name'];
+        }
+        if (!empty($categories)) {
+            return $categories;
+        }
+    } catch (PDOException $e) {
+        // Table doesn't exist, use fallback
+    }
+    // Fallback to hardcoded categories
     return [
         'breakfast' => 'Petit-déjeuner',
         'lunch' => 'Déjeuner',
@@ -631,6 +646,157 @@ function getRoomServiceCategories(): array {
         'drinks' => 'Boissons',
         'desserts' => 'Desserts',
         'general' => 'Général'
+    ];
+}
+
+/**
+ * Get all room service categories with full details (for admin)
+ */
+function getRoomServiceCategoriesAll(): array {
+    try {
+        $pdo = getDatabase();
+        $stmt = $pdo->query('SELECT * FROM room_service_categories ORDER BY position ASC');
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        return [];
+    }
+}
+
+/**
+ * Get a single category by code
+ */
+function getRoomServiceCategoryByCode(string $code): ?array {
+    $pdo = getDatabase();
+    $stmt = $pdo->prepare('SELECT * FROM room_service_categories WHERE code = ?');
+    $stmt->execute([$code]);
+    return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+}
+
+/**
+ * Update category time window
+ */
+function updateCategoryTimeWindow(string $code, ?string $timeStart, ?string $timeEnd): bool {
+    $pdo = getDatabase();
+    $stmt = $pdo->prepare('
+        UPDATE room_service_categories
+        SET time_start = ?, time_end = ?, updated_at = NOW()
+        WHERE code = ?
+    ');
+    return $stmt->execute([
+        $timeStart ?: null,
+        $timeEnd ?: null,
+        $code
+    ]);
+}
+
+/**
+ * Check if a category is currently available based on time window
+ * @param string $code Category code
+ * @param string|null $checkTime Time to check (HH:MM format), defaults to current time
+ * @return bool True if available, false otherwise
+ */
+function isCategoryAvailable(string $code, ?string $checkTime = null): bool {
+    $category = getRoomServiceCategoryByCode($code);
+
+    if (!$category || !$category['is_active']) {
+        return false;
+    }
+
+    // If no time window set, always available
+    if (empty($category['time_start']) || empty($category['time_end'])) {
+        return true;
+    }
+
+    $time = $checkTime ? strtotime($checkTime) : time();
+    $currentTime = date('H:i', $time);
+
+    $start = substr($category['time_start'], 0, 5); // HH:MM
+    $end = substr($category['time_end'], 0, 5);
+
+    // Handle overnight windows (e.g., 22:00 - 02:00)
+    if ($start > $end) {
+        return $currentTime >= $start || $currentTime <= $end;
+    }
+
+    return $currentTime >= $start && $currentTime <= $end;
+}
+
+/**
+ * Check if a category will be available at a given datetime
+ * @param string $code Category code
+ * @param string $datetime Datetime to check (Y-m-d H:i:s format)
+ * @return bool True if available, false otherwise
+ */
+function isCategoryAvailableAt(string $code, string $datetime): bool {
+    $time = date('H:i', strtotime($datetime));
+    return isCategoryAvailable($code, $time);
+}
+
+/**
+ * Get category availability info for display
+ * @param string $code Category code
+ * @return array ['available' => bool, 'time_start' => string|null, 'time_end' => string|null, 'message' => string]
+ */
+function getCategoryAvailabilityInfo(string $code): array {
+    $category = getRoomServiceCategoryByCode($code);
+
+    if (!$category) {
+        return [
+            'available' => true,
+            'time_start' => null,
+            'time_end' => null,
+            'message' => 'Disponible'
+        ];
+    }
+
+    $isAvailable = isCategoryAvailable($code);
+    $timeStart = $category['time_start'] ? substr($category['time_start'], 0, 5) : null;
+    $timeEnd = $category['time_end'] ? substr($category['time_end'], 0, 5) : null;
+
+    if (!$timeStart || !$timeEnd) {
+        $message = 'Disponible 24h/24';
+    } elseif ($isAvailable) {
+        $message = "Disponible ({$timeStart} - {$timeEnd})";
+    } else {
+        $message = "Disponible de {$timeStart} à {$timeEnd}";
+    }
+
+    return [
+        'available' => $isAvailable,
+        'time_start' => $timeStart,
+        'time_end' => $timeEnd,
+        'message' => $message
+    ];
+}
+
+/**
+ * Validate order items availability at delivery time
+ * @param array $items Array of items with item_id
+ * @param string $deliveryDatetime Delivery datetime
+ * @return array ['valid' => bool, 'errors' => array]
+ */
+function validateOrderItemsAvailability(array $items, string $deliveryDatetime): array {
+    $errors = [];
+    $pdo = getDatabase();
+
+    foreach ($items as $item) {
+        $stmt = $pdo->prepare('SELECT name, category FROM room_service_items WHERE id = ?');
+        $stmt->execute([$item['item_id']]);
+        $itemData = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($itemData && !isCategoryAvailableAt($itemData['category'], $deliveryDatetime)) {
+            $categoryInfo = getCategoryAvailabilityInfo($itemData['category']);
+            $errors[] = sprintf(
+                '"%s" n\'est pas disponible à l\'heure demandée. %s',
+                $itemData['name'],
+                $categoryInfo['message']
+            );
+        }
+    }
+
+    return [
+        'valid' => empty($errors),
+        'errors' => $errors
     ];
 }
 
