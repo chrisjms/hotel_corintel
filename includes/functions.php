@@ -308,15 +308,9 @@ function getRoomServiceItemById(int $id): ?array {
 
 /**
  * Create a room service item
- * Position is auto-calculated (MAX+1) and cannot be set from input
  */
 function createRoomServiceItem(array $data): int|false {
     $pdo = getDatabase();
-
-    // Auto-calculate position (next available)
-    $stmtPos = $pdo->query('SELECT COALESCE(MAX(position), 0) + 1 FROM room_service_items');
-    $nextPosition = (int)$stmtPos->fetchColumn();
-
     $stmt = $pdo->prepare('
         INSERT INTO room_service_items (name, description, price, image, category, is_active, position)
         VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -328,20 +322,19 @@ function createRoomServiceItem(array $data): int|false {
         $data['image'] ?? null,
         $data['category'] ?? 'general',
         $data['is_active'] ?? 1,
-        $nextPosition
+        $data['position'] ?? 0
     ]);
     return $success ? (int)$pdo->lastInsertId() : false;
 }
 
 /**
  * Update a room service item
- * Position is NOT updated - it is managed internally only
  */
 function updateRoomServiceItem(int $id, array $data): bool {
     $pdo = getDatabase();
     $stmt = $pdo->prepare('
         UPDATE room_service_items
-        SET name = ?, description = ?, price = ?, image = ?, category = ?, is_active = ?
+        SET name = ?, description = ?, price = ?, image = ?, category = ?, is_active = ?, position = ?
         WHERE id = ?
     ');
     return $stmt->execute([
@@ -351,6 +344,7 @@ function updateRoomServiceItem(int $id, array $data): bool {
         $data['image'] ?? null,
         $data['category'] ?? 'general',
         $data['is_active'] ?? 1,
+        $data['position'] ?? 0,
         $id
     ]);
 }
