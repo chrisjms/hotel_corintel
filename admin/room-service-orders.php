@@ -251,6 +251,14 @@ if (isset($_GET['view'])) {
                     </svg>
                     Gestion des images
                 </a>
+                <a href="room-service-stats.php" class="nav-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="20" x2="18" y2="10"/>
+                        <line x1="12" y1="20" x2="12" y2="4"/>
+                        <line x1="6" y1="20" x2="6" y2="14"/>
+                    </svg>
+                    Statistiques
+                </a>
                 <a href="room-service-items.php" class="nav-item">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M18 8h1a4 4 0 0 1 0 8h-1"/>
