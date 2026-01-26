@@ -533,8 +533,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/>
           </svg>
           <h2>Service actuellement indisponible</h2>
-          <p>Le room service n'est pas disponible pour le moment. Veuillez réessayer ultérieurement ou contacter la réception.</p>
-          <a href="contact.php" class="btn btn-primary" style="margin-top: 1rem;">Contacter la réception</a>
+          <p>Le room service n'est pas disponible pour le moment. Veuillez réessayer ultérieurement ou appeler la réception au +33 5 57 34 13 95.</p>
         </div>
       </div>
     </section>
@@ -701,7 +700,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             <li><a href="index.php">Accueil</a></li>
             <li><a href="services.php">Services</a></li>
             <li><a href="activites.php">À découvrir</a></li>
-            <li><a href="contact.php">Contact</a></li>
           </ul>
         </div>
         <div class="footer-nav">

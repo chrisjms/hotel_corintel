@@ -98,7 +98,6 @@ $introImage = $useDatabase ? getImg($images, 4, 'images/acceuil/entree-hotel.jpe
       </p>
       <div class="hero-buttons">
         <a href="services.php" class="btn btn-primary" data-i18n="home.discoverServices">Découvrir nos services</a>
-        <a href="contact.php" class="btn btn-outline" data-i18n="nav.contact">Contact</a>
       </div>
     </div>
     <div class="carousel-nav" id="carouselNav">
@@ -228,7 +227,7 @@ $introImage = $useDatabase ? getImg($images, 4, 'images/acceuil/entree-hotel.jpe
     <div class="container">
       <h2 data-i18n="home.ctaTitle">Découvrez notre hôtel</h2>
       <p data-i18n="home.ctaText">Offrez-vous un séjour ressourçant au cœur de la campagne bordelaise</p>
-      <a href="contact.php" class="btn btn-primary" data-i18n="nav.contact">Nous contacter</a>
+      <a href="services.php" class="btn btn-primary" data-i18n="home.discoverServices">Découvrir nos services</a>
     </div>
   </section>
 
@@ -249,7 +248,6 @@ $introImage = $useDatabase ? getImg($images, 4, 'images/acceuil/entree-hotel.jpe
             <li><a href="index.php" data-i18n="nav.home">Accueil</a></li>
             <li><a href="services.php" data-i18n="nav.services">Services</a></li>
             <li><a href="activites.php" data-i18n="nav.discover">À découvrir</a></li>
-            <li><a href="contact.php" data-i18n="nav.contact">Contact</a></li>
           </ul>
         </div>
         <div class="footer-nav">
