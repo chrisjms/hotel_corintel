@@ -67,6 +67,7 @@ $countrysideImage = $useDatabase ? getImg($images, 8, 'images/acceuil/bar.jpg') 
       <nav class="nav-menu" id="navMenu">
         <a href="index.php" class="nav-link" data-i18n="nav.home">Accueil</a>
         <a href="services.php" class="nav-link" data-i18n="nav.services">Services</a>
+        <a href="room-service.php" class="nav-link" data-i18n="nav.roomService">Room Service</a>
         <a href="activites.php" class="nav-link active" data-i18n="nav.activities">À découvrir</a>
         <a href="contact.php" class="nav-link" data-i18n="nav.contact">Contact</a>
       </nav>
@@ -365,8 +366,8 @@ $countrysideImage = $useDatabase ? getImg($images, 8, 'images/acceuil/bar.jpg') 
   <section class="cta-section">
     <div class="container">
       <h2 data-i18n="activities.ctaTitle">Prêt pour l'aventure ?</h2>
-      <p data-i18n="activities.ctaText">Contactez-nous pour découvrir la région bordelaise</p>
-      <a href="contact.php" class="btn btn-primary" data-i18n="nav.contact">Nous contacter</a>
+      <p data-i18n="activities.ctaText2">Découvrez tous nos services pour votre séjour</p>
+      <a href="services.php" class="btn btn-primary" data-i18n="nav.services">Nos services</a>
     </div>
   </section>
 
@@ -387,7 +388,6 @@ $countrysideImage = $useDatabase ? getImg($images, 8, 'images/acceuil/bar.jpg') 
             <li><a href="index.php" data-i18n="nav.home">Accueil</a></li>
             <li><a href="services.php" data-i18n="nav.services">Services</a></li>
             <li><a href="activites.php" data-i18n="nav.activities">À découvrir</a></li>
-            <li><a href="contact.php" data-i18n="nav.contact">Contact</a></li>
           </ul>
         </div>
         <div class="footer-nav">

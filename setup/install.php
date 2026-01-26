@@ -287,7 +287,7 @@ try {
             </ol>
         </div>
 
-        <a href="../admin/login.php" class="btn">Accéder à l'administration</a>
+        <a href="/corintel/admin/login.php" class="btn">Accéder à l'administration</a>
     <?php else: ?>
         <div class="warning">
             <strong>L'installation a rencontré des erreurs.</strong><br>

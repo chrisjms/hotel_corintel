@@ -6,14 +6,14 @@
  * Update these values with your OVH MySQL credentials
  */
 
-define('DB_HOST', 'localhost');
-define('DB_NAME', 'hotel_corintel');
-define('DB_USER', 'your_username');
-define('DB_PASS', 'your_password');
+define('DB_HOST', 'hothelvhothello.mysql.db');
+define('DB_NAME', 'hothelvhothello');
+define('DB_USER', 'hothelvhothello');
+define('DB_PASS', 'Toutesdesputes33');
 define('DB_CHARSET', 'utf8mb4');
 
 // Site configuration
-define('SITE_URL', 'https://your-domain.com');
+define('SITE_URL', 'https://hothello.ovh/corintel');
 define('UPLOAD_DIR', __DIR__ . '/../uploads/');
 define('UPLOAD_URL', SITE_URL . '/uploads/');
 define('MAX_FILE_SIZE', 5 * 1024 * 1024); // 5MB

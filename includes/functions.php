@@ -277,3 +277,543 @@ function getImageStats(): array {
 
     return $stats;
 }
+
+// =====================================================
+// ROOM SERVICE FUNCTIONS
+// =====================================================
+
+/**
+ * Get all room service items
+ */
+function getRoomServiceItems(bool $activeOnly = false): array {
+    $pdo = getDatabase();
+    $sql = 'SELECT * FROM room_service_items';
+    if ($activeOnly) {
+        $sql .= ' WHERE is_active = 1';
+    }
+    $sql .= ' ORDER BY position ASC, id ASC';
+    $stmt = $pdo->query($sql);
+    return $stmt->fetchAll();
+}
+
+/**
+ * Get a room service item by ID
+ */
+function getRoomServiceItemById(int $id): ?array {
+    $pdo = getDatabase();
+    $stmt = $pdo->prepare('SELECT * FROM room_service_items WHERE id = ?');
+    $stmt->execute([$id]);
+    return $stmt->fetch() ?: null;
+}
+
+/**
+ * Create a room service item
+ */
+function createRoomServiceItem(array $data): int|false {
+    $pdo = getDatabase();
+    $stmt = $pdo->prepare('
+        INSERT INTO room_service_items (name, description, price, image, category, is_active, position)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    ');
+    $success = $stmt->execute([
+        $data['name'],
+        $data['description'] ?? null,
+        $data['price'],
+        $data['image'] ?? null,
+        $data['category'] ?? 'general',
+        $data['is_active'] ?? 1,
+        $data['position'] ?? 0
+    ]);
+    return $success ? (int)$pdo->lastInsertId() : false;
+}
+
+/**
+ * Update a room service item
+ */
+function updateRoomServiceItem(int $id, array $data): bool {
+    $pdo = getDatabase();
+    $stmt = $pdo->prepare('
+        UPDATE room_service_items
+        SET name = ?, description = ?, price = ?, image = ?, category = ?, is_active = ?, position = ?
+        WHERE id = ?
+    ');
+    return $stmt->execute([
+        $data['name'],
+        $data['description'] ?? null,
+        $data['price'],
+        $data['image'] ?? null,
+        $data['category'] ?? 'general',
+        $data['is_active'] ?? 1,
+        $data['position'] ?? 0,
+        $id
+    ]);
+}
+
+/**
+ * Toggle room service item status
+ */
+function toggleRoomServiceItemStatus(int $id): bool {
+    $pdo = getDatabase();
+    $stmt = $pdo->prepare('UPDATE room_service_items SET is_active = NOT is_active WHERE id = ?');
+    return $stmt->execute([$id]);
+}
+
+/**
+ * Delete a room service item
+ */
+function deleteRoomServiceItem(int $id): bool {
+    $pdo = getDatabase();
+    // Check if item is used in any order
+    $stmt = $pdo->prepare('SELECT COUNT(*) FROM room_service_order_items WHERE item_id = ?');
+    $stmt->execute([$id]);
+    if ($stmt->fetchColumn() > 0) {
+        return false; // Cannot delete, item is used in orders
+    }
+    $stmt = $pdo->prepare('DELETE FROM room_service_items WHERE id = ?');
+    return $stmt->execute([$id]);
+}
+
+/**
+ * Handle room service item image upload
+ */
+function handleRoomServiceItemImageUpload(array $file, int $itemId): array {
+    $validation = validateUploadedFile($file);
+    if (!$validation['valid']) {
+        return $validation;
+    }
+
+    $item = getRoomServiceItemById($itemId);
+    if (!$item) {
+        return ['valid' => false, 'message' => 'Article non trouvé.'];
+    }
+
+    $extension = $validation['extension'];
+    $newFilename = sprintf('room_service_%d_%d.%s', $itemId, time(), $extension);
+    $uploadPath = UPLOAD_DIR . $newFilename;
+
+    if (!is_dir(UPLOAD_DIR)) {
+        if (!@mkdir(UPLOAD_DIR, 0755, true)) {
+            return ['valid' => false, 'message' => 'Impossible de créer le dossier uploads.'];
+        }
+    }
+
+    if (!is_writable(UPLOAD_DIR)) {
+        return ['valid' => false, 'message' => 'Le dossier uploads n\'est pas accessible en écriture.'];
+    }
+
+    if (!move_uploaded_file($file['tmp_name'], $uploadPath)) {
+        return ['valid' => false, 'message' => 'Erreur lors de l\'enregistrement du fichier.'];
+    }
+
+    // Delete old image if exists
+    if (!empty($item['image']) && strpos($item['image'], 'uploads/') === 0) {
+        $oldPath = __DIR__ . '/../' . $item['image'];
+        if (file_exists($oldPath)) {
+            @unlink($oldPath);
+        }
+    }
+
+    $relativePath = 'uploads/' . $newFilename;
+    $pdo = getDatabase();
+    $stmt = $pdo->prepare('UPDATE room_service_items SET image = ? WHERE id = ?');
+    if (!$stmt->execute([$relativePath, $itemId])) {
+        @unlink($uploadPath);
+        return ['valid' => false, 'message' => 'Erreur lors de la mise à jour de la base de données.'];
+    }
+
+    return ['valid' => true, 'message' => 'Image mise à jour avec succès.', 'filename' => $relativePath];
+}
+
+/**
+ * Get all room service orders
+ */
+function getRoomServiceOrders(string $status = '', string $sortBy = 'created_at', string $sortOrder = 'DESC', ?string $deliveryDate = null): array {
+    $pdo = getDatabase();
+    $sql = 'SELECT * FROM room_service_orders';
+    $params = [];
+    $conditions = [];
+
+    if ($status && $status !== 'all') {
+        $conditions[] = 'status = ?';
+        $params[] = $status;
+    }
+
+    if ($deliveryDate) {
+        $conditions[] = 'DATE(delivery_datetime) = ?';
+        $params[] = $deliveryDate;
+    }
+
+    if (!empty($conditions)) {
+        $sql .= ' WHERE ' . implode(' AND ', $conditions);
+    }
+
+    // Validate sort column
+    $allowedSortColumns = ['created_at', 'delivery_datetime', 'total_amount', 'room_number'];
+    if (!in_array($sortBy, $allowedSortColumns)) {
+        $sortBy = 'created_at';
+    }
+    $sortOrder = strtoupper($sortOrder) === 'ASC' ? 'ASC' : 'DESC';
+
+    $sql .= ' ORDER BY ' . $sortBy . ' ' . $sortOrder;
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+    return $stmt->fetchAll();
+}
+
+/**
+ * Get a room service order by ID
+ */
+function getRoomServiceOrderById(int $id): ?array {
+    $pdo = getDatabase();
+    $stmt = $pdo->prepare('SELECT * FROM room_service_orders WHERE id = ?');
+    $stmt->execute([$id]);
+    return $stmt->fetch() ?: null;
+}
+
+/**
+ * Get order items for a room service order
+ */
+function getRoomServiceOrderItems(int $orderId): array {
+    $pdo = getDatabase();
+    $stmt = $pdo->prepare('SELECT * FROM room_service_order_items WHERE order_id = ? ORDER BY id ASC');
+    $stmt->execute([$orderId]);
+    return $stmt->fetchAll();
+}
+
+/**
+ * Create a room service order
+ */
+function createRoomServiceOrder(array $orderData, array $items): int|false {
+    $pdo = getDatabase();
+
+    try {
+        $pdo->beginTransaction();
+
+        // Calculate total
+        $total = 0;
+        foreach ($items as $item) {
+            $total += $item['price'] * $item['quantity'];
+        }
+
+        // Create order
+        $stmt = $pdo->prepare('
+            INSERT INTO room_service_orders (room_number, guest_name, phone, total_amount, payment_method, delivery_datetime, notes)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ');
+        $stmt->execute([
+            $orderData['room_number'],
+            $orderData['guest_name'] ?? null,
+            $orderData['phone'] ?? null,
+            $total,
+            $orderData['payment_method'] ?? 'room_charge',
+            $orderData['delivery_datetime'],
+            $orderData['notes'] ?? null
+        ]);
+        $orderId = (int)$pdo->lastInsertId();
+
+        // Create order items
+        $stmt = $pdo->prepare('
+            INSERT INTO room_service_order_items (order_id, item_id, item_name, item_price, quantity, subtotal)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ');
+        foreach ($items as $item) {
+            $subtotal = $item['price'] * $item['quantity'];
+            $stmt->execute([
+                $orderId,
+                $item['id'],
+                $item['name'],
+                $item['price'],
+                $item['quantity'],
+                $subtotal
+            ]);
+        }
+
+        $pdo->commit();
+        return $orderId;
+
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        error_log('Room service order creation failed: ' . $e->getMessage());
+        return false;
+    }
+}
+
+/**
+ * Validate delivery datetime
+ */
+function validateDeliveryDatetime(string $datetime): array {
+    if (empty($datetime)) {
+        return ['valid' => false, 'message' => 'La date et heure de livraison sont obligatoires.'];
+    }
+
+    $deliveryTime = strtotime($datetime);
+    if ($deliveryTime === false) {
+        return ['valid' => false, 'message' => 'Format de date/heure invalide.'];
+    }
+
+    // Must be at least 30 minutes in the future
+    $minTime = time() + (30 * 60);
+    if ($deliveryTime < $minTime) {
+        return ['valid' => false, 'message' => 'La livraison doit être prévue au moins 30 minutes à l\'avance.'];
+    }
+
+    // Cannot be more than 7 days in the future
+    $maxTime = time() + (7 * 24 * 60 * 60);
+    if ($deliveryTime > $maxTime) {
+        return ['valid' => false, 'message' => 'La livraison ne peut pas être prévue plus de 7 jours à l\'avance.'];
+    }
+
+    return ['valid' => true, 'datetime' => date('Y-m-d H:i:s', $deliveryTime)];
+}
+
+/**
+ * Update room service order status
+ */
+function updateRoomServiceOrderStatus(int $id, string $status): bool {
+    $validStatuses = ['pending', 'confirmed', 'preparing', 'delivered', 'cancelled'];
+    if (!in_array($status, $validStatuses)) {
+        return false;
+    }
+    $pdo = getDatabase();
+    $stmt = $pdo->prepare('UPDATE room_service_orders SET status = ? WHERE id = ?');
+    return $stmt->execute([$status, $id]);
+}
+
+/**
+ * Get room service statistics
+ */
+function getRoomServiceStats(): array {
+    $pdo = getDatabase();
+    $stats = [];
+
+    // Total items
+    $stmt = $pdo->query('SELECT COUNT(*) FROM room_service_items');
+    $stats['total_items'] = $stmt->fetchColumn();
+
+    // Active items
+    $stmt = $pdo->query('SELECT COUNT(*) FROM room_service_items WHERE is_active = 1');
+    $stats['active_items'] = $stmt->fetchColumn();
+
+    // Total orders
+    $stmt = $pdo->query('SELECT COUNT(*) FROM room_service_orders');
+    $stats['total_orders'] = $stmt->fetchColumn();
+
+    // Pending orders
+    $stmt = $pdo->query('SELECT COUNT(*) FROM room_service_orders WHERE status = "pending"');
+    $stats['pending_orders'] = $stmt->fetchColumn();
+
+    // Today's orders
+    $stmt = $pdo->query('SELECT COUNT(*) FROM room_service_orders WHERE DATE(created_at) = CURDATE()');
+    $stats['today_orders'] = $stmt->fetchColumn();
+
+    // Today's revenue
+    $stmt = $pdo->query('SELECT COALESCE(SUM(total_amount), 0) FROM room_service_orders WHERE DATE(created_at) = CURDATE() AND status != "cancelled"');
+    $stats['today_revenue'] = $stmt->fetchColumn();
+
+    return $stats;
+}
+
+/**
+ * Get room service categories from database
+ * Falls back to hardcoded values if table doesn't exist
+ */
+function getRoomServiceCategories(): array {
+    try {
+        $pdo = getDatabase();
+        $stmt = $pdo->query('SELECT code, name FROM room_service_categories WHERE is_active = 1 ORDER BY position ASC');
+        $categories = [];
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $categories[$row['code']] = $row['name'];
+        }
+        if (!empty($categories)) {
+            return $categories;
+        }
+    } catch (PDOException $e) {
+        // Table doesn't exist, use fallback
+    }
+    // Fallback to hardcoded categories
+    return [
+        'breakfast' => 'Petit-déjeuner',
+        'lunch' => 'Déjeuner',
+        'dinner' => 'Dîner',
+        'snacks' => 'Snacks',
+        'drinks' => 'Boissons',
+        'desserts' => 'Desserts',
+        'general' => 'Général'
+    ];
+}
+
+/**
+ * Get all room service categories with full details (for admin)
+ */
+function getRoomServiceCategoriesAll(): array {
+    try {
+        $pdo = getDatabase();
+        $stmt = $pdo->query('SELECT * FROM room_service_categories ORDER BY position ASC');
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        return [];
+    }
+}
+
+/**
+ * Get a single category by code
+ */
+function getRoomServiceCategoryByCode(string $code): ?array {
+    $pdo = getDatabase();
+    $stmt = $pdo->prepare('SELECT * FROM room_service_categories WHERE code = ?');
+    $stmt->execute([$code]);
+    return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+}
+
+/**
+ * Update category time window
+ */
+function updateCategoryTimeWindow(string $code, ?string $timeStart, ?string $timeEnd): bool {
+    $pdo = getDatabase();
+    $stmt = $pdo->prepare('
+        UPDATE room_service_categories
+        SET time_start = ?, time_end = ?, updated_at = NOW()
+        WHERE code = ?
+    ');
+    return $stmt->execute([
+        $timeStart ?: null,
+        $timeEnd ?: null,
+        $code
+    ]);
+}
+
+/**
+ * Check if a category is currently available based on time window
+ * @param string $code Category code
+ * @param string|null $checkTime Time to check (HH:MM format), defaults to current time
+ * @return bool True if available, false otherwise
+ */
+function isCategoryAvailable(string $code, ?string $checkTime = null): bool {
+    $category = getRoomServiceCategoryByCode($code);
+
+    if (!$category || !$category['is_active']) {
+        return false;
+    }
+
+    // If no time window set, always available
+    if (empty($category['time_start']) || empty($category['time_end'])) {
+        return true;
+    }
+
+    $time = $checkTime ? strtotime($checkTime) : time();
+    $currentTime = date('H:i', $time);
+
+    $start = substr($category['time_start'], 0, 5); // HH:MM
+    $end = substr($category['time_end'], 0, 5);
+
+    // Handle overnight windows (e.g., 22:00 - 02:00)
+    if ($start > $end) {
+        return $currentTime >= $start || $currentTime <= $end;
+    }
+
+    return $currentTime >= $start && $currentTime <= $end;
+}
+
+/**
+ * Check if a category will be available at a given datetime
+ * @param string $code Category code
+ * @param string $datetime Datetime to check (Y-m-d H:i:s format)
+ * @return bool True if available, false otherwise
+ */
+function isCategoryAvailableAt(string $code, string $datetime): bool {
+    $time = date('H:i', strtotime($datetime));
+    return isCategoryAvailable($code, $time);
+}
+
+/**
+ * Get category availability info for display
+ * @param string $code Category code
+ * @return array ['available' => bool, 'time_start' => string|null, 'time_end' => string|null, 'message' => string]
+ */
+function getCategoryAvailabilityInfo(string $code): array {
+    $category = getRoomServiceCategoryByCode($code);
+
+    if (!$category) {
+        return [
+            'available' => true,
+            'time_start' => null,
+            'time_end' => null,
+            'message' => 'Disponible'
+        ];
+    }
+
+    $isAvailable = isCategoryAvailable($code);
+    $timeStart = $category['time_start'] ? substr($category['time_start'], 0, 5) : null;
+    $timeEnd = $category['time_end'] ? substr($category['time_end'], 0, 5) : null;
+
+    if (!$timeStart || !$timeEnd) {
+        $message = 'Disponible 24h/24';
+    } elseif ($isAvailable) {
+        $message = "Disponible ({$timeStart} - {$timeEnd})";
+    } else {
+        $message = "Disponible de {$timeStart} à {$timeEnd}";
+    }
+
+    return [
+        'available' => $isAvailable,
+        'time_start' => $timeStart,
+        'time_end' => $timeEnd,
+        'message' => $message
+    ];
+}
+
+/**
+ * Validate order items availability at delivery time
+ * @param array $items Array of items with item_id
+ * @param string $deliveryDatetime Delivery datetime
+ * @return array ['valid' => bool, 'errors' => array]
+ */
+function validateOrderItemsAvailability(array $items, string $deliveryDatetime): array {
+    $errors = [];
+    $pdo = getDatabase();
+
+    foreach ($items as $item) {
+        $stmt = $pdo->prepare('SELECT name, category FROM room_service_items WHERE id = ?');
+        $stmt->execute([$item['item_id']]);
+        $itemData = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($itemData && !isCategoryAvailableAt($itemData['category'], $deliveryDatetime)) {
+            $categoryInfo = getCategoryAvailabilityInfo($itemData['category']);
+            $errors[] = sprintf(
+                '"%s" n\'est pas disponible à l\'heure demandée. %s',
+                $itemData['name'],
+                $categoryInfo['message']
+            );
+        }
+    }
+
+    return [
+        'valid' => empty($errors),
+        'errors' => $errors
+    ];
+}
+
+/**
+ * Get room service order statuses
+ */
+function getRoomServiceOrderStatuses(): array {
+    return [
+        'pending' => 'En attente',
+        'confirmed' => 'Confirmée',
+        'preparing' => 'En préparation',
+        'delivered' => 'Livrée',
+        'cancelled' => 'Annulée'
+    ];
+}
+
+/**
+ * Get payment methods
+ */
+function getRoomServicePaymentMethods(): array {
+    return [
+        'room_charge' => 'Facturer à la chambre',
+        'card' => 'Carte bancaire',
+        'cash' => 'Espèces'
+    ];
+}

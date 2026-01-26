@@ -61,6 +61,7 @@ $introImage = $useDatabase ? getImg($images, 4, 'images/acceuil/entree-hotel.jpe
       <nav class="nav-menu" id="navMenu">
         <a href="index.php" class="nav-link active" data-i18n="nav.home">Accueil</a>
         <a href="services.php" class="nav-link" data-i18n="nav.services">Services</a>
+        <a href="room-service.php" class="nav-link" data-i18n="nav.roomService">Room Service</a>
         <a href="activites.php" class="nav-link" data-i18n="nav.discover">À découvrir</a>
         <a href="contact.php" class="nav-link" data-i18n="nav.contact">Contact</a>
       </nav>
@@ -97,7 +98,6 @@ $introImage = $useDatabase ? getImg($images, 4, 'images/acceuil/entree-hotel.jpe
       </p>
       <div class="hero-buttons">
         <a href="services.php" class="btn btn-primary" data-i18n="home.discoverServices">Découvrir nos services</a>
-        <a href="contact.php" class="btn btn-outline" data-i18n="nav.contact">Contact</a>
       </div>
     </div>
     <div class="carousel-nav" id="carouselNav">
@@ -216,9 +216,6 @@ $introImage = $useDatabase ? getImg($images, 4, 'images/acceuil/entree-hotel.jpe
           <p data-i18n="home.serviceParkingDesc">Stationnement privé et sécurisé offert à tous nos clients, pour un séjour en toute tranquillité.</p>
         </div>
       </div>
-      <div style="text-align: center; margin-top: 3rem;">
-        <a href="services.php" class="btn btn-primary" data-i18n="home.discoverServices">Découvrir tous nos services</a>
-      </div>
     </div>
   </section>
 
@@ -227,7 +224,7 @@ $introImage = $useDatabase ? getImg($images, 4, 'images/acceuil/entree-hotel.jpe
     <div class="container">
       <h2 data-i18n="home.ctaTitle">Découvrez notre hôtel</h2>
       <p data-i18n="home.ctaText">Offrez-vous un séjour ressourçant au cœur de la campagne bordelaise</p>
-      <a href="contact.php" class="btn btn-primary" data-i18n="nav.contact">Nous contacter</a>
+      <a href="services.php" class="btn btn-primary" data-i18n="home.discoverServices">Découvrir nos services</a>
     </div>
   </section>
 
@@ -248,7 +245,6 @@ $introImage = $useDatabase ? getImg($images, 4, 'images/acceuil/entree-hotel.jpe
             <li><a href="index.php" data-i18n="nav.home">Accueil</a></li>
             <li><a href="services.php" data-i18n="nav.services">Services</a></li>
             <li><a href="activites.php" data-i18n="nav.discover">À découvrir</a></li>
-            <li><a href="contact.php" data-i18n="nav.contact">Contact</a></li>
           </ul>
         </div>
         <div class="footer-nav">
