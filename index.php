@@ -216,9 +216,6 @@ $introImage = $useDatabase ? getImg($images, 4, 'images/acceuil/entree-hotel.jpe
           <p data-i18n="home.serviceParkingDesc">Stationnement privé et sécurisé offert à tous nos clients, pour un séjour en toute tranquillité.</p>
         </div>
       </div>
-      <div style="text-align: center; margin-top: 3rem;">
-        <a href="services.php" class="btn btn-primary" data-i18n="home.discoverServices">Découvrir tous nos services</a>
-      </div>
     </div>
   </section>
 

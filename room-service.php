@@ -141,7 +141,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
       }
     }
     .category-section {
-      margin-bottom: 2.5rem;
+      margin-bottom: 1.5rem;
     }
     .category-header {
       display: flex;
@@ -149,9 +149,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
       justify-content: space-between;
       flex-wrap: wrap;
       gap: 0.5rem;
-      margin-bottom: 1rem;
-      padding-bottom: 0.5rem;
+      padding: 1rem 0;
       border-bottom: 2px solid var(--color-beige);
+      cursor: pointer;
+      user-select: none;
+      transition: var(--transition);
+    }
+    .category-header:hover {
+      background: rgba(139, 111, 71, 0.03);
+    }
+    .category-header-left {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .category-toggle {
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.3s ease;
+    }
+    .category-toggle svg {
+      width: 20px;
+      height: 20px;
+      color: var(--color-primary);
+    }
+    .category-section.expanded .category-toggle {
+      transform: rotate(180deg);
+    }
+    .items-grid-wrapper {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.4s ease-out;
+    }
+    .category-section.expanded .items-grid-wrapper {
+      max-height: 2000px;
+      transition: max-height 0.5s ease-in;
+    }
+    .category-section.expanded .category-header {
+      border-bottom-color: var(--color-primary);
     }
     .category-title {
       font-family: var(--font-heading);
@@ -184,6 +222,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
       gap: 1.5rem;
+      padding-top: 1.5rem;
+      padding-bottom: 0.5rem;
     }
     .item-card {
       background: var(--color-white);
@@ -553,7 +593,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
               <?php $catAvailability = getCategoryAvailabilityInfo($categoryKey); ?>
               <div class="category-section" data-category="<?= htmlspecialchars($categoryKey) ?>">
                 <div class="category-header">
-                  <h2 class="category-title"><?= htmlspecialchars($categories[$categoryKey] ?? ucfirst($categoryKey)) ?></h2>
+                  <div class="category-header-left">
+                    <span class="category-toggle">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 12 15 18 9"/>
+                      </svg>
+                    </span>
+                    <h2 class="category-title"><?= htmlspecialchars($categories[$categoryKey] ?? ucfirst($categoryKey)) ?></h2>
+                  </div>
                   <?php if ($catAvailability['time_start'] && $catAvailability['time_end']): ?>
                     <span class="category-availability <?= $catAvailability['available'] ? 'available' : 'unavailable' ?>">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;">
@@ -571,35 +618,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     </span>
                   <?php endif; ?>
                 </div>
-                <div class="items-grid">
-                  <?php foreach ($categoryItems as $item): ?>
-                    <div class="item-card" data-item-id="<?= $item['id'] ?>" data-item-name="<?= htmlspecialchars($item['name']) ?>" data-item-price="<?= $item['price'] ?>" data-item-category="<?= htmlspecialchars($item['category'] ?? 'general') ?>">
-                      <div class="item-image">
-                        <?php if ($item['image']): ?>
-                          <img src="<?= htmlspecialchars($item['image']) ?>" alt="<?= htmlspecialchars($item['name']) ?>">
-                        <?php else: ?>
-                          <div style="height: 100%; display: flex; align-items: center; justify-content: center;">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" style="width: 48px; height: 48px; opacity: 0.3;">
-                              <path d="M18 8h1a4 4 0 0 1 0 8h-1"/>
-                              <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/>
-                            </svg>
-                          </div>
-                        <?php endif; ?>
-                      </div>
-                      <div class="item-content">
-                        <h3 class="item-name"><?= htmlspecialchars($item['name']) ?></h3>
-                        <p class="item-description"><?= htmlspecialchars($item['description'] ?? '') ?></p>
-                        <div class="item-footer">
-                          <span class="item-price"><?= number_format($item['price'], 2, ',', ' ') ?> €</span>
-                          <div class="quantity-control">
-                            <button type="button" class="quantity-btn btn-minus" disabled>−</button>
-                            <span class="quantity-value">0</span>
-                            <button type="button" class="quantity-btn btn-plus">+</button>
+                <div class="items-grid-wrapper">
+                  <div class="items-grid">
+                    <?php foreach ($categoryItems as $item): ?>
+                      <div class="item-card" data-item-id="<?= $item['id'] ?>" data-item-name="<?= htmlspecialchars($item['name']) ?>" data-item-price="<?= $item['price'] ?>" data-item-category="<?= htmlspecialchars($item['category'] ?? 'general') ?>">
+                        <div class="item-image">
+                          <?php if ($item['image']): ?>
+                            <img src="<?= htmlspecialchars($item['image']) ?>" alt="<?= htmlspecialchars($item['name']) ?>">
+                          <?php else: ?>
+                            <div style="height: 100%; display: flex; align-items: center; justify-content: center;">
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" style="width: 48px; height: 48px; opacity: 0.3;">
+                                <path d="M18 8h1a4 4 0 0 1 0 8h-1"/>
+                                <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/>
+                              </svg>
+                            </div>
+                          <?php endif; ?>
+                        </div>
+                        <div class="item-content">
+                          <h3 class="item-name"><?= htmlspecialchars($item['name']) ?></h3>
+                          <p class="item-description"><?= htmlspecialchars($item['description'] ?? '') ?></p>
+                          <div class="item-footer">
+                            <span class="item-price"><?= number_format($item['price'], 2, ',', ' ') ?> €</span>
+                            <div class="quantity-control">
+                              <button type="button" class="quantity-btn btn-minus" disabled>−</button>
+                              <span class="quantity-value">0</span>
+                              <button type="button" class="quantity-btn btn-plus">+</button>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  <?php endforeach; ?>
+                    <?php endforeach; ?>
+                  </div>
                 </div>
               </div>
             <?php endforeach; ?>
@@ -915,6 +964,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         alert('La livraison doit être prévue au moins 30 minutes à l\'avance.');
         return false;
       }
+    });
+
+    // Category accordion toggle
+    document.querySelectorAll('.category-header').forEach(header => {
+      header.addEventListener('click', () => {
+        const section = header.closest('.category-section');
+        section.classList.toggle('expanded');
+      });
     });
 
     // Mobile menu toggle
