@@ -255,29 +255,6 @@ function formatDate(?string $date): string {
     return date('d/m/Y H:i', strtotime($date));
 }
 
-/**
- * Get image stats
- */
-function getImageStats(): array {
-    $pdo = getDatabase();
-
-    $stats = [];
-
-    // Total images
-    $stmt = $pdo->query('SELECT COUNT(*) FROM images');
-    $stats['total'] = $stmt->fetchColumn();
-
-    // Images per section
-    $stmt = $pdo->query('SELECT section, COUNT(*) as count FROM images GROUP BY section');
-    $stats['by_section'] = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
-
-    // Recently updated
-    $stmt = $pdo->query('SELECT COUNT(*) FROM images WHERE updated_at > DATE_SUB(NOW(), INTERVAL 7 DAY)');
-    $stats['recent_updates'] = $stmt->fetchColumn();
-
-    return $stats;
-}
-
 // =====================================================
 // ROOM SERVICE FUNCTIONS
 // =====================================================
@@ -1344,4 +1321,151 @@ function getRoomServiceTopRooms(int $limit = 10, int $days = 30): array {
     ");
     $stmt->execute([$days, $limit]);
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+// =====================================================
+// GUEST MESSAGES FUNCTIONS
+// =====================================================
+
+/**
+ * Get guest message categories
+ */
+function getGuestMessageCategories(): array {
+    return [
+        'general' => 'Question générale',
+        'heating' => 'Chauffage',
+        'ac' => 'Climatisation',
+        'tv' => 'Télévision',
+        'wifi' => 'Wi-Fi / Internet',
+        'plumbing' => 'Plomberie',
+        'cleaning' => 'Nettoyage',
+        'noise' => 'Bruit',
+        'other' => 'Autre'
+    ];
+}
+
+/**
+ * Get guest message statuses
+ */
+function getGuestMessageStatuses(): array {
+    return [
+        'new' => 'Nouveau',
+        'read' => 'Lu',
+        'in_progress' => 'En cours',
+        'resolved' => 'Résolu'
+    ];
+}
+
+/**
+ * Create a guest message
+ */
+function createGuestMessage(array $data): int|false {
+    $pdo = getDatabase();
+
+    $stmt = $pdo->prepare('
+        INSERT INTO guest_messages (room_number, guest_name, category, subject, message)
+        VALUES (?, ?, ?, ?, ?)
+    ');
+
+    $success = $stmt->execute([
+        $data['room_number'],
+        $data['guest_name'] ?? null,
+        $data['category'] ?? 'general',
+        $data['subject'] ?? null,
+        $data['message']
+    ]);
+
+    return $success ? (int)$pdo->lastInsertId() : false;
+}
+
+/**
+ * Get all guest messages with optional filters
+ */
+function getGuestMessages(string $status = '', string $sortBy = 'created_at', string $sortOrder = 'DESC'): array {
+    $pdo = getDatabase();
+    $sql = 'SELECT * FROM guest_messages';
+    $params = [];
+
+    if ($status && $status !== 'all') {
+        $sql .= ' WHERE status = ?';
+        $params[] = $status;
+    }
+
+    $allowedSortColumns = ['created_at', 'room_number', 'category', 'status'];
+    if (!in_array($sortBy, $allowedSortColumns)) {
+        $sortBy = 'created_at';
+    }
+    $sortOrder = strtoupper($sortOrder) === 'ASC' ? 'ASC' : 'DESC';
+
+    $sql .= ' ORDER BY ' . $sortBy . ' ' . $sortOrder;
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+    return $stmt->fetchAll();
+}
+
+/**
+ * Get a guest message by ID
+ */
+function getGuestMessageById(int $id): ?array {
+    $pdo = getDatabase();
+    $stmt = $pdo->prepare('SELECT * FROM guest_messages WHERE id = ?');
+    $stmt->execute([$id]);
+    return $stmt->fetch() ?: null;
+}
+
+/**
+ * Update guest message status
+ */
+function updateGuestMessageStatus(int $id, string $status): bool {
+    $validStatuses = ['new', 'read', 'in_progress', 'resolved'];
+    if (!in_array($status, $validStatuses)) {
+        return false;
+    }
+    $pdo = getDatabase();
+    $stmt = $pdo->prepare('UPDATE guest_messages SET status = ? WHERE id = ?');
+    return $stmt->execute([$status, $id]);
+}
+
+/**
+ * Update guest message admin notes
+ */
+function updateGuestMessageNotes(int $id, string $notes): bool {
+    $pdo = getDatabase();
+    $stmt = $pdo->prepare('UPDATE guest_messages SET admin_notes = ? WHERE id = ?');
+    return $stmt->execute([$notes, $id]);
+}
+
+/**
+ * Delete a guest message
+ */
+function deleteGuestMessage(int $id): bool {
+    $pdo = getDatabase();
+    $stmt = $pdo->prepare('DELETE FROM guest_messages WHERE id = ?');
+    return $stmt->execute([$id]);
+}
+
+/**
+ * Get guest messages statistics
+ */
+function getGuestMessagesStats(): array {
+    $pdo = getDatabase();
+    $stats = [];
+
+    // Total messages
+    $stmt = $pdo->query('SELECT COUNT(*) FROM guest_messages');
+    $stats['total'] = $stmt->fetchColumn();
+
+    // New (unread) messages
+    $stmt = $pdo->query('SELECT COUNT(*) FROM guest_messages WHERE status = "new"');
+    $stats['new'] = $stmt->fetchColumn();
+
+    // In progress messages
+    $stmt = $pdo->query('SELECT COUNT(*) FROM guest_messages WHERE status = "in_progress"');
+    $stats['in_progress'] = $stmt->fetchColumn();
+
+    // Today's messages
+    $stmt = $pdo->query('SELECT COUNT(*) FROM guest_messages WHERE DATE(created_at) = CURDATE()');
+    $stats['today'] = $stmt->fetchColumn();
+
+    return $stats;
 }
