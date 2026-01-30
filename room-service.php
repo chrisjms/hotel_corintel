@@ -899,18 +899,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
       <p class="section-subtitle">Un problème dans votre chambre ? Une question ? Envoyez-nous un message et nous vous répondrons dans les plus brefs délais.</p>
 
       <div class="message-form-container">
-        <?php if ($messageSuccess): ?>
-          <div class="message-success">
-            <div class="message-success-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="20 6 9 17 4 12"/>
-              </svg>
-            </div>
-            <h3>Message envoyé</h3>
-            <p>Votre message a bien été transmis à la réception. Nous vous répondrons dans les meilleurs délais.</p>
-            <a href="room-service.php#contact-reception" class="btn btn-primary">Envoyer un autre message</a>
+        <div class="message-success" id="messageSuccess" style="<?= $messageSuccess ? '' : 'display: none;' ?>">
+          <div class="message-success-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
           </div>
-        <?php else: ?>
+          <h3>Message envoyé</h3>
+          <p>Votre message a bien été transmis à la réception. Nous vous répondrons dans les meilleurs délais.</p>
+          <button type="button" class="btn btn-primary" id="newMessageBtn">Envoyer un autre message</button>
+        </div>
+
+        <div id="messageFormContainer" style="<?= $messageSuccess ? 'display: none;' : '' ?>">
           <?php if ($messageError): ?>
             <div class="alert-message-error"><?= htmlspecialchars($messageError) ?></div>
           <?php endif; ?>
@@ -961,10 +961,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
               Envoyer le message
             </button>
           </form>
-        <?php endif; ?>
+        </div>
       </div>
     </div>
   </section>
+
+  <script>
+  document.getElementById('newMessageBtn')?.addEventListener('click', function() {
+    document.getElementById('messageSuccess').style.display = 'none';
+    document.getElementById('messageFormContainer').style.display = 'block';
+    document.getElementById('messageForm').reset();
+    document.getElementById('msg_room_number').focus();
+  });
+  </script>
 
   <!-- Footer -->
   <footer class="footer">
