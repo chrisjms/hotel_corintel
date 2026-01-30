@@ -10,7 +10,8 @@ require_once __DIR__ . '/../includes/functions.php';
 requireAuth();
 
 $admin = getCurrentAdmin();
-$stats = getImageStats();
+$unreadMessages = getUnreadMessagesCount();
+$pendingOrders = getPendingOrdersCount();
 
 // Room Service Statistics
 $rsTodayTotal = 0;
@@ -129,6 +130,18 @@ $statusLabels = [
                         <polyline points="10 9 9 9 8 9"/>
                     </svg>
                     Room Service - Commandes
+                    <?php if ($pendingOrders > 0): ?>
+                        <span class="badge" style="background: #E53E3E; color: white; margin-left: auto;"><?= $pendingOrders ?></span>
+                    <?php endif; ?>
+                </a>
+                <a href="room-service-messages.php" class="nav-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    </svg>
+                    Messages Clients
+                    <?php if ($unreadMessages > 0): ?>
+                        <span class="badge" style="background: #E53E3E; color: white; margin-left: auto;"><?= $unreadMessages ?></span>
+                    <?php endif; ?>
                 </a>
                 <a href="settings.php" class="nav-item">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -169,36 +182,6 @@ $statusLabels = [
             </header>
 
             <div class="admin-content">
-                <!-- Stats Cards -->
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-icon">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                                <circle cx="8.5" cy="8.5" r="1.5"/>
-                                <polyline points="21 15 16 10 5 21"/>
-                            </svg>
-                        </div>
-                        <div class="stat-content">
-                            <span class="stat-value"><?= $stats['total'] ?></span>
-                            <span class="stat-label">Images totales</span>
-                        </div>
-                    </div>
-
-                    <div class="stat-card">
-                        <div class="stat-icon">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
-                                <polyline points="17 6 23 6 23 12"/>
-                            </svg>
-                        </div>
-                        <div class="stat-content">
-                            <span class="stat-value"><?= $stats['recent_updates'] ?></span>
-                            <span class="stat-label">Mises à jour (7j)</span>
-                        </div>
-                    </div>
-                </div>
-
                 <!-- Room Service Activity -->
                 <?php if ($rsEnabled): ?>
                 <div class="card">
