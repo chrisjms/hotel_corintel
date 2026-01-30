@@ -1469,3 +1469,29 @@ function getGuestMessagesStats(): array {
 
     return $stats;
 }
+
+/**
+ * Get unread guest messages count (lightweight for sidebar badge)
+ */
+function getUnreadMessagesCount(): int {
+    try {
+        $pdo = getDatabase();
+        $stmt = $pdo->query('SELECT COUNT(*) FROM guest_messages WHERE status = "new"');
+        return (int)$stmt->fetchColumn();
+    } catch (PDOException $e) {
+        return 0;
+    }
+}
+
+/**
+ * Get pending room service orders count (lightweight for sidebar badge)
+ */
+function getPendingOrdersCount(): int {
+    try {
+        $pdo = getDatabase();
+        $stmt = $pdo->query('SELECT COUNT(*) FROM room_service_orders WHERE status = "pending"');
+        return (int)$stmt->fetchColumn();
+    } catch (PDOException $e) {
+        return 0;
+    }
+}

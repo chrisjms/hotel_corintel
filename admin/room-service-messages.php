@@ -83,6 +83,8 @@ $sortOrder = $_GET['order'] ?? 'DESC';
 // Get messages
 $messages = getGuestMessages($statusFilter, $sortBy, $sortOrder);
 $stats = getGuestMessagesStats();
+$unreadMessages = $stats['new'];
+$pendingOrders = getPendingOrdersCount();
 
 // Get message details if viewing specific message
 $viewMessage = null;
@@ -354,14 +356,17 @@ if (isset($_GET['view'])) {
                         <polyline points="10 9 9 9 8 9"/>
                     </svg>
                     Room Service - Commandes
+                    <?php if ($pendingOrders > 0): ?>
+                        <span class="badge" style="background: #E53E3E; color: white; margin-left: auto;"><?= $pendingOrders ?></span>
+                    <?php endif; ?>
                 </a>
                 <a href="room-service-messages.php" class="nav-item active">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                     </svg>
                     Messages Clients
-                    <?php if ($stats['new'] > 0): ?>
-                        <span class="badge" style="background: #E53E3E; color: white; margin-left: auto;"><?= $stats['new'] ?></span>
+                    <?php if ($unreadMessages > 0): ?>
+                        <span class="badge" style="background: #E53E3E; color: white; margin-left: auto;"><?= $unreadMessages ?></span>
                     <?php endif; ?>
                 </a>
                 <a href="settings.php" class="nav-item">

@@ -10,6 +10,8 @@ require_once __DIR__ . '/../includes/functions.php';
 requireAuth();
 
 $admin = getCurrentAdmin();
+$unreadMessages = getUnreadMessagesCount();
+$pendingOrders = getPendingOrdersCount();
 $csrfToken = generateCsrfToken();
 
 $message = '';
@@ -107,12 +109,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <polyline points="10 9 9 9 8 9"/>
                     </svg>
                     Room Service - Commandes
+                    <?php if ($pendingOrders > 0): ?>
+                        <span class="badge" style="background: #E53E3E; color: white; margin-left: auto;"><?= $pendingOrders ?></span>
+                    <?php endif; ?>
                 </a>
                 <a href="room-service-messages.php" class="nav-item">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                     </svg>
                     Messages Clients
+                    <?php if ($unreadMessages > 0): ?>
+                        <span class="badge" style="background: #E53E3E; color: white; margin-left: auto;"><?= $unreadMessages ?></span>
+                    <?php endif; ?>
                 </a>
                 <a href="settings.php" class="nav-item active">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
