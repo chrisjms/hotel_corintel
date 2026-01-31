@@ -41,6 +41,69 @@ try {
     $statsEnabled = false;
 }
 
+// Guest Messages Statistics
+$msgByRoom = [];
+$msgByCategory = [];
+$msgTotalCount = 0;
+$msgThisMonth = 0;
+$msgLastMonth = 0;
+$msgStatsEnabled = false;
+
+try {
+    $pdo = getDatabase();
+
+    // Messages by room (top 5, last 30 days)
+    $stmtByRoom = $pdo->prepare("
+        SELECT room_number, COUNT(*) as msg_count
+        FROM guest_messages
+        WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+        GROUP BY room_number
+        ORDER BY msg_count DESC
+        LIMIT 5
+    ");
+    $stmtByRoom->execute();
+    $msgByRoom = $stmtByRoom->fetchAll(PDO::FETCH_ASSOC);
+
+    // Messages by category (last 30 days)
+    $stmtByCategory = $pdo->prepare("
+        SELECT category, COUNT(*) as msg_count
+        FROM guest_messages
+        WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+        GROUP BY category
+        ORDER BY msg_count DESC
+    ");
+    $stmtByCategory->execute();
+    $msgByCategory = $stmtByCategory->fetchAll(PDO::FETCH_ASSOC);
+
+    // Total messages (last 30 days)
+    $stmtTotal = $pdo->prepare("SELECT COUNT(*) FROM guest_messages WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)");
+    $stmtTotal->execute();
+    $msgTotalCount = (int)$stmtTotal->fetchColumn();
+
+    // This month vs last month comparison
+    $stmtThisMonth = $pdo->prepare("SELECT COUNT(*) FROM guest_messages WHERE MONTH(created_at) = MONTH(NOW()) AND YEAR(created_at) = YEAR(NOW())");
+    $stmtThisMonth->execute();
+    $msgThisMonth = (int)$stmtThisMonth->fetchColumn();
+
+    $stmtLastMonth = $pdo->prepare("SELECT COUNT(*) FROM guest_messages WHERE MONTH(created_at) = MONTH(DATE_SUB(NOW(), INTERVAL 1 MONTH)) AND YEAR(created_at) = YEAR(DATE_SUB(NOW(), INTERVAL 1 MONTH))");
+    $stmtLastMonth->execute();
+    $msgLastMonth = (int)$stmtLastMonth->fetchColumn();
+
+    $msgStatsEnabled = true;
+} catch (PDOException $e) {
+    $msgStatsEnabled = false;
+}
+
+$msgCategoryLabels = [
+    'general' => 'Général',
+    'room_issue' => 'Problème chambre',
+    'housekeeping' => 'Ménage',
+    'maintenance' => 'Maintenance',
+    'room_service' => 'Room Service',
+    'complaint' => 'Réclamation',
+    'other' => 'Autre'
+];
+
 $periodLabels = [
     'day' => "Aujourd'hui",
     'week' => 'Cette semaine',
@@ -286,6 +349,39 @@ $comparisonLabels = [
             background: var(--admin-primary);
             border-radius: 4px;
             transition: width 0.3s ease;
+        }
+        .section-divider {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 2.5rem 0 1.5rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--admin-border);
+        }
+        .section-title-divider {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--admin-text);
+            margin: 0;
+        }
+        .stats-grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        @media (max-width: 768px) {
+            .stats-grid-3 {
+                grid-template-columns: 1fr;
+            }
+            .section-divider {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
         }
     </style>
 </head>
@@ -666,6 +762,114 @@ $comparisonLabels = [
                 </div>
 
                 <?php endif; ?>
+
+                <!-- Messages Analytics Section -->
+                <?php if ($msgStatsEnabled): ?>
+                <div class="section-divider">
+                    <h2 class="section-title-divider">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 20px; height: 20px;">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                        </svg>
+                        Messages Clients
+                    </h2>
+                    <a href="room-service-messages.php" class="btn btn-sm btn-outline">Voir les messages</a>
+                </div>
+
+                <!-- Message KPIs -->
+                <div class="stats-grid-3">
+                    <div class="stat-card-enhanced">
+                        <div class="stat-label">Messages (30j)</div>
+                        <div class="stat-value"><?= $msgTotalCount ?></div>
+                    </div>
+                    <div class="stat-card-enhanced">
+                        <div class="stat-label">Ce mois</div>
+                        <div class="stat-value"><?= $msgThisMonth ?></div>
+                        <?php
+                            $msgChange = $msgLastMonth > 0 ? round((($msgThisMonth - $msgLastMonth) / $msgLastMonth) * 100) : ($msgThisMonth > 0 ? 100 : 0);
+                        ?>
+                        <div class="stat-change <?= $msgChange > 0 ? 'negative' : ($msgChange < 0 ? 'positive' : 'neutral') ?>">
+                            <?php if ($msgChange > 0): ?>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg>
+                            <?php elseif ($msgChange < 0): ?>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/></svg>
+                            <?php endif; ?>
+                            <?= ($msgChange >= 0 ? '+' : '') . $msgChange ?>% vs mois dernier
+                        </div>
+                    </div>
+                    <div class="stat-card-enhanced">
+                        <div class="stat-label">Non lus</div>
+                        <div class="stat-value" style="<?= $unreadMessages > 0 ? 'color: #E53E3E;' : '' ?>"><?= $unreadMessages ?></div>
+                    </div>
+                </div>
+
+                <!-- Message Tables -->
+                <div class="tables-grid">
+                    <!-- Messages by Room -->
+                    <div class="table-card">
+                        <h3>Messages par chambre (30j)</h3>
+                        <?php if (empty($msgByRoom)): ?>
+                            <p style="color: var(--admin-text-light); text-align: center; padding: 2rem;">Aucune donnée disponible</p>
+                        <?php else: ?>
+                        <table class="stats-table">
+                            <thead>
+                                <tr>
+                                    <th>Chambre</th>
+                                    <th class="text-right">Messages</th>
+                                    <th style="width: 100px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($msgByRoom as $room): ?>
+                                <?php $roomPercent = $msgTotalCount > 0 ? ($room['msg_count'] / $msgTotalCount) * 100 : 0; ?>
+                                <tr>
+                                    <td><strong><?= h($room['room_number']) ?></strong></td>
+                                    <td class="text-right"><?= $room['msg_count'] ?></td>
+                                    <td>
+                                        <div class="progress-bar-container">
+                                            <div class="progress-bar" style="width: <?= $roomPercent ?>%"></div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                        <?php endif; ?>
+                    </div>
+
+                    <!-- Messages by Category -->
+                    <div class="table-card">
+                        <h3>Messages par catégorie (30j)</h3>
+                        <?php if (empty($msgByCategory)): ?>
+                            <p style="color: var(--admin-text-light); text-align: center; padding: 2rem;">Aucune donnée disponible</p>
+                        <?php else: ?>
+                        <table class="stats-table">
+                            <thead>
+                                <tr>
+                                    <th>Catégorie</th>
+                                    <th class="text-right">Messages</th>
+                                    <th style="width: 100px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($msgByCategory as $cat): ?>
+                                <?php $catPercent = $msgTotalCount > 0 ? ($cat['msg_count'] / $msgTotalCount) * 100 : 0; ?>
+                                <tr>
+                                    <td><?= h($msgCategoryLabels[$cat['category']] ?? $cat['category']) ?></td>
+                                    <td class="text-right"><?= $cat['msg_count'] ?></td>
+                                    <td>
+                                        <div class="progress-bar-container">
+                                            <div class="progress-bar" style="width: <?= $catPercent ?>%"></div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                <?php endif; ?>
+
             </div>
         </main>
     </div>
