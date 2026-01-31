@@ -137,8 +137,17 @@ $categories = getRoomServiceCategoriesAll();
 </head>
 <body>
     <div class="admin-layout">
+        <!-- Sidebar Overlay -->
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
         <!-- Sidebar -->
-        <aside class="admin-sidebar">
+        <aside class="admin-sidebar" id="adminSidebar">
+            <button class="sidebar-close" id="sidebarClose" aria-label="Fermer le menu">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
             <div class="sidebar-header">
                 <h2>Hôtel Corintel</h2>
                 <span>Administration</span>
@@ -234,6 +243,13 @@ $categories = getRoomServiceCategoriesAll();
         <!-- Main Content -->
         <main class="admin-main">
             <header class="admin-header">
+                <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Ouvrir le menu">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="3" y1="12" x2="21" y2="12"/>
+                        <line x1="3" y1="6" x2="21" y2="6"/>
+                        <line x1="3" y1="18" x2="21" y2="18"/>
+                    </svg>
+                </button>
                 <h1>Room Service - Horaires des catégories</h1>
             </header>
 
@@ -351,5 +367,29 @@ $categories = getRoomServiceCategoriesAll();
             </div>
         </main>
     </div>
+
+    <script>
+    // Mobile menu toggle
+    const sidebar = document.getElementById('adminSidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    const menuToggle = document.getElementById('mobileMenuToggle');
+    const sidebarClose = document.getElementById('sidebarClose');
+
+    function openSidebar() {
+        sidebar.classList.add('open');
+        overlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeSidebar() {
+        sidebar.classList.remove('open');
+        overlay.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+
+    menuToggle?.addEventListener('click', openSidebar);
+    sidebarClose?.addEventListener('click', closeSidebar);
+    overlay?.addEventListener('click', closeSidebar);
+    </script>
 </body>
 </html>

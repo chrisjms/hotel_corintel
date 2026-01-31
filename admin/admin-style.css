@@ -852,20 +852,123 @@ a:hover {
     color: var(--admin-primary);
 }
 
+/* Mobile Menu Toggle */
+.mobile-menu-toggle {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: none;
+    border: 1px solid var(--admin-border);
+    border-radius: 6px;
+    cursor: pointer;
+    color: var(--admin-text);
+    transition: all var(--admin-transition);
+}
+
+.mobile-menu-toggle:hover {
+    background: var(--admin-bg);
+    border-color: var(--admin-primary);
+    color: var(--admin-primary);
+}
+
+.mobile-menu-toggle svg {
+    width: 24px;
+    height: 24px;
+}
+
+.sidebar-close {
+    display: none;
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    width: 32px;
+    height: 32px;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,0.1);
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    color: rgba(255,255,255,0.7);
+    transition: all var(--admin-transition);
+}
+
+.sidebar-close:hover {
+    background: rgba(255,255,255,0.2);
+    color: #fff;
+}
+
+.sidebar-close svg {
+    width: 20px;
+    height: 20px;
+}
+
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 99;
+    opacity: 0;
+    transition: opacity var(--admin-transition);
+}
+
+.sidebar-overlay.active {
+    opacity: 1;
+}
+
 /* Responsive */
 @media (max-width: 1024px) {
+    .mobile-menu-toggle {
+        display: flex;
+    }
+
+    .sidebar-close {
+        display: flex;
+    }
+
+    .sidebar-overlay {
+        display: block;
+        pointer-events: none;
+    }
+
+    .sidebar-overlay.active {
+        pointer-events: auto;
+    }
+
     .admin-sidebar {
         transform: translateX(-100%);
+        transition: transform 0.3s ease;
+    }
+
+    .admin-sidebar.open {
+        transform: translateX(0);
     }
 
     .admin-main {
         margin-left: 0;
+    }
+
+    .admin-header {
+        gap: 1rem;
+    }
+
+    .admin-header h1 {
+        font-size: 1.25rem;
+        flex: 1;
     }
 }
 
 @media (max-width: 768px) {
     .admin-header {
         padding: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .admin-header .btn-outline {
+        display: none;
     }
 
     .admin-content {
@@ -878,5 +981,37 @@ a:hover {
 
     .images-grid {
         grid-template-columns: 1fr;
+    }
+
+    .section-tabs {
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        padding-bottom: 0.5rem;
+    }
+
+    .section-tab {
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    .card-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .stat-card {
+        padding: 1rem;
+    }
+
+    .stat-value {
+        font-size: 1.5rem;
+    }
+
+    .nav-item {
+        padding: 0.75rem 1.25rem;
+        font-size: 0.9rem;
     }
 }
