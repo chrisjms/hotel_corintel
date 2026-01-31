@@ -576,6 +576,43 @@ a:hover {
     color: var(--admin-text-light);
 }
 
+/* Data Table */
+.data-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.data-table thead th {
+    padding: 0.875rem 1rem;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.8125rem;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+    color: var(--admin-text-light);
+    background: var(--admin-bg);
+    border-bottom: 1px solid var(--admin-border);
+}
+
+.data-table tbody tr {
+    transition: background var(--admin-transition);
+}
+
+.data-table tbody tr:hover {
+    background: var(--admin-bg);
+}
+
+.data-table tbody td {
+    padding: 1rem;
+    vertical-align: middle;
+    border-bottom: 1px solid var(--admin-border);
+}
+
+.data-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
 /* Modal */
 .modal {
     position: fixed;
