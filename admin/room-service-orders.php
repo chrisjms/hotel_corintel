@@ -365,6 +365,70 @@ if (isset($_GET['view'])) {
             color: var(--admin-text-light);
             margin-top: 0.5rem;
         }
+        /* Toast notifications */
+        .toast-container {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .toast {
+            background: var(--admin-card);
+            border-radius: 8px;
+            padding: 1rem 1.25rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            animation: toastIn 0.3s ease-out;
+            max-width: 320px;
+            border-left: 4px solid #48BB78;
+        }
+        .toast.toast-order {
+            border-left-color: #ED8936;
+        }
+        @keyframes toastIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        .toast-icon {
+            width: 24px;
+            height: 24px;
+            flex-shrink: 0;
+        }
+        .toast-content {
+            flex: 1;
+        }
+        .toast-title {
+            font-weight: 600;
+            font-size: 0.875rem;
+            margin-bottom: 0.125rem;
+        }
+        .toast-message {
+            font-size: 0.8rem;
+            color: var(--admin-text-light);
+        }
+        .toast-close {
+            background: none;
+            border: none;
+            color: var(--admin-text-light);
+            cursor: pointer;
+            padding: 0.25rem;
+        }
+        .toast-close:hover {
+            color: var(--admin-text);
+        }
+        /* Row highlight animation */
+        @keyframes highlightRow {
+            0% { background: rgba(72, 187, 120, 0.2); }
+            100% { background: transparent; }
+        }
+        .row-highlight {
+            animation: highlightRow 2s ease-out;
+        }
     </style>
 </head>
 <body>
@@ -832,6 +896,9 @@ if (isset($_GET['view'])) {
         </main>
     </div>
 
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
     <script>
     // Mobile menu toggle
     const sidebar = document.getElementById('adminSidebar');
@@ -897,6 +964,273 @@ if (isset($_GET['view'])) {
         // Close the export menu
         exportMenu.classList.remove('active');
     }
+
+    // ============================================
+    // Real-Time Updates
+    // ============================================
+    const POLL_INTERVAL = 15000; // 15 seconds
+    let pollTimer = null;
+    let lastOrderCount = <?= count($orders) ?>;
+    let lastOrderIds = [<?= implode(',', array_column($orders, 'id')) ?>];
+    let isPageVisible = true;
+
+    // Toast notification
+    function showToast(title, message, type = 'order') {
+        const container = document.getElementById('toastContainer');
+        const toast = document.createElement('div');
+        toast.className = 'toast toast-' + type;
+        toast.innerHTML = `
+            <svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+            </svg>
+            <div class="toast-content">
+                <div class="toast-title">${title}</div>
+                <div class="toast-message">${message}</div>
+            </div>
+            <button class="toast-close" onclick="this.parentElement.remove()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
+        `;
+        container.appendChild(toast);
+
+        // Play notification sound
+        playNotificationSound();
+
+        // Auto-remove after 8 seconds
+        setTimeout(() => {
+            if (toast.parentElement) {
+                toast.style.animation = 'toastIn 0.3s ease-out reverse';
+                setTimeout(() => toast.remove(), 300);
+            }
+        }, 8000);
+    }
+
+    // Notification sound
+    function playNotificationSound() {
+        try {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            oscillator.frequency.value = 800;
+            oscillator.type = 'sine';
+            gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+
+            oscillator.start(audioCtx.currentTime);
+            oscillator.stop(audioCtx.currentTime + 0.3);
+        } catch (e) {
+            // Silent fail if audio not supported
+        }
+    }
+
+    // Fetch updates
+    async function fetchUpdates() {
+        try {
+            const params = new URLSearchParams({
+                status: '<?= h($statusFilter) ?>',
+                sort: '<?= h($sortBy) ?>',
+                order: '<?= h($sortOrder) ?>'
+            });
+            <?php if ($deliveryDateFilter): ?>
+            params.append('delivery_date', '<?= h($deliveryDateFilter) ?>');
+            <?php endif; ?>
+
+            console.log('[Live Update] Fetching orders...');
+            const response = await fetch('api/orders-updates.php?' + params.toString());
+            if (!response.ok) {
+                console.error('[Live Update] Response not OK:', response.status);
+                return;
+            }
+
+            const data = await response.json();
+            console.log('[Live Update] Data received:', data);
+            if (!data.success) {
+                console.error('[Live Update] API error:', data.error);
+                return;
+            }
+
+            // Update sidebar badges
+            updateBadge('pendingOrders', data.data.pendingOrders);
+            updateBadge('unreadMessages', data.data.unreadMessages);
+
+            // Update stats
+            if (data.data.stats) {
+                updateStats(data.data.stats);
+            }
+
+            // Check for new orders
+            const currentOrders = data.data.orders || [];
+            const currentIds = currentOrders.map(o => o.id);
+            const newOrderIds = currentIds.filter(id => !lastOrderIds.includes(id));
+
+            console.log('[Live Update] Current IDs:', currentIds);
+            console.log('[Live Update] Last IDs:', lastOrderIds);
+            console.log('[Live Update] New IDs:', newOrderIds);
+
+            if (newOrderIds.length > 0) {
+                // Show toast for new orders
+                newOrderIds.forEach(id => {
+                    const order = currentOrders.find(o => o.id === id);
+                    if (order) {
+                        showToast('Nouvelle commande', `Chambre ${order.room_number} - ${order.total_amount} €`);
+                    }
+                });
+                // Update table
+                updateOrdersTable(currentOrders);
+            }
+
+            // Update count badge
+            const countBadge = document.querySelector('.card-header .badge');
+            if (countBadge) {
+                countBadge.textContent = data.data.orderCount + ' commandes';
+            }
+
+            lastOrderCount = data.data.orderCount;
+            lastOrderIds = currentIds;
+
+        } catch (e) {
+            console.error('Polling error:', e);
+        }
+    }
+
+    // Update badge counts
+    function updateBadge(type, count) {
+        const navItems = document.querySelectorAll('.nav-item');
+        navItems.forEach(item => {
+            if (type === 'pendingOrders' && item.href.includes('room-service-orders')) {
+                let badge = item.querySelector('.badge');
+                if (count > 0) {
+                    if (!badge) {
+                        badge = document.createElement('span');
+                        badge.className = 'badge';
+                        badge.style.cssText = 'background: #E53E3E; color: white; margin-left: auto;';
+                        item.appendChild(badge);
+                    }
+                    badge.textContent = count;
+                } else if (badge) {
+                    badge.remove();
+                }
+            }
+            if (type === 'unreadMessages' && item.href.includes('room-service-messages')) {
+                let badge = item.querySelector('.badge');
+                if (count > 0) {
+                    if (!badge) {
+                        badge = document.createElement('span');
+                        badge.className = 'badge';
+                        badge.style.cssText = 'background: #E53E3E; color: white; margin-left: auto;';
+                        item.appendChild(badge);
+                    }
+                    badge.textContent = count;
+                } else if (badge) {
+                    badge.remove();
+                }
+            }
+        });
+    }
+
+    // Update stats cards
+    function updateStats(stats) {
+        const statValues = document.querySelectorAll('.stat-value');
+        if (statValues.length >= 4) {
+            statValues[0].textContent = stats.total_orders;
+            statValues[1].textContent = stats.pending_orders;
+            statValues[2].textContent = stats.today_orders;
+            statValues[3].textContent = new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(stats.today_revenue) + ' €';
+        }
+    }
+
+    // Update orders table
+    function updateOrdersTable(orders) {
+        const tbody = document.querySelector('.orders-table tbody');
+        if (!tbody) return;
+
+        // Clear and rebuild table
+        tbody.innerHTML = orders.map(order => {
+            const isUrgent = order.is_urgent;
+            const isPast = order.is_past;
+            const isNew = !lastOrderIds.includes(order.id);
+            const rowStyle = isUrgent ? 'background: rgba(237, 137, 54, 0.05);' : (isPast ? 'background: rgba(245, 101, 101, 0.05);' : '');
+
+            return `
+                <tr style="${rowStyle}" class="${isNew ? 'row-highlight' : ''}">
+                    <td>${order.id}</td>
+                    <td><strong>${escapeHtml(order.room_number)}</strong></td>
+                    <td>${escapeHtml(order.guest_name)}</td>
+                    <td><span class="price">${order.total_amount} €</span></td>
+                    <td>
+                        <span style="${isUrgent ? 'color: #C05621; font-weight: 600;' : (isPast ? 'color: #C53030; font-weight: 600;' : '')}">
+                            ${order.delivery_datetime}
+                        </span>
+                        ${isUrgent ? '<span style="display: block; font-size: 0.7rem; color: #C05621;">Bientôt</span>' : ''}
+                        ${isPast ? '<span style="display: block; font-size: 0.7rem; color: #C53030;">En retard</span>' : ''}
+                    </td>
+                    <td>
+                        <span class="status-badge status-${order.status}">
+                            ${escapeHtml(order.status_label)}
+                        </span>
+                    </td>
+                    <td>${order.created_at}</td>
+                    <td>
+                        <a href="?view=${order.id}" class="btn btn-sm btn-outline">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                <circle cx="12" cy="12" r="3"/>
+                            </svg>
+                            Détails
+                        </a>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    // HTML escape utility
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // Visibility API for pause/resume
+    document.addEventListener('visibilitychange', function() {
+        isPageVisible = !document.hidden;
+        if (isPageVisible) {
+            fetchUpdates(); // Immediate update when tab becomes visible
+            startPolling();
+        } else {
+            stopPolling();
+        }
+    });
+
+    function startPolling() {
+        if (!pollTimer && isPageVisible) {
+            pollTimer = setInterval(fetchUpdates, POLL_INTERVAL);
+        }
+    }
+
+    function stopPolling() {
+        if (pollTimer) {
+            clearInterval(pollTimer);
+            pollTimer = null;
+        }
+    }
+
+    // Start polling only on list view (not detail view)
+    <?php if (!$viewOrder): ?>
+    console.log('[Live Update] Starting polling with interval:', POLL_INTERVAL, 'ms');
+    console.log('[Live Update] Initial order IDs:', lastOrderIds);
+    startPolling();
+    // Also fetch immediately on page load
+    fetchUpdates();
+    <?php endif; ?>
     </script>
 </body>
 </html>

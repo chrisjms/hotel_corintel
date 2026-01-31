@@ -295,6 +295,68 @@ if (isset($_GET['view'])) {
         .btn-danger:hover {
             background: #C53030;
         }
+        /* Toast notifications */
+        .toast-container {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .toast {
+            background: var(--admin-card);
+            border-radius: 8px;
+            padding: 1rem 1.25rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            animation: toastIn 0.3s ease-out;
+            max-width: 320px;
+            border-left: 4px solid #3182CE;
+        }
+        @keyframes toastIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        .toast-icon {
+            width: 24px;
+            height: 24px;
+            flex-shrink: 0;
+            color: #3182CE;
+        }
+        .toast-content {
+            flex: 1;
+        }
+        .toast-title {
+            font-weight: 600;
+            font-size: 0.875rem;
+            margin-bottom: 0.125rem;
+        }
+        .toast-message {
+            font-size: 0.8rem;
+            color: var(--admin-text-light);
+        }
+        .toast-close {
+            background: none;
+            border: none;
+            color: var(--admin-text-light);
+            cursor: pointer;
+            padding: 0.25rem;
+        }
+        .toast-close:hover {
+            color: var(--admin-text);
+        }
+        /* Row highlight animation */
+        @keyframes highlightRow {
+            0% { background: rgba(66, 153, 225, 0.2); }
+            100% { background: transparent; }
+        }
+        .row-highlight {
+            animation: highlightRow 2s ease-out;
+        }
     </style>
 </head>
 <body>
@@ -413,7 +475,7 @@ if (isset($_GET['view'])) {
                     </svg>
                 </button>
                 <h1>Messages Clients</h1>
-                <a href="../room-service.php#contact-reception" target="_blank" class="btn btn-outline">
+                <a href="../contact.php" target="_blank" class="btn btn-outline">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
                         <polyline points="15 3 21 3 21 9"/>
@@ -661,6 +723,9 @@ if (isset($_GET['view'])) {
         </main>
     </div>
 
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
     <script>
     // Mobile menu toggle
     const sidebar = document.getElementById('adminSidebar');
@@ -683,6 +748,269 @@ if (isset($_GET['view'])) {
     menuToggle?.addEventListener('click', openSidebar);
     sidebarClose?.addEventListener('click', closeSidebar);
     overlay?.addEventListener('click', closeSidebar);
+
+    // ============================================
+    // Real-Time Updates
+    // ============================================
+    const POLL_INTERVAL = 15000; // 15 seconds
+    let pollTimer = null;
+    let lastMessageCount = <?= count($messages) ?>;
+    let lastMessageIds = [<?= implode(',', array_column($messages, 'id')) ?>];
+    let isPageVisible = true;
+
+    // Toast notification
+    function showToast(title, message) {
+        const container = document.getElementById('toastContainer');
+        const toast = document.createElement('div');
+        toast.className = 'toast';
+        toast.innerHTML = `
+            <svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+            <div class="toast-content">
+                <div class="toast-title">${title}</div>
+                <div class="toast-message">${message}</div>
+            </div>
+            <button class="toast-close" onclick="this.parentElement.remove()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
+        `;
+        container.appendChild(toast);
+
+        // Play notification sound
+        playNotificationSound();
+
+        // Auto-remove after 8 seconds
+        setTimeout(() => {
+            if (toast.parentElement) {
+                toast.style.animation = 'toastIn 0.3s ease-out reverse';
+                setTimeout(() => toast.remove(), 300);
+            }
+        }, 8000);
+    }
+
+    // Notification sound
+    function playNotificationSound() {
+        try {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            oscillator.frequency.value = 600;
+            oscillator.type = 'sine';
+            gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+
+            oscillator.start(audioCtx.currentTime);
+            oscillator.stop(audioCtx.currentTime + 0.3);
+        } catch (e) {
+            // Silent fail if audio not supported
+        }
+    }
+
+    // Fetch updates
+    async function fetchUpdates() {
+        try {
+            const params = new URLSearchParams({
+                status: '<?= h($statusFilter) ?>',
+                sort: '<?= h($sortBy) ?>',
+                order: '<?= h($sortOrder) ?>'
+            });
+
+            console.log('[Live Update] Fetching messages...');
+            const response = await fetch('api/messages-updates.php?' + params.toString());
+            if (!response.ok) {
+                console.error('[Live Update] Response not OK:', response.status);
+                return;
+            }
+
+            const data = await response.json();
+            console.log('[Live Update] Data received:', data);
+            if (!data.success) {
+                console.error('[Live Update] API error:', data.error);
+                return;
+            }
+
+            // Update sidebar badges
+            updateBadge('pendingOrders', data.data.pendingOrders);
+            updateBadge('unreadMessages', data.data.unreadMessages);
+
+            // Update stats
+            if (data.data.stats) {
+                updateStats(data.data.stats);
+            }
+
+            // Check for new messages
+            const currentMessages = data.data.messages || [];
+            const currentIds = currentMessages.map(m => m.id);
+            const newMessageIds = currentIds.filter(id => !lastMessageIds.includes(id));
+
+            console.log('[Live Update] Current IDs:', currentIds);
+            console.log('[Live Update] Last IDs:', lastMessageIds);
+            console.log('[Live Update] New IDs:', newMessageIds);
+
+            if (newMessageIds.length > 0) {
+                // Show toast for new messages
+                newMessageIds.forEach(id => {
+                    const msg = currentMessages.find(m => m.id === id);
+                    if (msg) {
+                        showToast('Nouveau message', `Chambre ${msg.room_number} - ${msg.category_label}`);
+                    }
+                });
+                // Update table
+                updateMessagesTable(currentMessages);
+            }
+
+            // Update count badge
+            const countBadge = document.querySelector('.card-header .badge');
+            if (countBadge) {
+                countBadge.textContent = data.data.messageCount + ' messages';
+            }
+
+            lastMessageCount = data.data.messageCount;
+            lastMessageIds = currentIds;
+
+        } catch (e) {
+            console.error('Polling error:', e);
+        }
+    }
+
+    // Update badge counts
+    function updateBadge(type, count) {
+        const navItems = document.querySelectorAll('.nav-item');
+        navItems.forEach(item => {
+            if (type === 'pendingOrders' && item.href.includes('room-service-orders')) {
+                let badge = item.querySelector('.badge');
+                if (count > 0) {
+                    if (!badge) {
+                        badge = document.createElement('span');
+                        badge.className = 'badge';
+                        badge.style.cssText = 'background: #E53E3E; color: white; margin-left: auto;';
+                        item.appendChild(badge);
+                    }
+                    badge.textContent = count;
+                } else if (badge) {
+                    badge.remove();
+                }
+            }
+            if (type === 'unreadMessages' && item.href.includes('room-service-messages')) {
+                let badge = item.querySelector('.badge');
+                if (count > 0) {
+                    if (!badge) {
+                        badge = document.createElement('span');
+                        badge.className = 'badge';
+                        badge.style.cssText = 'background: #E53E3E; color: white; margin-left: auto;';
+                        item.appendChild(badge);
+                    }
+                    badge.textContent = count;
+                } else if (badge) {
+                    badge.remove();
+                }
+            }
+        });
+    }
+
+    // Update stats cards
+    function updateStats(stats) {
+        const statValues = document.querySelectorAll('.stat-value');
+        if (statValues.length >= 4) {
+            statValues[0].textContent = stats.total;
+            statValues[1].textContent = stats.new;
+            statValues[2].textContent = stats.in_progress;
+            statValues[3].textContent = stats.today;
+        }
+    }
+
+    // Update messages table
+    function updateMessagesTable(messages) {
+        const tbody = document.querySelector('.messages-table tbody');
+        if (!tbody) return;
+
+        // Clear and rebuild table
+        tbody.innerHTML = messages.map(msg => {
+            const isNew = !lastMessageIds.includes(msg.id);
+            const isUnread = msg.status === 'new';
+
+            return `
+                <tr class="${isUnread ? 'unread' : ''} ${isNew ? 'row-highlight' : ''}">
+                    <td>${msg.id}</td>
+                    <td><strong>${escapeHtml(msg.room_number)}</strong></td>
+                    <td>
+                        <span class="category-badge">
+                            ${escapeHtml(msg.category_label)}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="message-preview">
+                            ${msg.subject ? '<strong>' + escapeHtml(msg.subject) + '</strong> - ' : ''}
+                            ${escapeHtml(msg.message_preview)}
+                        </div>
+                    </td>
+                    <td>
+                        <span class="status-badge status-${msg.status}">
+                            ${escapeHtml(msg.status_label)}
+                        </span>
+                    </td>
+                    <td>${msg.created_at}</td>
+                    <td>
+                        <a href="?view=${msg.id}" class="btn btn-sm btn-outline">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                <circle cx="12" cy="12" r="3"/>
+                            </svg>
+                            Voir
+                        </a>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    // HTML escape utility
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text || '';
+        return div.innerHTML;
+    }
+
+    // Visibility API for pause/resume
+    document.addEventListener('visibilitychange', function() {
+        isPageVisible = !document.hidden;
+        if (isPageVisible) {
+            fetchUpdates(); // Immediate update when tab becomes visible
+            startPolling();
+        } else {
+            stopPolling();
+        }
+    });
+
+    function startPolling() {
+        if (!pollTimer && isPageVisible) {
+            pollTimer = setInterval(fetchUpdates, POLL_INTERVAL);
+        }
+    }
+
+    function stopPolling() {
+        if (pollTimer) {
+            clearInterval(pollTimer);
+            pollTimer = null;
+        }
+    }
+
+    // Start polling only on list view (not detail view)
+    <?php if (!$viewMessage): ?>
+    console.log('[Live Update] Starting polling with interval:', POLL_INTERVAL, 'ms');
+    console.log('[Live Update] Initial message IDs:', lastMessageIds);
+    startPolling();
+    // Also fetch immediately on page load
+    fetchUpdates();
+    <?php endif; ?>
     </script>
 </body>
 </html>
