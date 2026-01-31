@@ -226,6 +226,145 @@ if (isset($_GET['view'])) {
             width: 16px;
             height: 16px;
         }
+        /* Export styles */
+        .export-dropdown {
+            position: relative;
+            display: inline-block;
+        }
+        .export-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: var(--admin-card);
+            border: 1px solid var(--admin-border);
+            border-radius: 6px;
+            font-size: 0.875rem;
+            color: var(--admin-text);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .export-btn:hover {
+            border-color: var(--admin-primary);
+            color: var(--admin-primary);
+        }
+        .export-btn svg {
+            width: 16px;
+            height: 16px;
+        }
+        .export-menu {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 0.5rem;
+            background: var(--admin-card);
+            border: 1px solid var(--admin-border);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            min-width: 320px;
+            z-index: 100;
+            display: none;
+        }
+        .export-menu.active {
+            display: block;
+        }
+        .export-menu-header {
+            padding: 1rem;
+            border-bottom: 1px solid var(--admin-border);
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .export-menu-close {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--admin-text-light);
+            padding: 0.25rem;
+        }
+        .export-menu-close:hover {
+            color: var(--admin-text);
+        }
+        .export-menu-body {
+            padding: 1rem;
+        }
+        .export-menu-body .form-group {
+            margin-bottom: 1rem;
+        }
+        .export-menu-body .form-group:last-of-type {
+            margin-bottom: 0;
+        }
+        .export-menu-body label {
+            display: block;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: var(--admin-text-light);
+            margin-bottom: 0.375rem;
+        }
+        .export-menu-body input,
+        .export-menu-body select {
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid var(--admin-border);
+            border-radius: 6px;
+            font-size: 0.875rem;
+            background: var(--admin-bg);
+        }
+        .export-menu-body input:focus,
+        .export-menu-body select:focus {
+            outline: none;
+            border-color: var(--admin-primary);
+        }
+        .export-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+        }
+        .export-menu-footer {
+            padding: 1rem;
+            border-top: 1px solid var(--admin-border);
+            display: flex;
+            gap: 0.5rem;
+        }
+        .export-menu-footer .btn {
+            flex: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.375rem;
+            padding: 0.625rem 1rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .export-menu-footer .btn svg {
+            width: 16px;
+            height: 16px;
+        }
+        .btn-csv {
+            background: #276749;
+            color: white;
+            border: none;
+        }
+        .btn-csv:hover {
+            background: #22543D;
+        }
+        .btn-pdf {
+            background: #C53030;
+            color: white;
+            border: none;
+        }
+        .btn-pdf:hover {
+            background: #9B2C2C;
+        }
+        .export-info {
+            font-size: 0.75rem;
+            color: var(--admin-text-light);
+            margin-top: 0.5rem;
+        }
     </style>
 </head>
 <body>
@@ -561,7 +700,70 @@ if (isset($_GET['view'])) {
                     <div class="card">
                         <div class="card-header">
                             <h2>Liste des commandes</h2>
-                            <span class="badge"><?= count($orders) ?> commandes</span>
+                            <div style="display: flex; align-items: center; gap: 1rem;">
+                                <span class="badge"><?= count($orders) ?> commandes</span>
+                                <div class="export-dropdown">
+                                    <button type="button" class="export-btn" id="exportBtn">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                            <polyline points="7 10 12 15 17 10"/>
+                                            <line x1="12" y1="15" x2="12" y2="3"/>
+                                        </svg>
+                                        Exporter
+                                    </button>
+                                    <div class="export-menu" id="exportMenu">
+                                        <div class="export-menu-header">
+                                            <span>Exporter les commandes</span>
+                                            <button type="button" class="export-menu-close" id="exportMenuClose">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px;">
+                                                    <line x1="18" y1="6" x2="6" y2="18"/>
+                                                    <line x1="6" y1="6" x2="18" y2="18"/>
+                                                </svg>
+                                            </button>
+                                        </div>
+                                        <div class="export-menu-body">
+                                            <div class="form-group">
+                                                <label>Statut</label>
+                                                <select id="exportStatus">
+                                                    <option value="all" <?= $statusFilter === 'all' ? 'selected' : '' ?>>Tous les statuts</option>
+                                                    <?php foreach ($statuses as $key => $label): ?>
+                                                        <option value="<?= h($key) ?>" <?= $statusFilter === $key ? 'selected' : '' ?>><?= h($label) ?></option>
+                                                    <?php endforeach; ?>
+                                                </select>
+                                            </div>
+                                            <div class="export-row">
+                                                <div class="form-group">
+                                                    <label>Date debut</label>
+                                                    <input type="date" id="exportDateFrom">
+                                                </div>
+                                                <div class="form-group">
+                                                    <label>Date fin</label>
+                                                    <input type="date" id="exportDateTo" value="<?= date('Y-m-d') ?>">
+                                                </div>
+                                            </div>
+                                            <p class="export-info">Laissez les dates vides pour exporter toutes les commandes.</p>
+                                        </div>
+                                        <div class="export-menu-footer">
+                                            <button type="button" class="btn btn-csv" onclick="exportOrders('csv')">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                                    <polyline points="14 2 14 8 20 8"/>
+                                                    <line x1="16" y1="13" x2="8" y2="13"/>
+                                                    <line x1="16" y1="17" x2="8" y2="17"/>
+                                                </svg>
+                                                CSV (Excel)
+                                            </button>
+                                            <button type="button" class="btn btn-pdf" onclick="exportOrders('pdf')">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                                    <polyline points="14 2 14 8 20 8"/>
+                                                </svg>
+                                                PDF
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         <div class="card-body" style="padding: 0;">
                             <?php if (empty($orders)): ?>
@@ -652,6 +854,49 @@ if (isset($_GET['view'])) {
     menuToggle?.addEventListener('click', openSidebar);
     sidebarClose?.addEventListener('click', closeSidebar);
     overlay?.addEventListener('click', closeSidebar);
+
+    // Export functionality
+    const exportBtn = document.getElementById('exportBtn');
+    const exportMenu = document.getElementById('exportMenu');
+    const exportMenuClose = document.getElementById('exportMenuClose');
+
+    exportBtn?.addEventListener('click', function(e) {
+        e.stopPropagation();
+        exportMenu.classList.toggle('active');
+    });
+
+    exportMenuClose?.addEventListener('click', function() {
+        exportMenu.classList.remove('active');
+    });
+
+    // Close export menu when clicking outside
+    document.addEventListener('click', function(e) {
+        if (exportMenu && !exportMenu.contains(e.target) && e.target !== exportBtn) {
+            exportMenu.classList.remove('active');
+        }
+    });
+
+    function exportOrders(format) {
+        const status = document.getElementById('exportStatus').value;
+        const dateFrom = document.getElementById('exportDateFrom').value;
+        const dateTo = document.getElementById('exportDateTo').value;
+
+        let url = 'export-orders.php?format=' + format;
+        url += '&status=' + encodeURIComponent(status);
+
+        if (dateFrom) {
+            url += '&date_from=' + encodeURIComponent(dateFrom);
+        }
+        if (dateTo) {
+            url += '&date_to=' + encodeURIComponent(dateTo);
+        }
+
+        // Open in new window/tab
+        window.open(url, '_blank');
+
+        // Close the export menu
+        exportMenu.classList.remove('active');
+    }
     </script>
 </body>
 </html>
