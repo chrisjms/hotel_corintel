@@ -58,6 +58,54 @@ $statusLabels = [
     'delivered' => 'Livrée',
     'cancelled' => 'Annulée'
 ];
+
+// Guest Messages Statistics
+$msgTodayTotal = 0;
+$msgTodayNew = 0;
+$msgRecentMessages = [];
+$msgEnabled = false;
+
+try {
+    $pdo = getDatabase();
+    $today = date('Y-m-d');
+
+    // Total messages today
+    $stmtMsgTotal = $pdo->prepare("SELECT COUNT(*) FROM guest_messages WHERE DATE(created_at) = ?");
+    $stmtMsgTotal->execute([$today]);
+    $msgTodayTotal = (int)$stmtMsgTotal->fetchColumn();
+
+    // Unread messages today
+    $stmtMsgNew = $pdo->prepare("SELECT COUNT(*) FROM guest_messages WHERE DATE(created_at) = ? AND status = 'new'");
+    $stmtMsgNew->execute([$today]);
+    $msgTodayNew = (int)$stmtMsgNew->fetchColumn();
+
+    // 3 most recent messages
+    $stmtRecent = $pdo->prepare("SELECT id, room_number, guest_name, category, subject, message, status, created_at FROM guest_messages ORDER BY created_at DESC LIMIT 3");
+    $stmtRecent->execute();
+    $msgRecentMessages = $stmtRecent->fetchAll(PDO::FETCH_ASSOC);
+
+    $msgEnabled = true;
+} catch (PDOException $e) {
+    // Table doesn't exist yet or other DB error
+    $msgEnabled = false;
+}
+
+$msgCategoryLabels = [
+    'general' => 'Général',
+    'room_issue' => 'Problème chambre',
+    'housekeeping' => 'Ménage',
+    'maintenance' => 'Maintenance',
+    'room_service' => 'Room Service',
+    'complaint' => 'Réclamation',
+    'other' => 'Autre'
+];
+
+$msgStatusLabels = [
+    'new' => 'Nouveau',
+    'read' => 'Lu',
+    'in_progress' => 'En cours',
+    'resolved' => 'Résolu'
+];
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -73,8 +121,17 @@ $statusLabels = [
 </head>
 <body>
     <div class="admin-layout">
+        <!-- Sidebar Overlay -->
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
         <!-- Sidebar -->
-        <aside class="admin-sidebar">
+        <aside class="admin-sidebar" id="adminSidebar">
+            <button class="sidebar-close" id="sidebarClose" aria-label="Fermer le menu">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
             <div class="sidebar-header">
                 <h2>Hôtel Corintel</h2>
                 <span>Administration</span>
@@ -170,6 +227,13 @@ $statusLabels = [
         <!-- Main Content -->
         <main class="admin-main">
             <header class="admin-header">
+                <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Ouvrir le menu">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="3" y1="12" x2="21" y2="12"/>
+                        <line x1="3" y1="6" x2="21" y2="6"/>
+                        <line x1="3" y1="18" x2="21" y2="18"/>
+                    </svg>
+                </button>
                 <h1>Tableau de bord</h1>
                 <a href="../index.html" target="_blank" class="btn btn-outline">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -246,8 +310,91 @@ $statusLabels = [
                 </div>
                 <?php endif; ?>
 
+                <!-- Messages Activity -->
+                <?php if ($msgEnabled): ?>
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Messages – Activité du jour</h2>
+                        <a href="room-service-messages.php" class="btn btn-sm">Voir tous les messages</a>
+                    </div>
+                    <div class="card-body">
+                        <div class="stats-grid stats-grid-2">
+                            <div class="stat-card">
+                                <div class="stat-content">
+                                    <span class="stat-value"><?= $msgTodayTotal ?></span>
+                                    <span class="stat-label">Messages aujourd'hui</span>
+                                </div>
+                            </div>
+                            <div class="stat-card <?= $msgTodayNew > 0 ? 'stat-card-alert' : '' ?>">
+                                <div class="stat-content">
+                                    <span class="stat-value"><?= $msgTodayNew ?></span>
+                                    <span class="stat-label">Non lus</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <?php if (!empty($msgRecentMessages)): ?>
+                        <h3 style="margin: 1.5rem 0 1rem; font-size: 1rem;">Messages récents</h3>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Chambre</th>
+                                    <th>Sujet</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($msgRecentMessages as $msg): ?>
+                                <tr class="<?= $msg['status'] === 'new' ? 'row-unread' : '' ?>">
+                                    <td><strong><?= h($msg['room_number']) ?></strong></td>
+                                    <td>
+                                        <?php if ($msg['subject']): ?>
+                                            <?= h($msg['subject']) ?>
+                                        <?php else: ?>
+                                            <span style="color: var(--admin-text-light); font-style: italic;"><?= $msgCategoryLabels[$msg['category']] ?? $msg['category'] ?></span>
+                                        <?php endif; ?>
+                                        <?php if ($msg['status'] === 'new'): ?>
+                                            <span class="badge-new">Nouveau</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td><a href="room-service-messages.php?id=<?= $msg['id'] ?>" class="btn btn-sm">Voir</a></td>
+                                </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                        <?php else: ?>
+                        <p style="margin-top: 1rem; color: #666;">Aucun message récent.</p>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                <?php endif; ?>
+
             </div>
         </main>
     </div>
+
+    <script>
+    // Mobile menu toggle
+    const sidebar = document.getElementById('adminSidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    const menuToggle = document.getElementById('mobileMenuToggle');
+    const sidebarClose = document.getElementById('sidebarClose');
+
+    function openSidebar() {
+        sidebar.classList.add('open');
+        overlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeSidebar() {
+        sidebar.classList.remove('open');
+        overlay.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+
+    menuToggle?.addEventListener('click', openSidebar);
+    sidebarClose?.addEventListener('click', closeSidebar);
+    overlay?.addEventListener('click', closeSidebar);
+    </script>
 </body>
 </html>
