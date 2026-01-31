@@ -58,6 +58,54 @@ $statusLabels = [
     'delivered' => 'Livrée',
     'cancelled' => 'Annulée'
 ];
+
+// Guest Messages Statistics
+$msgTodayTotal = 0;
+$msgTodayNew = 0;
+$msgRecentMessages = [];
+$msgEnabled = false;
+
+try {
+    $pdo = getDatabase();
+    $today = date('Y-m-d');
+
+    // Total messages today
+    $stmtMsgTotal = $pdo->prepare("SELECT COUNT(*) FROM guest_messages WHERE DATE(created_at) = ?");
+    $stmtMsgTotal->execute([$today]);
+    $msgTodayTotal = (int)$stmtMsgTotal->fetchColumn();
+
+    // Unread messages today
+    $stmtMsgNew = $pdo->prepare("SELECT COUNT(*) FROM guest_messages WHERE DATE(created_at) = ? AND status = 'new'");
+    $stmtMsgNew->execute([$today]);
+    $msgTodayNew = (int)$stmtMsgNew->fetchColumn();
+
+    // 3 most recent messages
+    $stmtRecent = $pdo->prepare("SELECT id, room_number, guest_name, category, subject, message, status, created_at FROM guest_messages ORDER BY created_at DESC LIMIT 3");
+    $stmtRecent->execute();
+    $msgRecentMessages = $stmtRecent->fetchAll(PDO::FETCH_ASSOC);
+
+    $msgEnabled = true;
+} catch (PDOException $e) {
+    // Table doesn't exist yet or other DB error
+    $msgEnabled = false;
+}
+
+$msgCategoryLabels = [
+    'general' => 'Général',
+    'room_issue' => 'Problème chambre',
+    'housekeeping' => 'Ménage',
+    'maintenance' => 'Maintenance',
+    'room_service' => 'Room Service',
+    'complaint' => 'Réclamation',
+    'other' => 'Autre'
+];
+
+$msgStatusLabels = [
+    'new' => 'Nouveau',
+    'read' => 'Lu',
+    'in_progress' => 'En cours',
+    'resolved' => 'Résolu'
+];
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -257,6 +305,65 @@ $statusLabels = [
                         </table>
                         <?php else: ?>
                         <p style="margin-top: 1rem; color: #666;">Aucune commande urgente.</p>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                <?php endif; ?>
+
+                <!-- Messages Activity -->
+                <?php if ($msgEnabled): ?>
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Messages – Activité du jour</h2>
+                        <a href="room-service-messages.php" class="btn btn-sm">Voir tous les messages</a>
+                    </div>
+                    <div class="card-body">
+                        <div class="stats-grid stats-grid-2">
+                            <div class="stat-card">
+                                <div class="stat-content">
+                                    <span class="stat-value"><?= $msgTodayTotal ?></span>
+                                    <span class="stat-label">Messages aujourd'hui</span>
+                                </div>
+                            </div>
+                            <div class="stat-card <?= $msgTodayNew > 0 ? 'stat-card-alert' : '' ?>">
+                                <div class="stat-content">
+                                    <span class="stat-value"><?= $msgTodayNew ?></span>
+                                    <span class="stat-label">Non lus</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <?php if (!empty($msgRecentMessages)): ?>
+                        <h3 style="margin: 1.5rem 0 1rem; font-size: 1rem;">Messages récents</h3>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Chambre</th>
+                                    <th>Sujet</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($msgRecentMessages as $msg): ?>
+                                <tr class="<?= $msg['status'] === 'new' ? 'row-unread' : '' ?>">
+                                    <td><strong><?= h($msg['room_number']) ?></strong></td>
+                                    <td>
+                                        <?php if ($msg['subject']): ?>
+                                            <?= h($msg['subject']) ?>
+                                        <?php else: ?>
+                                            <span style="color: var(--admin-text-light); font-style: italic;"><?= $msgCategoryLabels[$msg['category']] ?? $msg['category'] ?></span>
+                                        <?php endif; ?>
+                                        <?php if ($msg['status'] === 'new'): ?>
+                                            <span class="badge-new">Nouveau</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td><a href="room-service-messages.php?id=<?= $msg['id'] ?>" class="btn btn-sm">Voir</a></td>
+                                </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                        <?php else: ?>
+                        <p style="margin-top: 1rem; color: #666;">Aucun message récent.</p>
                         <?php endif; ?>
                     </div>
                 </div>
