@@ -118,6 +118,85 @@ $msgStatusLabels = [
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Lato:wght@300;400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="admin-style.css">
+    <style>
+        /* Real-time update styles */
+        .value-updated {
+            animation: highlight 0.5s ease;
+        }
+        @keyframes highlight {
+            0% { background: rgba(72, 187, 120, 0.3); }
+            100% { background: transparent; }
+        }
+        .row-new {
+            animation: slideIn 0.3s ease;
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        /* Toast notification */
+        .toast-container {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .toast {
+            background: var(--admin-card);
+            border: 1px solid var(--admin-border);
+            border-left: 4px solid #4299E1;
+            border-radius: 8px;
+            padding: 1rem 1.25rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            animation: toastIn 0.3s ease;
+            max-width: 350px;
+        }
+        .toast.toast-order {
+            border-left-color: #ED8936;
+        }
+        .toast.toast-message {
+            border-left-color: #4299E1;
+        }
+        @keyframes toastIn {
+            from { opacity: 0; transform: translateX(100%); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        .toast-icon {
+            width: 24px;
+            height: 24px;
+            flex-shrink: 0;
+        }
+        .toast-icon.order { color: #ED8936; }
+        .toast-icon.message { color: #4299E1; }
+        .toast-content {
+            flex: 1;
+        }
+        .toast-title {
+            font-weight: 600;
+            font-size: 0.875rem;
+            margin-bottom: 0.125rem;
+        }
+        .toast-text {
+            font-size: 0.8rem;
+            color: var(--admin-text-light);
+        }
+        .toast-close {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--admin-text-light);
+            padding: 0.25rem;
+        }
+        .toast-close:hover {
+            color: var(--admin-text);
+        }
+    </style>
 </head>
 <body>
     <div class="admin-layout">
@@ -187,18 +266,14 @@ $msgStatusLabels = [
                         <polyline points="10 9 9 9 8 9"/>
                     </svg>
                     Room Service - Commandes
-                    <?php if ($pendingOrders > 0): ?>
-                        <span class="badge" style="background: #E53E3E; color: white; margin-left: auto;"><?= $pendingOrders ?></span>
-                    <?php endif; ?>
+                    <span class="badge" id="badgePendingOrders" style="background: #E53E3E; color: white; margin-left: auto; <?= $pendingOrders > 0 ? '' : 'display: none;' ?>"><?= $pendingOrders ?></span>
                 </a>
                 <a href="room-service-messages.php" class="nav-item">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                     </svg>
                     Messages Clients
-                    <?php if ($unreadMessages > 0): ?>
-                        <span class="badge" style="background: #E53E3E; color: white; margin-left: auto;"><?= $unreadMessages ?></span>
-                    <?php endif; ?>
+                    <span class="badge" id="badgeUnreadMessages" style="background: #E53E3E; color: white; margin-left: auto; <?= $unreadMessages > 0 ? '' : 'display: none;' ?>"><?= $unreadMessages ?></span>
                 </a>
                 <a href="settings.php" class="nav-item">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -257,33 +332,34 @@ $msgStatusLabels = [
                         <div class="stats-grid">
                             <div class="stat-card">
                                 <div class="stat-content">
-                                    <span class="stat-value"><?= $rsTodayTotal ?></span>
+                                    <span class="stat-value" id="statOrdersToday"><?= $rsTodayTotal ?></span>
                                     <span class="stat-label">Commandes aujourd'hui</span>
                                 </div>
                             </div>
                             <div class="stat-card">
                                 <div class="stat-content">
-                                    <span class="stat-value"><?= $rsUpcomingCount ?></span>
+                                    <span class="stat-value" id="statUpcomingDeliveries"><?= $rsUpcomingCount ?></span>
                                     <span class="stat-label">Livraisons à venir</span>
                                 </div>
                             </div>
                             <div class="stat-card">
                                 <div class="stat-content">
-                                    <span class="stat-value"><?= $rsStatusCounts['pending'] ?></span>
+                                    <span class="stat-value" id="statPendingOrders"><?= $rsStatusCounts['pending'] ?></span>
                                     <span class="stat-label">En attente</span>
                                 </div>
                             </div>
                             <div class="stat-card">
                                 <div class="stat-content">
-                                    <span class="stat-value"><?= $rsStatusCounts['preparing'] ?></span>
+                                    <span class="stat-value" id="statPreparingOrders"><?= $rsStatusCounts['preparing'] ?></span>
                                     <span class="stat-label">En préparation</span>
                                 </div>
                             </div>
                         </div>
 
-                        <?php if (!empty($rsUrgentOrders)): ?>
                         <h3 style="margin: 1.5rem 0 1rem; font-size: 1rem;">Commandes urgentes</h3>
-                        <table class="data-table">
+                        <div id="urgentOrdersContainer">
+                        <?php if (!empty($rsUrgentOrders)): ?>
+                        <table class="data-table" id="urgentOrdersTable">
                             <thead>
                                 <tr>
                                     <th>Chambre</th>
@@ -292,20 +368,21 @@ $msgStatusLabels = [
                                     <th></th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody id="urgentOrdersBody">
                                 <?php foreach ($rsUrgentOrders as $order): ?>
-                                <tr>
+                                <tr data-order-id="<?= $order['id'] ?>">
                                     <td><strong><?= h($order['room_number']) ?></strong></td>
                                     <td><?= date('d/m/Y H:i', strtotime($order['delivery_datetime'])) ?></td>
                                     <td><span class="status-badge status-<?= $order['status'] ?>"><?= $statusLabels[$order['status']] ?></span></td>
-                                    <td><a href="room-service-orders.php?id=<?= $order['id'] ?>" class="btn btn-sm">Voir</a></td>
+                                    <td><a href="room-service-orders.php?view=<?= $order['id'] ?>" class="btn btn-sm">Voir</a></td>
                                 </tr>
                                 <?php endforeach; ?>
                             </tbody>
                         </table>
                         <?php else: ?>
-                        <p style="margin-top: 1rem; color: #666;">Aucune commande urgente.</p>
+                        <p id="noUrgentOrders" style="color: #666;">Aucune commande urgente.</p>
                         <?php endif; ?>
+                        </div>
                     </div>
                 </div>
                 <?php endif; ?>
@@ -321,21 +398,22 @@ $msgStatusLabels = [
                         <div class="stats-grid stats-grid-2">
                             <div class="stat-card">
                                 <div class="stat-content">
-                                    <span class="stat-value"><?= $msgTodayTotal ?></span>
+                                    <span class="stat-value" id="statMessagesToday"><?= $msgTodayTotal ?></span>
                                     <span class="stat-label">Messages aujourd'hui</span>
                                 </div>
                             </div>
-                            <div class="stat-card <?= $msgTodayNew > 0 ? 'stat-card-alert' : '' ?>">
+                            <div class="stat-card" id="statUnreadCard">
                                 <div class="stat-content">
-                                    <span class="stat-value"><?= $msgTodayNew ?></span>
+                                    <span class="stat-value" id="statMessagesTodayNew"><?= $msgTodayNew ?></span>
                                     <span class="stat-label">Non lus</span>
                                 </div>
                             </div>
                         </div>
 
-                        <?php if (!empty($msgRecentMessages)): ?>
                         <h3 style="margin: 1.5rem 0 1rem; font-size: 1rem;">Messages récents</h3>
-                        <table class="data-table">
+                        <div id="recentMessagesContainer">
+                        <?php if (!empty($msgRecentMessages)): ?>
+                        <table class="data-table" id="recentMessagesTable">
                             <thead>
                                 <tr>
                                     <th>Chambre</th>
@@ -343,9 +421,9 @@ $msgStatusLabels = [
                                     <th></th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody id="recentMessagesBody">
                                 <?php foreach ($msgRecentMessages as $msg): ?>
-                                <tr class="<?= $msg['status'] === 'new' ? 'row-unread' : '' ?>">
+                                <tr class="<?= $msg['status'] === 'new' ? 'row-unread' : '' ?>" data-msg-id="<?= $msg['id'] ?>">
                                     <td><strong><?= h($msg['room_number']) ?></strong></td>
                                     <td>
                                         <?php if ($msg['subject']): ?>
@@ -363,8 +441,9 @@ $msgStatusLabels = [
                             </tbody>
                         </table>
                         <?php else: ?>
-                        <p style="margin-top: 1rem; color: #666;">Aucun message récent.</p>
+                        <p id="noRecentMessages" style="color: #666;">Aucun message récent.</p>
                         <?php endif; ?>
+                        </div>
                     </div>
                 </div>
                 <?php endif; ?>
@@ -395,6 +474,271 @@ $msgStatusLabels = [
     menuToggle?.addEventListener('click', openSidebar);
     sidebarClose?.addEventListener('click', closeSidebar);
     overlay?.addEventListener('click', closeSidebar);
+
+    // Real-time updates
+    const POLL_INTERVAL = 15000; // 15 seconds
+    let lastData = null;
+    let pollTimer = null;
+
+    // Toast notification system
+    const toastContainer = document.createElement('div');
+    toastContainer.className = 'toast-container';
+    toastContainer.id = 'toastContainer';
+    document.body.appendChild(toastContainer);
+
+    function showToast(type, title, text) {
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        toast.innerHTML = `
+            <svg class="toast-icon ${type}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                ${type === 'order'
+                    ? '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>'
+                    : '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>'}
+            </svg>
+            <div class="toast-content">
+                <div class="toast-title">${title}</div>
+                <div class="toast-text">${text}</div>
+            </div>
+            <button class="toast-close" onclick="this.parentElement.remove()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
+        `;
+        toastContainer.appendChild(toast);
+
+        // Auto-remove after 8 seconds
+        setTimeout(() => {
+            if (toast.parentElement) {
+                toast.style.animation = 'toastIn 0.3s ease reverse';
+                setTimeout(() => toast.remove(), 300);
+            }
+        }, 8000);
+    }
+
+    function updateValue(elementId, newValue) {
+        const el = document.getElementById(elementId);
+        if (el && el.textContent !== String(newValue)) {
+            el.textContent = newValue;
+            el.classList.add('value-updated');
+            setTimeout(() => el.classList.remove('value-updated'), 500);
+        }
+    }
+
+    function updateBadge(elementId, count) {
+        const el = document.getElementById(elementId);
+        if (el) {
+            if (count > 0) {
+                el.textContent = count;
+                el.style.display = '';
+            } else {
+                el.style.display = 'none';
+            }
+        }
+    }
+
+    function updateStatCardAlert(elementId, hasAlert) {
+        const el = document.getElementById(elementId);
+        if (el) {
+            if (hasAlert) {
+                el.classList.add('stat-card-alert');
+            } else {
+                el.classList.remove('stat-card-alert');
+            }
+        }
+    }
+
+    function updateUrgentOrders(orders) {
+        const container = document.getElementById('urgentOrdersContainer');
+        if (!container) return;
+
+        if (orders.length === 0) {
+            container.innerHTML = '<p id="noUrgentOrders" style="color: #666;">Aucune commande urgente.</p>';
+            return;
+        }
+
+        let html = `
+            <table class="data-table" id="urgentOrdersTable">
+                <thead>
+                    <tr>
+                        <th>Chambre</th>
+                        <th>Livraison prévue</th>
+                        <th>Statut</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="urgentOrdersBody">
+        `;
+
+        orders.forEach(order => {
+            html += `
+                <tr data-order-id="${order.id}">
+                    <td><strong>${escapeHtml(order.room_number)}</strong></td>
+                    <td>${order.delivery_datetime}</td>
+                    <td><span class="status-badge status-${order.status}">${escapeHtml(order.status_label)}</span></td>
+                    <td><a href="room-service-orders.php?view=${order.id}" class="btn btn-sm">Voir</a></td>
+                </tr>
+            `;
+        });
+
+        html += '</tbody></table>';
+        container.innerHTML = html;
+    }
+
+    function updateRecentMessages(messages) {
+        const container = document.getElementById('recentMessagesContainer');
+        if (!container) return;
+
+        if (messages.length === 0) {
+            container.innerHTML = '<p id="noRecentMessages" style="color: #666;">Aucun message récent.</p>';
+            return;
+        }
+
+        let html = `
+            <table class="data-table" id="recentMessagesTable">
+                <thead>
+                    <tr>
+                        <th>Chambre</th>
+                        <th>Sujet</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="recentMessagesBody">
+        `;
+
+        messages.forEach(msg => {
+            const rowClass = msg.is_new ? 'row-unread' : '';
+            const badge = msg.is_new ? '<span class="badge-new">Nouveau</span>' : '';
+            html += `
+                <tr class="${rowClass}" data-msg-id="${msg.id}">
+                    <td><strong>${escapeHtml(msg.room_number)}</strong></td>
+                    <td>${escapeHtml(msg.subject)} ${badge}</td>
+                    <td><a href="room-service-messages.php?id=${msg.id}" class="btn btn-sm">Voir</a></td>
+                </tr>
+            `;
+        });
+
+        html += '</tbody></table>';
+        container.innerHTML = html;
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    function checkForNewItems(newData) {
+        if (!lastData) return;
+
+        // Check for new orders
+        if (newData.ordersToday > lastData.ordersToday) {
+            const diff = newData.ordersToday - lastData.ordersToday;
+            showToast('order', 'Nouvelle commande', `${diff} nouvelle(s) commande(s) reçue(s)`);
+            // Play notification sound if available
+            playNotificationSound();
+        }
+
+        // Check for new messages
+        if (newData.messagesToday > lastData.messagesToday) {
+            const diff = newData.messagesToday - lastData.messagesToday;
+            showToast('message', 'Nouveau message', `${diff} nouveau(x) message(s) reçu(s)`);
+            playNotificationSound();
+        }
+    }
+
+    function playNotificationSound() {
+        // Create a simple beep sound using Web Audio API
+        try {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            oscillator.frequency.value = 800;
+            oscillator.type = 'sine';
+            gainNode.gain.value = 0.1;
+
+            oscillator.start();
+            setTimeout(() => {
+                oscillator.stop();
+                audioContext.close();
+            }, 150);
+        } catch (e) {
+            // Audio not supported or blocked
+        }
+    }
+
+    async function fetchDashboardUpdates() {
+        try {
+            const response = await fetch('api/dashboard-updates.php');
+            if (!response.ok) throw new Error('Network error');
+
+            const result = await response.json();
+            if (!result.success) throw new Error(result.error || 'Unknown error');
+
+            const data = result.data;
+
+            // Check for new items before updating
+            checkForNewItems(data);
+
+            // Update badge counts
+            updateBadge('badgePendingOrders', data.pendingOrders);
+            updateBadge('badgeUnreadMessages', data.unreadMessages);
+
+            // Update stats
+            updateValue('statOrdersToday', data.ordersToday);
+            updateValue('statUpcomingDeliveries', data.upcomingDeliveries);
+            updateValue('statPendingOrders', data.orderStatusCounts.pending);
+            updateValue('statPreparingOrders', data.orderStatusCounts.preparing);
+            updateValue('statMessagesToday', data.messagesToday);
+            updateValue('statMessagesTodayNew', data.messagesTodayNew);
+
+            // Update alert styling for unread messages
+            updateStatCardAlert('statUnreadCard', data.messagesTodayNew > 0);
+
+            // Update tables
+            updateUrgentOrders(data.urgentOrders);
+            updateRecentMessages(data.recentMessages);
+
+            // Store for comparison
+            lastData = data;
+
+        } catch (error) {
+            console.warn('Dashboard update failed:', error.message);
+            // Don't show error to user, just continue polling
+        }
+    }
+
+    // Start polling
+    function startPolling() {
+        // Initial fetch
+        fetchDashboardUpdates();
+
+        // Set up interval
+        pollTimer = setInterval(fetchDashboardUpdates, POLL_INTERVAL);
+    }
+
+    // Stop polling when page is hidden (save resources)
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            if (pollTimer) {
+                clearInterval(pollTimer);
+                pollTimer = null;
+            }
+        } else {
+            // Resume polling and fetch immediately
+            if (!pollTimer) {
+                fetchDashboardUpdates();
+                pollTimer = setInterval(fetchDashboardUpdates, POLL_INTERVAL);
+            }
+        }
+    });
+
+    // Initialize
+    startPolling();
     </script>
 </body>
 </html>
