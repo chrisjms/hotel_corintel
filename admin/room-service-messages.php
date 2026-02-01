@@ -317,6 +317,12 @@ if (isset($_GET['view'])) {
             max-width: 320px;
             border-left: 4px solid #3182CE;
         }
+        .toast.toast-message {
+            border-left-color: #3182CE;
+        }
+        .toast.toast-order {
+            border-left-color: #ED8936;
+        }
         @keyframes toastIn {
             from { transform: translateX(100%); opacity: 0; }
             to { transform: translateX(0); opacity: 1; }
@@ -325,7 +331,12 @@ if (isset($_GET['view'])) {
             width: 24px;
             height: 24px;
             flex-shrink: 0;
+        }
+        .toast.toast-message .toast-icon {
             color: #3182CE;
+        }
+        .toast.toast-order .toast-icon {
+            color: #ED8936;
         }
         .toast-content {
             flex: 1;
@@ -756,16 +767,22 @@ if (isset($_GET['view'])) {
     let pollTimer = null;
     let lastMessageCount = <?= count($messages) ?>;
     let lastMessageIds = [<?= implode(',', array_column($messages, 'id')) ?>];
+    let lastPendingOrders = <?= $pendingOrders ?>;
     let isPageVisible = true;
 
     // Toast notification
-    function showToast(title, message) {
+    function showToast(title, message, type = 'message') {
         const container = document.getElementById('toastContainer');
         const toast = document.createElement('div');
-        toast.className = 'toast';
+        toast.className = 'toast toast-' + type;
+
+        const icon = type === 'order'
+            ? '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>'
+            : '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>';
+
         toast.innerHTML = `
             <svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                ${icon}
             </svg>
             <div class="toast-content">
                 <div class="toast-title">${title}</div>
@@ -875,6 +892,14 @@ if (isset($_GET['view'])) {
 
             lastMessageCount = data.data.messageCount;
             lastMessageIds = currentIds;
+
+            // Check for new orders (cross-notification)
+            const currentPendingOrders = data.data.pendingOrders || 0;
+            if (currentPendingOrders > lastPendingOrders) {
+                const newCount = currentPendingOrders - lastPendingOrders;
+                showToast('Nouvelle commande', `${newCount} nouvelle${newCount > 1 ? 's' : ''} commande${newCount > 1 ? 's' : ''} en attente`, 'order');
+            }
+            lastPendingOrders = currentPendingOrders;
 
         } catch (e) {
             console.error('Polling error:', e);

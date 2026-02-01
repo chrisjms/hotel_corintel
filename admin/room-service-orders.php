@@ -390,6 +390,9 @@ if (isset($_GET['view'])) {
         .toast.toast-order {
             border-left-color: #ED8936;
         }
+        .toast.toast-message {
+            border-left-color: #3182CE;
+        }
         @keyframes toastIn {
             from { transform: translateX(100%); opacity: 0; }
             to { transform: translateX(0); opacity: 1; }
@@ -398,6 +401,12 @@ if (isset($_GET['view'])) {
             width: 24px;
             height: 24px;
             flex-shrink: 0;
+        }
+        .toast.toast-order .toast-icon {
+            color: #ED8936;
+        }
+        .toast.toast-message .toast-icon {
+            color: #3182CE;
         }
         .toast-content {
             flex: 1;
@@ -972,6 +981,7 @@ if (isset($_GET['view'])) {
     let pollTimer = null;
     let lastOrderCount = <?= count($orders) ?>;
     let lastOrderIds = [<?= implode(',', array_column($orders, 'id')) ?>];
+    let lastUnreadMessages = <?= $unreadMessages ?>;
     let isPageVisible = true;
 
     // Toast notification
@@ -979,10 +989,14 @@ if (isset($_GET['view'])) {
         const container = document.getElementById('toastContainer');
         const toast = document.createElement('div');
         toast.className = 'toast toast-' + type;
+
+        const icon = type === 'message'
+            ? '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>'
+            : '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>';
+
         toast.innerHTML = `
             <svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                <polyline points="14 2 14 8 20 8"/>
+                ${icon}
             </svg>
             <div class="toast-content">
                 <div class="toast-title">${title}</div>
@@ -1092,6 +1106,14 @@ if (isset($_GET['view'])) {
             if (countBadge) {
                 countBadge.textContent = data.data.orderCount + ' commandes';
             }
+
+            // Check for new messages (cross-notification)
+            const currentUnreadMessages = data.data.unreadMessages || 0;
+            if (currentUnreadMessages > lastUnreadMessages) {
+                const newCount = currentUnreadMessages - lastUnreadMessages;
+                showToast('Nouveau message', `${newCount} nouveau${newCount > 1 ? 'x' : ''} message${newCount > 1 ? 's' : ''} client`, 'message');
+            }
+            lastUnreadMessages = currentUnreadMessages;
 
             lastOrderCount = data.data.orderCount;
             lastOrderIds = currentIds;
