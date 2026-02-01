@@ -1753,3 +1753,275 @@ p {
     transform: translateX(-50%) translateY(0);
   }
 }
+
+/* ---------- Contact Reception Button in Header ---------- */
+.btn-contact-reception {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  background-color: var(--color-primary);
+  color: var(--color-white);
+  border: none;
+  border-radius: 4px;
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+  margin-left: 1rem;
+  white-space: nowrap;
+}
+
+.btn-contact-reception:hover {
+  background-color: var(--color-primary-dark);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-soft);
+}
+
+.btn-contact-reception svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+/* Mobile: Contact reception button in nav menu */
+@media (max-width: 768px) {
+  .btn-contact-reception {
+    margin-left: 0;
+    margin-top: 1rem;
+    width: 100%;
+    justify-content: center;
+    padding: 0.875rem 1.5rem;
+  }
+}
+
+/* ---------- Modal Styles ---------- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+  padding: 1rem;
+}
+
+.modal-overlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.modal-content {
+  background: var(--color-white);
+  border-radius: 12px;
+  width: 100%;
+  max-width: 550px;
+  max-height: 90vh;
+  overflow-y: auto;
+  transform: translateY(20px) scale(0.95);
+  transition: transform 0.3s ease;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+}
+
+.modal-overlay.active .modal-content {
+  transform: translateY(0) scale(1);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--color-beige);
+  position: sticky;
+  top: 0;
+  background: var(--color-white);
+  z-index: 10;
+  border-radius: 12px 12px 0 0;
+}
+
+.modal-header h3 {
+  font-size: 1.25rem;
+  color: var(--color-primary);
+  margin: 0;
+}
+
+.modal-close {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: var(--transition);
+  color: var(--color-text-light);
+}
+
+.modal-close:hover {
+  background: var(--color-beige);
+  color: var(--color-text);
+}
+
+.modal-close svg {
+  width: 20px;
+  height: 20px;
+}
+
+.modal-body {
+  padding: 1.5rem;
+}
+
+/* Modal Form Styles */
+.modal-form .form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+@media (max-width: 500px) {
+  .modal-form .form-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.modal-form .form-group {
+  margin-bottom: 1rem;
+}
+
+.modal-form label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 0.375rem;
+  font-size: 0.9rem;
+  color: var(--color-text);
+}
+
+.modal-form input,
+.modal-form select,
+.modal-form textarea {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--color-beige);
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-family: var(--font-body);
+  transition: var(--transition);
+  background: var(--color-white);
+}
+
+.modal-form input:focus,
+.modal-form select:focus,
+.modal-form textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(139, 111, 71, 0.1);
+}
+
+.modal-form textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.modal-form .btn-submit-modal {
+  width: 100%;
+  padding: 1rem;
+  background: var(--color-primary);
+  color: var(--color-white);
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.modal-form .btn-submit-modal:hover {
+  background: var(--color-primary-dark);
+}
+
+.modal-form .btn-submit-modal svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* Modal Success State */
+.modal-success {
+  text-align: center;
+  padding: 2rem 1rem;
+}
+
+.modal-success-icon {
+  width: 70px;
+  height: 70px;
+  background: rgba(72, 187, 120, 0.1);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.5rem;
+}
+
+.modal-success-icon svg {
+  width: 35px;
+  height: 35px;
+  color: #48BB78;
+}
+
+.modal-success h3 {
+  margin-bottom: 0.75rem;
+  color: var(--color-text);
+}
+
+.modal-success p {
+  color: var(--color-text-light);
+  margin-bottom: 1.5rem;
+  line-height: 1.6;
+}
+
+.modal-success .btn-new-message {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.875rem 1.5rem;
+  background: var(--color-primary);
+  color: var(--color-white);
+  border: none;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.modal-success .btn-new-message:hover {
+  background: var(--color-primary-dark);
+}
+
+/* Modal Error Message */
+.modal-alert-error {
+  background: rgba(245, 101, 101, 0.1);
+  color: #C53030;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  border: 1px solid rgba(245, 101, 101, 0.3);
+  font-size: 0.9rem;
+}
+
+/* Prevent body scroll when modal is open */
+body.modal-open {
+  overflow: hidden;
+}

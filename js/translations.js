@@ -25,7 +25,27 @@ const translations = {
 
     // Header
     header: {
-      logoSubtitle: 'Bordeaux Est'
+      logoSubtitle: 'Bordeaux Est',
+      contactReception: 'Contacter la réception'
+    },
+
+    // Contact Reception Modal
+    modal: {
+      contactReceptionTitle: 'Contacter la réception',
+      roomNumber: 'Numéro de chambre *',
+      roomNumberPlaceholder: 'Ex: 101',
+      guestName: 'Votre nom',
+      guestNamePlaceholder: 'Optionnel',
+      category: 'Catégorie',
+      subject: 'Objet',
+      subjectPlaceholder: 'Résumé du problème',
+      message: 'Votre message *',
+      messagePlaceholder: 'Décrivez votre demande ou problème...',
+      sendMessage: 'Envoyer le message',
+      successTitle: 'Message envoyé',
+      successMessage: 'Votre message a bien été transmis à la réception. Nous vous répondrons dans les meilleurs délais.',
+      newMessage: 'Envoyer un autre message',
+      errorGeneric: 'Une erreur est survenue. Veuillez réessayer.'
     },
 
     // Home page
@@ -283,7 +303,26 @@ const translations = {
     },
 
     header: {
-      logoSubtitle: 'Bordeaux East'
+      logoSubtitle: 'Bordeaux East',
+      contactReception: 'Contact reception'
+    },
+
+    modal: {
+      contactReceptionTitle: 'Contact reception',
+      roomNumber: 'Room number *',
+      roomNumberPlaceholder: 'e.g.: 101',
+      guestName: 'Your name',
+      guestNamePlaceholder: 'Optional',
+      category: 'Category',
+      subject: 'Subject',
+      subjectPlaceholder: 'Summary of the issue',
+      message: 'Your message *',
+      messagePlaceholder: 'Describe your request or issue...',
+      sendMessage: 'Send message',
+      successTitle: 'Message sent',
+      successMessage: 'Your message has been sent to reception. We will respond as soon as possible.',
+      newMessage: 'Send another message',
+      errorGeneric: 'An error occurred. Please try again.'
     },
 
     home: {
@@ -519,7 +558,26 @@ const translations = {
     },
 
     header: {
-      logoSubtitle: 'Burdeos Este'
+      logoSubtitle: 'Burdeos Este',
+      contactReception: 'Contactar recepción'
+    },
+
+    modal: {
+      contactReceptionTitle: 'Contactar recepción',
+      roomNumber: 'Número de habitación *',
+      roomNumberPlaceholder: 'Ej: 101',
+      guestName: 'Su nombre',
+      guestNamePlaceholder: 'Opcional',
+      category: 'Categoría',
+      subject: 'Asunto',
+      subjectPlaceholder: 'Resumen del problema',
+      message: 'Su mensaje *',
+      messagePlaceholder: 'Describa su solicitud o problema...',
+      sendMessage: 'Enviar mensaje',
+      successTitle: 'Mensaje enviado',
+      successMessage: 'Su mensaje ha sido enviado a recepción. Le responderemos lo antes posible.',
+      newMessage: 'Enviar otro mensaje',
+      errorGeneric: 'Se produjo un error. Por favor, inténtelo de nuevo.'
     },
 
     home: {
@@ -755,7 +813,26 @@ const translations = {
     },
 
     header: {
-      logoSubtitle: 'Bordeaux Est'
+      logoSubtitle: 'Bordeaux Est',
+      contactReception: 'Contatta la reception'
+    },
+
+    modal: {
+      contactReceptionTitle: 'Contatta la reception',
+      roomNumber: 'Numero di camera *',
+      roomNumberPlaceholder: 'Es: 101',
+      guestName: 'Il tuo nome',
+      guestNamePlaceholder: 'Opzionale',
+      category: 'Categoria',
+      subject: 'Oggetto',
+      subjectPlaceholder: 'Riassunto del problema',
+      message: 'Il tuo messaggio *',
+      messagePlaceholder: 'Descrivi la tua richiesta o problema...',
+      sendMessage: 'Invia messaggio',
+      successTitle: 'Messaggio inviato',
+      successMessage: 'Il tuo messaggio è stato inviato alla reception. Ti risponderemo il prima possibile.',
+      newMessage: 'Invia un altro messaggio',
+      errorGeneric: 'Si è verificato un errore. Per favore riprova.'
     },
 
     home: {
