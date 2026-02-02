@@ -94,8 +94,15 @@ if (isset($_GET['view'])) {
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
-        .orders-table tr:hover {
+        .orders-table tbody tr {
+            cursor: pointer;
+            transition: background-color 0.15s ease;
+        }
+        .orders-table tbody tr:hover {
             background: var(--admin-bg);
+        }
+        .orders-table tbody tr:active {
+            background: rgba(139, 90, 43, 0.08);
         }
         .status-badge {
             display: inline-flex;
@@ -863,7 +870,7 @@ if (isset($_GET['view'])) {
                                             $isUrgent = $deliveryTime && $deliveryTime <= time() + (2 * 60 * 60) && $deliveryTime > time() && $order['status'] !== 'delivered' && $order['status'] !== 'cancelled';
                                             $isPast = $deliveryTime && $deliveryTime < time() && $order['status'] !== 'delivered' && $order['status'] !== 'cancelled';
                                             ?>
-                                            <tr<?= $isUrgent ? ' style="background: rgba(237, 137, 54, 0.05);"' : ($isPast ? ' style="background: rgba(245, 101, 101, 0.05);"' : '') ?>>
+                                            <tr data-href="?view=<?= $order['id'] ?>"<?= $isUrgent ? ' style="background: rgba(237, 137, 54, 0.05);"' : ($isPast ? ' style="background: rgba(245, 101, 101, 0.05);"' : '') ?>>
                                                 <td><?= $order['id'] ?></td>
                                                 <td><strong><?= h($order['room_number']) ?></strong></td>
                                                 <td><?= h($order['guest_name'] ?? '-') ?></td>
@@ -909,6 +916,17 @@ if (isset($_GET['view'])) {
     <div class="toast-container" id="toastContainer"></div>
 
     <script>
+    // Clickable table rows
+    document.addEventListener('click', function(e) {
+        const row = e.target.closest('.orders-table tbody tr[data-href]');
+        if (!row) return;
+
+        // Don't navigate if clicking on interactive elements
+        if (e.target.closest('a, button, select, input')) return;
+
+        window.location.href = row.dataset.href;
+    });
+
     // Mobile menu toggle
     const sidebar = document.getElementById('adminSidebar');
     const overlay = document.getElementById('sidebarOverlay');
@@ -1182,7 +1200,7 @@ if (isset($_GET['view'])) {
             const rowStyle = isUrgent ? 'background: rgba(237, 137, 54, 0.05);' : (isPast ? 'background: rgba(245, 101, 101, 0.05);' : '');
 
             return `
-                <tr style="${rowStyle}" class="${isNew ? 'row-highlight' : ''}">
+                <tr data-href="?view=${order.id}" style="${rowStyle}" class="${isNew ? 'row-highlight' : ''}">
                     <td>${order.id}</td>
                     <td><strong>${escapeHtml(order.room_number)}</strong></td>
                     <td>${escapeHtml(order.guest_name)}</td>

@@ -84,6 +84,8 @@ try {
             'id' => $order['id'],
             'room_number' => $order['room_number'],
             'delivery_datetime' => date('d/m/Y H:i', strtotime($order['delivery_datetime'])),
+            'delivery_time' => date('H:i', strtotime($order['delivery_datetime'])),
+            'delivery_relative' => timeAgo($order['delivery_datetime']),
             'status' => $order['status'],
             'status_label' => $statusLabels[$order['status']] ?? $order['status']
         ];
@@ -106,7 +108,8 @@ try {
             'subject' => $msg['subject'] ?: ($msgCategoryLabels[$msg['category']] ?? $msg['category']),
             'status' => $msg['status'],
             'is_new' => $msg['status'] === 'new',
-            'created_at' => date('H:i', strtotime($msg['created_at']))
+            'created_at' => date('d/m/Y H:i', strtotime($msg['created_at'])),
+            'created_relative' => timeAgo($msg['created_at'])
         ];
     }, $recentMessages);
 
