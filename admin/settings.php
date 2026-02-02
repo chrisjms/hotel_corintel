@@ -131,6 +131,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <span class="badge" style="background: #E53E3E; color: white; margin-left: auto;"><?= $unreadMessages ?></span>
                     <?php endif; ?>
                 </a>
+                <a href="theme.php" class="nav-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M12 2a10 10 0 0 0 0 20"/>
+                        <path d="M12 2c-2.5 2.5-4 6-4 10s1.5 7.5 4 10"/>
+                    </svg>
+                    Thème du site
+                </a>
                 <a href="settings.php" class="nav-item active">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="3"/>
