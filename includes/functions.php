@@ -1540,3 +1540,158 @@ function getPendingOrdersCount(): int {
         return 0;
     }
 }
+
+// =====================================================
+// SETTINGS & THEME FUNCTIONS
+// =====================================================
+
+/**
+ * Initialize settings table if it doesn't exist
+ */
+function initSettingsTable(): void {
+    $pdo = getDatabase();
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS settings (
+            setting_key VARCHAR(100) PRIMARY KEY,
+            setting_value TEXT,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    ");
+}
+
+/**
+ * Get a setting value
+ */
+function getSetting(string $key, $default = null) {
+    try {
+        $pdo = getDatabase();
+        $stmt = $pdo->prepare('SELECT setting_value FROM settings WHERE setting_key = ?');
+        $stmt->execute([$key]);
+        $result = $stmt->fetchColumn();
+        return $result !== false ? $result : $default;
+    } catch (PDOException $e) {
+        return $default;
+    }
+}
+
+/**
+ * Set a setting value
+ */
+function setSetting(string $key, string $value): bool {
+    try {
+        initSettingsTable();
+        $pdo = getDatabase();
+        $stmt = $pdo->prepare('
+            INSERT INTO settings (setting_key, setting_value)
+            VALUES (?, ?)
+            ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)
+        ');
+        return $stmt->execute([$key, $value]);
+    } catch (PDOException $e) {
+        return false;
+    }
+}
+
+/**
+ * Default theme colors (matching style.css)
+ */
+function getDefaultThemeColors(): array {
+    return [
+        'color_primary' => '#8B6F47',
+        'color_primary_dark' => '#6B5635',
+        'color_secondary' => '#D4A574',
+        'color_accent' => '#5C7C5E',
+        'color_accent_light' => '#7A9B7C',
+        'color_cream' => '#FAF6F0',
+        'color_beige' => '#F0E6D8',
+        'color_text' => '#3D3D3D',
+        'color_text_light' => '#6B6B6B',
+        'color_gold' => '#C9A962',
+    ];
+}
+
+/**
+ * Get all theme settings
+ */
+function getThemeSettings(): array {
+    $defaults = getDefaultThemeColors();
+    $settings = [];
+
+    foreach ($defaults as $key => $default) {
+        $settings[$key] = getSetting('theme_' . $key, $default);
+    }
+
+    return $settings;
+}
+
+/**
+ * Save theme settings
+ */
+function saveThemeSettings(array $colors): bool {
+    $defaults = getDefaultThemeColors();
+    $success = true;
+
+    foreach ($defaults as $key => $default) {
+        if (isset($colors[$key])) {
+            // Validate hex color format
+            $color = $colors[$key];
+            if (preg_match('/^#[0-9A-Fa-f]{6}$/', $color)) {
+                if (!setSetting('theme_' . $key, $color)) {
+                    $success = false;
+                }
+            }
+        }
+    }
+
+    return $success;
+}
+
+/**
+ * Reset theme to default colors
+ */
+function resetThemeSettings(): bool {
+    $defaults = getDefaultThemeColors();
+    $success = true;
+
+    foreach ($defaults as $key => $default) {
+        if (!setSetting('theme_' . $key, $default)) {
+            $success = false;
+        }
+    }
+
+    return $success;
+}
+
+/**
+ * Generate CSS variables from theme settings
+ * Returns inline CSS to override :root variables
+ */
+function getThemeCSS(): string {
+    $settings = getThemeSettings();
+    $defaults = getDefaultThemeColors();
+
+    $css = [];
+    $cssVarMap = [
+        'color_primary' => '--color-primary',
+        'color_primary_dark' => '--color-primary-dark',
+        'color_secondary' => '--color-secondary',
+        'color_accent' => '--color-accent',
+        'color_accent_light' => '--color-accent-light',
+        'color_cream' => '--color-cream',
+        'color_beige' => '--color-beige',
+        'color_text' => '--color-text',
+        'color_text_light' => '--color-text-light',
+        'color_gold' => '--color-gold',
+    ];
+
+    foreach ($cssVarMap as $key => $cssVar) {
+        $value = $settings[$key] ?? $defaults[$key];
+        $css[] = "{$cssVar}: {$value};";
+    }
+
+    if (empty($css)) {
+        return '';
+    }
+
+    return '<style id="theme-override">:root { ' . implode(' ', $css) . ' }</style>';
+}
