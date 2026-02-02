@@ -126,8 +126,15 @@ if (isset($_GET['view'])) {
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
-        .messages-table tr:hover {
+        .messages-table tbody tr {
+            cursor: pointer;
+            transition: background-color 0.15s ease;
+        }
+        .messages-table tbody tr:hover {
             background: var(--admin-bg);
+        }
+        .messages-table tbody tr:active {
+            background: rgba(139, 90, 43, 0.08);
         }
         .messages-table tr.unread {
             background: rgba(66, 153, 225, 0.05);
@@ -691,7 +698,7 @@ if (isset($_GET['view'])) {
                                     </thead>
                                     <tbody>
                                         <?php foreach ($messages as $msg): ?>
-                                            <tr class="<?= $msg['status'] === 'new' ? 'unread' : '' ?>">
+                                            <tr data-href="?view=<?= $msg['id'] ?>" class="<?= $msg['status'] === 'new' ? 'unread' : '' ?>">
                                                 <td><?= $msg['id'] ?></td>
                                                 <td><strong><?= h($msg['room_number']) ?></strong></td>
                                                 <td>
@@ -738,6 +745,17 @@ if (isset($_GET['view'])) {
     <div class="toast-container" id="toastContainer"></div>
 
     <script>
+    // Clickable table rows
+    document.addEventListener('click', function(e) {
+        const row = e.target.closest('.messages-table tbody tr[data-href]');
+        if (!row) return;
+
+        // Don't navigate if clicking on interactive elements
+        if (e.target.closest('a, button, select, input')) return;
+
+        window.location.href = row.dataset.href;
+    });
+
     // Mobile menu toggle
     const sidebar = document.getElementById('adminSidebar');
     const overlay = document.getElementById('sidebarOverlay');
@@ -963,7 +981,7 @@ if (isset($_GET['view'])) {
             const isUnread = msg.status === 'new';
 
             return `
-                <tr class="${isUnread ? 'unread' : ''} ${isNew ? 'row-highlight' : ''}">
+                <tr data-href="?view=${msg.id}" class="${isUnread ? 'unread' : ''} ${isNew ? 'row-highlight' : ''}">
                     <td>${msg.id}</td>
                     <td><strong>${escapeHtml(msg.room_number)}</strong></td>
                     <td>

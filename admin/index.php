@@ -196,6 +196,28 @@ $msgStatusLabels = [
         .toast-close:hover {
             color: var(--admin-text);
         }
+        /* Clickable table rows */
+        .data-table tbody tr[data-href] {
+            cursor: pointer;
+            transition: background-color 0.15s ease;
+        }
+        .data-table tbody tr[data-href]:hover {
+            background: var(--admin-bg);
+        }
+        .data-table tbody tr[data-href]:active {
+            background: rgba(139, 90, 43, 0.08);
+        }
+        /* Relative time display */
+        .time-relative {
+            display: block;
+            font-weight: 500;
+            color: var(--admin-text);
+        }
+        .time-exact {
+            display: block;
+            font-size: 0.75rem;
+            color: var(--admin-text-light);
+        }
     </style>
 </head>
 <body>
@@ -370,9 +392,12 @@ $msgStatusLabels = [
                             </thead>
                             <tbody id="urgentOrdersBody">
                                 <?php foreach ($rsUrgentOrders as $order): ?>
-                                <tr data-order-id="<?= $order['id'] ?>">
+                                <tr data-order-id="<?= $order['id'] ?>" data-href="room-service-orders.php?view=<?= $order['id'] ?>">
                                     <td><strong><?= h($order['room_number']) ?></strong></td>
-                                    <td><?= date('d/m/Y H:i', strtotime($order['delivery_datetime'])) ?></td>
+                                    <td title="<?= date('d/m/Y H:i', strtotime($order['delivery_datetime'])) ?>">
+                                        <span class="time-relative"><?= timeAgo($order['delivery_datetime']) ?></span>
+                                        <span class="time-exact"><?= date('H:i', strtotime($order['delivery_datetime'])) ?></span>
+                                    </td>
                                     <td><span class="status-badge status-<?= $order['status'] ?>"><?= $statusLabels[$order['status']] ?></span></td>
                                     <td><a href="room-service-orders.php?view=<?= $order['id'] ?>" class="btn btn-sm">Voir</a></td>
                                 </tr>
@@ -418,12 +443,13 @@ $msgStatusLabels = [
                                 <tr>
                                     <th>Chambre</th>
                                     <th>Sujet</th>
+                                    <th>Reçu</th>
                                     <th></th>
                                 </tr>
                             </thead>
                             <tbody id="recentMessagesBody">
                                 <?php foreach ($msgRecentMessages as $msg): ?>
-                                <tr class="<?= $msg['status'] === 'new' ? 'row-unread' : '' ?>" data-msg-id="<?= $msg['id'] ?>">
+                                <tr class="<?= $msg['status'] === 'new' ? 'row-unread' : '' ?>" data-msg-id="<?= $msg['id'] ?>" data-href="room-service-messages.php?view=<?= $msg['id'] ?>">
                                     <td><strong><?= h($msg['room_number']) ?></strong></td>
                                     <td>
                                         <?php if ($msg['subject']): ?>
@@ -435,7 +461,10 @@ $msgStatusLabels = [
                                             <span class="badge-new">Nouveau</span>
                                         <?php endif; ?>
                                     </td>
-                                    <td><a href="room-service-messages.php?id=<?= $msg['id'] ?>" class="btn btn-sm">Voir</a></td>
+                                    <td title="<?= date('d/m/Y H:i', strtotime($msg['created_at'])) ?>">
+                                        <span class="time-relative"><?= timeAgo($msg['created_at']) ?></span>
+                                    </td>
+                                    <td><a href="room-service-messages.php?view=<?= $msg['id'] ?>" class="btn btn-sm">Voir</a></td>
                                 </tr>
                                 <?php endforeach; ?>
                             </tbody>
@@ -453,6 +482,17 @@ $msgStatusLabels = [
     </div>
 
     <script>
+    // Clickable table rows
+    document.addEventListener('click', function(e) {
+        const row = e.target.closest('.data-table tbody tr[data-href]');
+        if (!row) return;
+
+        // Don't navigate if clicking on interactive elements
+        if (e.target.closest('a, button, select, input')) return;
+
+        window.location.href = row.dataset.href;
+    });
+
     // Mobile menu toggle
     const sidebar = document.getElementById('adminSidebar');
     const overlay = document.getElementById('sidebarOverlay');
@@ -572,9 +612,12 @@ $msgStatusLabels = [
 
         orders.forEach(order => {
             html += `
-                <tr data-order-id="${order.id}">
+                <tr data-order-id="${order.id}" data-href="room-service-orders.php?view=${order.id}">
                     <td><strong>${escapeHtml(order.room_number)}</strong></td>
-                    <td>${order.delivery_datetime}</td>
+                    <td title="${order.delivery_datetime}">
+                        <span class="time-relative">${escapeHtml(order.delivery_relative)}</span>
+                        <span class="time-exact">${order.delivery_time}</span>
+                    </td>
                     <td><span class="status-badge status-${order.status}">${escapeHtml(order.status_label)}</span></td>
                     <td><a href="room-service-orders.php?view=${order.id}" class="btn btn-sm">Voir</a></td>
                 </tr>
@@ -600,6 +643,7 @@ $msgStatusLabels = [
                     <tr>
                         <th>Chambre</th>
                         <th>Sujet</th>
+                        <th>Reçu</th>
                         <th></th>
                     </tr>
                 </thead>
@@ -610,10 +654,13 @@ $msgStatusLabels = [
             const rowClass = msg.is_new ? 'row-unread' : '';
             const badge = msg.is_new ? '<span class="badge-new">Nouveau</span>' : '';
             html += `
-                <tr class="${rowClass}" data-msg-id="${msg.id}">
+                <tr class="${rowClass}" data-msg-id="${msg.id}" data-href="room-service-messages.php?view=${msg.id}">
                     <td><strong>${escapeHtml(msg.room_number)}</strong></td>
                     <td>${escapeHtml(msg.subject)} ${badge}</td>
-                    <td><a href="room-service-messages.php?id=${msg.id}" class="btn btn-sm">Voir</a></td>
+                    <td title="${msg.created_at}">
+                        <span class="time-relative">${escapeHtml(msg.created_relative)}</span>
+                    </td>
+                    <td><a href="room-service-messages.php?view=${msg.id}" class="btn btn-sm">Voir</a></td>
                 </tr>
             `;
         });
