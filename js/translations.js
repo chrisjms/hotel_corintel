@@ -19,6 +19,8 @@ const translations = {
     nav: {
       home: 'Accueil',
       services: 'Services',
+      roomService: 'Room Service',
+      activities: 'À découvrir',
       discover: 'À découvrir',
       contact: 'Contact'
     },
@@ -46,6 +48,63 @@ const translations = {
       successMessage: 'Votre message a bien été transmis à la réception. Nous vous répondrons dans les meilleurs délais.',
       newMessage: 'Envoyer un autre message',
       errorGeneric: 'Une erreur est survenue. Veuillez réessayer.'
+    },
+
+    // Room Service page
+    roomService: {
+      // Hero
+      heroSubtitle: 'Hôtel Corintel',
+      heroTitle: 'Room Service',
+      heroDescription: 'Commandez depuis votre chambre',
+
+      // Order success
+      orderConfirmed: 'Commande confirmée',
+      orderSuccessMessage: 'Votre commande a été enregistrée avec succès. Notre équipe va la préparer et vous la livrer dans les meilleurs délais.',
+      orderNumber: 'Commande #',
+      newOrder: 'Passer une nouvelle commande',
+
+      // No items
+      serviceUnavailable: 'Service actuellement indisponible',
+      serviceUnavailableMessage: 'Le room service n\'est pas disponible pour le moment. Veuillez réessayer ultérieurement ou appeler la réception au +33 5 57 34 13 95.',
+
+      // Cart
+      yourOrder: 'Votre commande',
+      cartEmpty: 'Sélectionnez des articles pour commencer',
+      total: 'Total',
+
+      // Form
+      roomNumber: 'Numéro de chambre *',
+      roomNumberPlaceholder: 'Ex: 101',
+      yourName: 'Votre nom',
+      optionalPlaceholder: 'Optionnel',
+      phone: 'Téléphone',
+      phonePlaceholder: 'Pour vous joindre si nécessaire',
+      deliveryDateTime: 'Date et heure de livraison *',
+      deliveryMinTime: 'Minimum 30 minutes à l\'avance',
+      paymentMethod: 'Mode de paiement',
+      notes: 'Remarques',
+      notesPlaceholder: 'Allergies, préférences...',
+      orderButton: 'Commander',
+
+      // Availability
+      available24h: '24h/24',
+
+      // Validation errors
+      errorSelectItem: 'Veuillez sélectionner au moins un article.',
+      errorRoomNumber: 'Veuillez indiquer votre numéro de chambre.',
+      errorDeliveryTime: 'Veuillez indiquer la date et heure de livraison.',
+      errorMinDeliveryTime: 'La livraison doit être prévue au moins 30 minutes à l\'avance.',
+
+      // Categories
+      categories: {
+        breakfast: 'Petit-déjeuner',
+        lunch: 'Déjeuner',
+        dinner: 'Dîner',
+        snacks: 'Snacks',
+        drinks: 'Boissons',
+        desserts: 'Desserts',
+        general: 'Général'
+      }
     },
 
     // Home page
@@ -283,7 +342,14 @@ const translations = {
       navigation: 'Navigation',
       services: 'Services',
       contactTitle: 'Contact',
-      copyright: '© 2024 Hôtel Corintel. Tous droits réservés.'
+      copyright: '© 2024 Hôtel Corintel. Tous droits réservés.',
+      // Footer links
+      home: 'Accueil',
+      discover: 'À découvrir',
+      restaurant: 'Restaurant',
+      bar: 'Bar',
+      roomService: 'Room Service',
+      parking: 'Parking'
     },
 
     // Common
@@ -298,6 +364,8 @@ const translations = {
     nav: {
       home: 'Home',
       services: 'Services',
+      roomService: 'Room Service',
+      activities: 'Discover',
       discover: 'Discover',
       contact: 'Contact'
     },
@@ -323,6 +391,63 @@ const translations = {
       successMessage: 'Your message has been sent to reception. We will respond as soon as possible.',
       newMessage: 'Send another message',
       errorGeneric: 'An error occurred. Please try again.'
+    },
+
+    // Room Service page
+    roomService: {
+      // Hero
+      heroSubtitle: 'Hôtel Corintel',
+      heroTitle: 'Room Service',
+      heroDescription: 'Order from your room',
+
+      // Order success
+      orderConfirmed: 'Order confirmed',
+      orderSuccessMessage: 'Your order has been successfully registered. Our team will prepare it and deliver it to you as soon as possible.',
+      orderNumber: 'Order #',
+      newOrder: 'Place a new order',
+
+      // No items
+      serviceUnavailable: 'Service currently unavailable',
+      serviceUnavailableMessage: 'Room service is not available at the moment. Please try again later or call reception at +33 5 57 34 13 95.',
+
+      // Cart
+      yourOrder: 'Your order',
+      cartEmpty: 'Select items to start',
+      total: 'Total',
+
+      // Form
+      roomNumber: 'Room number *',
+      roomNumberPlaceholder: 'e.g.: 101',
+      yourName: 'Your name',
+      optionalPlaceholder: 'Optional',
+      phone: 'Phone',
+      phonePlaceholder: 'To reach you if needed',
+      deliveryDateTime: 'Delivery date and time *',
+      deliveryMinTime: 'Minimum 30 minutes in advance',
+      paymentMethod: 'Payment method',
+      notes: 'Notes',
+      notesPlaceholder: 'Allergies, preferences...',
+      orderButton: 'Order',
+
+      // Availability
+      available24h: '24/7',
+
+      // Validation errors
+      errorSelectItem: 'Please select at least one item.',
+      errorRoomNumber: 'Please enter your room number.',
+      errorDeliveryTime: 'Please enter the delivery date and time.',
+      errorMinDeliveryTime: 'Delivery must be scheduled at least 30 minutes in advance.',
+
+      // Categories
+      categories: {
+        breakfast: 'Breakfast',
+        lunch: 'Lunch',
+        dinner: 'Dinner',
+        snacks: 'Snacks',
+        drinks: 'Drinks',
+        desserts: 'Desserts',
+        general: 'General'
+      }
     },
 
     home: {
@@ -539,7 +664,14 @@ const translations = {
       navigation: 'Navigation',
       services: 'Services',
       contactTitle: 'Contact',
-      copyright: '© 2024 Hôtel Corintel. All rights reserved.'
+      copyright: '© 2024 Hôtel Corintel. All rights reserved.',
+      // Footer links
+      home: 'Home',
+      discover: 'Discover',
+      restaurant: 'Restaurant',
+      bar: 'Bar',
+      roomService: 'Room Service',
+      parking: 'Parking'
     },
 
     common: {
@@ -553,6 +685,8 @@ const translations = {
     nav: {
       home: 'Inicio',
       services: 'Servicios',
+      roomService: 'Room Service',
+      activities: 'Descubrir',
       discover: 'Descubrir',
       contact: 'Contacto'
     },
@@ -578,6 +712,63 @@ const translations = {
       successMessage: 'Su mensaje ha sido enviado a recepción. Le responderemos lo antes posible.',
       newMessage: 'Enviar otro mensaje',
       errorGeneric: 'Se produjo un error. Por favor, inténtelo de nuevo.'
+    },
+
+    // Room Service page
+    roomService: {
+      // Hero
+      heroSubtitle: 'Hôtel Corintel',
+      heroTitle: 'Room Service',
+      heroDescription: 'Pida desde su habitación',
+
+      // Order success
+      orderConfirmed: 'Pedido confirmado',
+      orderSuccessMessage: 'Su pedido ha sido registrado con éxito. Nuestro equipo lo preparará y se lo entregará lo antes posible.',
+      orderNumber: 'Pedido #',
+      newOrder: 'Hacer un nuevo pedido',
+
+      // No items
+      serviceUnavailable: 'Servicio actualmente no disponible',
+      serviceUnavailableMessage: 'El room service no está disponible en este momento. Por favor, inténtelo más tarde o llame a recepción al +33 5 57 34 13 95.',
+
+      // Cart
+      yourOrder: 'Su pedido',
+      cartEmpty: 'Seleccione artículos para comenzar',
+      total: 'Total',
+
+      // Form
+      roomNumber: 'Número de habitación *',
+      roomNumberPlaceholder: 'Ej: 101',
+      yourName: 'Su nombre',
+      optionalPlaceholder: 'Opcional',
+      phone: 'Teléfono',
+      phonePlaceholder: 'Para contactarle si es necesario',
+      deliveryDateTime: 'Fecha y hora de entrega *',
+      deliveryMinTime: 'Mínimo 30 minutos de antelación',
+      paymentMethod: 'Método de pago',
+      notes: 'Notas',
+      notesPlaceholder: 'Alergias, preferencias...',
+      orderButton: 'Pedir',
+
+      // Availability
+      available24h: '24h/24',
+
+      // Validation errors
+      errorSelectItem: 'Por favor, seleccione al menos un artículo.',
+      errorRoomNumber: 'Por favor, indique su número de habitación.',
+      errorDeliveryTime: 'Por favor, indique la fecha y hora de entrega.',
+      errorMinDeliveryTime: 'La entrega debe programarse con al menos 30 minutos de antelación.',
+
+      // Categories
+      categories: {
+        breakfast: 'Desayuno',
+        lunch: 'Almuerzo',
+        dinner: 'Cena',
+        snacks: 'Aperitivos',
+        drinks: 'Bebidas',
+        desserts: 'Postres',
+        general: 'General'
+      }
     },
 
     home: {
@@ -794,7 +985,14 @@ const translations = {
       navigation: 'Navegación',
       services: 'Servicios',
       contactTitle: 'Contacto',
-      copyright: '© 2024 Hôtel Corintel. Todos los derechos reservados.'
+      copyright: '© 2024 Hôtel Corintel. Todos los derechos reservados.',
+      // Footer links
+      home: 'Inicio',
+      discover: 'Descubrir',
+      restaurant: 'Restaurante',
+      bar: 'Bar',
+      roomService: 'Room Service',
+      parking: 'Aparcamiento'
     },
 
     common: {
@@ -808,6 +1006,8 @@ const translations = {
     nav: {
       home: 'Home',
       services: 'Servizi',
+      roomService: 'Room Service',
+      activities: 'Da scoprire',
       discover: 'Da scoprire',
       contact: 'Contatti'
     },
@@ -833,6 +1033,63 @@ const translations = {
       successMessage: 'Il tuo messaggio è stato inviato alla reception. Ti risponderemo il prima possibile.',
       newMessage: 'Invia un altro messaggio',
       errorGeneric: 'Si è verificato un errore. Per favore riprova.'
+    },
+
+    // Room Service page
+    roomService: {
+      // Hero
+      heroSubtitle: 'Hôtel Corintel',
+      heroTitle: 'Room Service',
+      heroDescription: 'Ordina dalla tua camera',
+
+      // Order success
+      orderConfirmed: 'Ordine confermato',
+      orderSuccessMessage: 'Il tuo ordine è stato registrato con successo. Il nostro team lo preparerà e te lo consegnerà il prima possibile.',
+      orderNumber: 'Ordine #',
+      newOrder: 'Effettua un nuovo ordine',
+
+      // No items
+      serviceUnavailable: 'Servizio attualmente non disponibile',
+      serviceUnavailableMessage: 'Il room service non è disponibile al momento. Per favore riprova più tardi o chiama la reception al +33 5 57 34 13 95.',
+
+      // Cart
+      yourOrder: 'Il tuo ordine',
+      cartEmpty: 'Seleziona articoli per iniziare',
+      total: 'Totale',
+
+      // Form
+      roomNumber: 'Numero di camera *',
+      roomNumberPlaceholder: 'Es: 101',
+      yourName: 'Il tuo nome',
+      optionalPlaceholder: 'Opzionale',
+      phone: 'Telefono',
+      phonePlaceholder: 'Per contattarti se necessario',
+      deliveryDateTime: 'Data e ora di consegna *',
+      deliveryMinTime: 'Minimo 30 minuti in anticipo',
+      paymentMethod: 'Metodo di pagamento',
+      notes: 'Note',
+      notesPlaceholder: 'Allergie, preferenze...',
+      orderButton: 'Ordina',
+
+      // Availability
+      available24h: '24h/24',
+
+      // Validation errors
+      errorSelectItem: 'Per favore seleziona almeno un articolo.',
+      errorRoomNumber: 'Per favore inserisci il numero della tua camera.',
+      errorDeliveryTime: 'Per favore inserisci la data e l\'ora di consegna.',
+      errorMinDeliveryTime: 'La consegna deve essere programmata con almeno 30 minuti di anticipo.',
+
+      // Categories
+      categories: {
+        breakfast: 'Colazione',
+        lunch: 'Pranzo',
+        dinner: 'Cena',
+        snacks: 'Snack',
+        drinks: 'Bevande',
+        desserts: 'Dolci',
+        general: 'Generale'
+      }
     },
 
     home: {
@@ -1049,7 +1306,14 @@ const translations = {
       navigation: 'Navigazione',
       services: 'Servizi',
       contactTitle: 'Contatti',
-      copyright: '© 2024 Hôtel Corintel. Tutti i diritti riservati.'
+      copyright: '© 2024 Hôtel Corintel. Tutti i diritti riservati.',
+      // Footer links
+      home: 'Home',
+      discover: 'Da scoprire',
+      restaurant: 'Ristorante',
+      bar: 'Bar',
+      roomService: 'Room Service',
+      parking: 'Parcheggio'
     },
 
     common: {

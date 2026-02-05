@@ -549,9 +549,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
   <!-- Page Hero -->
   <section class="page-hero" style="background-image: url('images/resto/restaurant-hotel-tresses-3.jpg');">
     <div class="page-hero-content">
-      <p class="hero-subtitle">Hôtel Corintel</p>
-      <h1 class="page-hero-title">Room Service</h1>
-      <p class="page-hero-subtitle">Commandez depuis votre chambre</p>
+      <p class="hero-subtitle" data-i18n="roomService.heroSubtitle">Hôtel Corintel</p>
+      <h1 class="page-hero-title" data-i18n="roomService.heroTitle">Room Service</h1>
+      <p class="page-hero-subtitle" data-i18n="roomService.heroDescription">Commandez depuis votre chambre</p>
     </div>
   </section>
 
@@ -565,10 +565,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
               <polyline points="20 6 9 17 4 12"/>
             </svg>
           </div>
-          <h2>Commande confirmée</h2>
-          <p>Votre commande a été enregistrée avec succès. Notre équipe va la préparer et vous la livrer dans les meilleurs délais.</p>
-          <div class="order-id">Commande #<?= $orderId ?></div>
-          <a href="room-service.php" class="btn btn-primary">Passer une nouvelle commande</a>
+          <h2 data-i18n="roomService.orderConfirmed">Commande confirmée</h2>
+          <p data-i18n="roomService.orderSuccessMessage">Votre commande a été enregistrée avec succès. Notre équipe va la préparer et vous la livrer dans les meilleurs délais.</p>
+          <div class="order-id"><span data-i18n="roomService.orderNumber">Commande #</span><?= $orderId ?></div>
+          <a href="room-service.php" class="btn btn-primary" data-i18n="roomService.newOrder">Passer une nouvelle commande</a>
         </div>
       </div>
     </section>
@@ -582,8 +582,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             <path d="M18 8h1a4 4 0 0 1 0 8h-1"/>
             <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/>
           </svg>
-          <h2>Service actuellement indisponible</h2>
-          <p>Le room service n'est pas disponible pour le moment. Veuillez réessayer ultérieurement ou appeler la réception au +33 5 57 34 13 95.</p>
+          <h2 data-i18n="roomService.serviceUnavailable">Service actuellement indisponible</h2>
+          <p data-i18n="roomService.serviceUnavailableMessage">Le room service n'est pas disponible pour le moment. Veuillez réessayer ultérieurement ou appeler la réception au +33 5 57 34 13 95.</p>
         </div>
       </div>
     </section>
@@ -609,7 +609,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                         <polyline points="6 9 12 15 18 9"/>
                       </svg>
                     </span>
-                    <h2 class="category-title"><?= htmlspecialchars($categories[$categoryKey] ?? ucfirst($categoryKey)) ?></h2>
+                    <h2 class="category-title" data-i18n="roomService.categories.<?= htmlspecialchars($categoryKey) ?>"><?= htmlspecialchars($categories[$categoryKey] ?? ucfirst($categoryKey)) ?></h2>
                   </div>
                   <?php if ($catAvailability['time_start'] && $catAvailability['time_end']): ?>
                     <span class="category-availability <?= $catAvailability['available'] ? 'available' : 'unavailable' ?>">
@@ -624,7 +624,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;">
                         <polyline points="20 6 9 17 4 12"/>
                       </svg>
-                      24h/24
+                      <span data-i18n="roomService.available24h">24h/24</span>
                     </span>
                   <?php endif; ?>
                 </div>
@@ -673,18 +673,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                   <circle cx="20" cy="21" r="1"/>
                   <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
                 </svg>
-                Votre commande
+                <span data-i18n="roomService.yourOrder">Votre commande</span>
               </h3>
             </div>
             <div class="cart-body" id="cartBody">
-              <div class="cart-empty" id="cartEmpty">
+              <div class="cart-empty" id="cartEmpty" data-i18n="roomService.cartEmpty">
                 Sélectionnez des articles pour commencer
               </div>
               <div id="cartItems"></div>
             </div>
             <div class="cart-footer">
               <div class="cart-total">
-                <span class="cart-total-label">Total</span>
+                <span class="cart-total-label" data-i18n="roomService.total">Total</span>
                 <span class="cart-total-value" id="cartTotal">0,00 €</span>
               </div>
 
@@ -693,28 +693,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 <input type="hidden" name="items" id="orderItems">
 
                 <div class="form-group">
-                  <label for="room_number">Numéro de chambre *</label>
-                  <input type="text" id="room_number" name="room_number" required placeholder="Ex: 101">
+                  <label for="room_number" data-i18n="roomService.roomNumber">Numéro de chambre *</label>
+                  <input type="text" id="room_number" name="room_number" required placeholder="Ex: 101" data-i18n-placeholder="roomService.roomNumberPlaceholder">
                 </div>
 
                 <div class="form-group">
-                  <label for="guest_name">Votre nom</label>
-                  <input type="text" id="guest_name" name="guest_name" placeholder="Optionnel">
+                  <label for="guest_name" data-i18n="roomService.yourName">Votre nom</label>
+                  <input type="text" id="guest_name" name="guest_name" placeholder="Optionnel" data-i18n-placeholder="roomService.optionalPlaceholder">
                 </div>
 
                 <div class="form-group">
-                  <label for="phone">Téléphone</label>
-                  <input type="tel" id="phone" name="phone" placeholder="Pour vous joindre si nécessaire">
+                  <label for="phone" data-i18n="roomService.phone">Téléphone</label>
+                  <input type="tel" id="phone" name="phone" placeholder="Pour vous joindre si nécessaire" data-i18n-placeholder="roomService.phonePlaceholder">
                 </div>
 
                 <div class="form-group">
-                  <label for="delivery_datetime">Date et heure de livraison *</label>
+                  <label for="delivery_datetime" data-i18n="roomService.deliveryDateTime">Date et heure de livraison *</label>
                   <input type="datetime-local" id="delivery_datetime" name="delivery_datetime" required>
-                  <small>Minimum 30 minutes à l'avance</small>
+                  <small data-i18n="roomService.deliveryMinTime">Minimum 30 minutes à l'avance</small>
                 </div>
 
                 <div class="form-group">
-                  <label for="payment_method">Mode de paiement</label>
+                  <label for="payment_method" data-i18n="roomService.paymentMethod">Mode de paiement</label>
                   <select id="payment_method" name="payment_method">
                     <?php foreach ($paymentMethods as $key => $label): ?>
                       <option value="<?= htmlspecialchars($key) ?>"><?= htmlspecialchars($label) ?></option>
@@ -723,8 +723,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 </div>
 
                 <div class="form-group">
-                  <label for="notes">Remarques</label>
-                  <textarea id="notes" name="notes" rows="2" placeholder="Allergies, préférences..."></textarea>
+                  <label for="notes" data-i18n="roomService.notes">Remarques</label>
+                  <textarea id="notes" name="notes" rows="2" placeholder="Allergies, préférences..." data-i18n-placeholder="roomService.notesPlaceholder"></textarea>
                 </div>
 
                 <button type="submit" class="btn-order" id="submitBtn" disabled>
@@ -732,7 +732,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
                     <polyline points="22 4 12 14.01 9 11.01"/>
                   </svg>
-                  Commander
+                  <span data-i18n="roomService.orderButton">Commander</span>
                 </button>
               </form>
             </div>
@@ -749,29 +749,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         <div class="footer-brand">
           <div class="logo-text">
             Hôtel Corintel
-            <span>Bordeaux Est</span>
+            <span data-i18n="header.logoSubtitle">Bordeaux Est</span>
           </div>
-          <p>Un havre de paix aux portes de Bordeaux, où charme et authenticité vous attendent pour un séjour inoubliable.</p>
+          <p data-i18n="footer.description">Un havre de paix aux portes de Bordeaux, où charme et authenticité vous attendent pour un séjour inoubliable.</p>
         </div>
         <div class="footer-nav">
-          <h4 class="footer-title">Navigation</h4>
+          <h4 class="footer-title" data-i18n="footer.navigation">Navigation</h4>
           <ul class="footer-links">
-            <li><a href="index.php">Accueil</a></li>
-            <li><a href="services.php">Services</a></li>
-            <li><a href="activites.php">À découvrir</a></li>
+            <li><a href="index.php" data-i18n="footer.home">Accueil</a></li>
+            <li><a href="services.php" data-i18n="footer.services">Services</a></li>
+            <li><a href="activites.php" data-i18n="footer.discover">À découvrir</a></li>
           </ul>
         </div>
         <div class="footer-nav">
-          <h4 class="footer-title">Services</h4>
+          <h4 class="footer-title" data-i18n="footer.services">Services</h4>
           <ul class="footer-links">
-            <li><a href="services.php#restaurant">Restaurant</a></li>
-            <li><a href="services.php#bar">Bar</a></li>
-            <li><a href="room-service.php">Room Service</a></li>
-            <li><a href="services.php#parking">Parking</a></li>
+            <li><a href="services.php#restaurant" data-i18n="footer.restaurant">Restaurant</a></li>
+            <li><a href="services.php#bar" data-i18n="footer.bar">Bar</a></li>
+            <li><a href="room-service.php" data-i18n="footer.roomService">Room Service</a></li>
+            <li><a href="services.php#parking" data-i18n="footer.parking">Parking</a></li>
           </ul>
         </div>
         <div class="footer-contact">
-          <h4 class="footer-title">Contact</h4>
+          <h4 class="footer-title" data-i18n="footer.contactTitle">Contact</h4>
           <div class="footer-contact-item">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
@@ -795,13 +795,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         </div>
       </div>
       <div class="footer-bottom">
-        <p>&copy; 2024 Hôtel Corintel. Tous droits réservés.</p>
+        <p data-i18n="footer.copyright">&copy; 2024 Hôtel Corintel. Tous droits réservés.</p>
       </div>
     </div>
   </footer>
 
   <!-- Scroll to Top Button -->
-  <button class="scroll-top" id="scrollTop" aria-label="Retour en haut">
+  <button class="scroll-top" id="scrollTop" aria-label="Retour en haut" data-i18n-aria="common.backToTop">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <polyline points="18 15 12 9 6 15"/>
     </svg>
@@ -1019,19 +1019,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
       const items = JSON.parse(document.getElementById('orderItems').value);
       if (items.length === 0) {
         e.preventDefault();
-        alert('Veuillez sélectionner au moins un article.');
+        alert(window.I18n ? window.I18n.t('roomService.errorSelectItem') : 'Veuillez sélectionner au moins un article.');
         return false;
       }
       const roomNumber = document.getElementById('room_number').value.trim();
       if (!roomNumber) {
         e.preventDefault();
-        alert('Veuillez indiquer votre numéro de chambre.');
+        alert(window.I18n ? window.I18n.t('roomService.errorRoomNumber') : 'Veuillez indiquer votre numéro de chambre.');
         return false;
       }
       const deliveryDatetime = document.getElementById('delivery_datetime').value;
       if (!deliveryDatetime) {
         e.preventDefault();
-        alert('Veuillez indiquer la date et heure de livraison.');
+        alert(window.I18n ? window.I18n.t('roomService.errorDeliveryTime') : 'Veuillez indiquer la date et heure de livraison.');
         return false;
       }
       // Check if delivery time is in the future
@@ -1040,7 +1040,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
       minTime.setMinutes(minTime.getMinutes() + 25); // 25 min buffer for form submission
       if (deliveryTime < minTime) {
         e.preventDefault();
-        alert('La livraison doit être prévue au moins 30 minutes à l\'avance.');
+        alert(window.I18n ? window.I18n.t('roomService.errorMinDeliveryTime') : 'La livraison doit être prévue au moins 30 minutes à l\'avance.');
         return false;
       }
     });
