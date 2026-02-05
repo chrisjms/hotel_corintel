@@ -9,33 +9,16 @@ require_once __DIR__ . '/includes/functions.php';
 // Get message categories for the contact reception modal
 $messageCategories = getGuestMessageCategories();
 
-// Try to load images from database, fallback to defaults if unavailable
-$useDatabase = false;
-$images = [];
+// Load content helper for dynamic content
+require_once __DIR__ . '/includes/content-helper.php';
 
-try {
-    require_once __DIR__ . '/includes/images-helper.php';
-    $images = sectionImages('home');
-    $useDatabase = !empty($images);
-} catch (Exception $e) {
-    // Database not available, use default images
-}
+// Get hero carousel images from content system
+$heroSlide1 = contentImage('home_hero', 1, 'images/acceuil/plan-large3.png');
+$heroSlide2 = contentImage('home_hero', 2, 'images/resto/restaurant-hotel-bordeaux-1.jpg');
+$heroSlide3 = contentImage('home_hero', 3, 'images/acceuil/bar.jpg');
 
-// Helper function to get image path
-function getImg($images, $position, $fallback) {
-    foreach ($images as $img) {
-        if ($img['position'] == $position) {
-            return $img['filename'];
-        }
-    }
-    return $fallback;
-}
-
-// Define image paths (database or fallback)
-$heroSlide1 = $useDatabase ? getImg($images, 1, 'images/acceuil/plan-large3.png') : 'images/acceuil/plan-large3.png';
-$heroSlide2 = $useDatabase ? getImg($images, 2, 'images/resto/restaurant-hotel-bordeaux-1.jpg') : 'images/resto/restaurant-hotel-bordeaux-1.jpg';
-$heroSlide3 = $useDatabase ? getImg($images, 3, 'images/acceuil/bar.jpg') : 'images/acceuil/bar.jpg';
-$introImage = $useDatabase ? getImg($images, 4, 'images/acceuil/entree-hotel.jpeg') : 'images/acceuil/entree-hotel.jpeg';
+// Get intro section image
+$introImage = contentImage('home_intro', 1, 'images/acceuil/entree-hotel.jpeg');
 ?>
 <!DOCTYPE html>
 <html lang="fr">

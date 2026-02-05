@@ -1695,3 +1695,488 @@ function getThemeCSS(): string {
 
     return '<style id="theme-override">:root { ' . implode(' ', $css) . ' }</style>';
 }
+
+// =====================================================
+// CONTENT MANAGEMENT FUNCTIONS
+// =====================================================
+
+/**
+ * Image requirement modes for content sections
+ */
+define('IMAGE_REQUIRED', 'required');
+define('IMAGE_OPTIONAL', 'optional');
+define('IMAGE_FORBIDDEN', 'forbidden');
+
+/**
+ * Initialize content management tables
+ */
+function initContentTables(): void {
+    $pdo = getDatabase();
+
+    // Content sections configuration table
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS content_sections (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            code VARCHAR(50) UNIQUE NOT NULL,
+            name VARCHAR(100) NOT NULL,
+            description TEXT,
+            page VARCHAR(50) NOT NULL,
+            image_mode ENUM('required', 'optional', 'forbidden') DEFAULT 'optional',
+            max_blocks INT DEFAULT NULL,
+            has_title TINYINT(1) DEFAULT 1,
+            has_description TINYINT(1) DEFAULT 1,
+            has_link TINYINT(1) DEFAULT 0,
+            sort_order INT DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    ");
+
+    // Content blocks table
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS content_blocks (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            section_code VARCHAR(50) NOT NULL,
+            title VARCHAR(255),
+            description TEXT,
+            image_filename VARCHAR(255),
+            image_alt VARCHAR(255),
+            link_url VARCHAR(500),
+            link_text VARCHAR(100),
+            position INT DEFAULT 0,
+            is_active TINYINT(1) DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            INDEX idx_section (section_code),
+            INDEX idx_position (position),
+            FOREIGN KEY (section_code) REFERENCES content_sections(code) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    ");
+}
+
+/**
+ * Seed default content sections
+ */
+function seedContentSections(): void {
+    $pdo = getDatabase();
+
+    $sections = [
+        // Home page sections
+        ['home_hero', 'Carrousel d\'accueil', 'Images du diaporama principal (3 images recommandées)', 'home', IMAGE_REQUIRED, null, 0, 0, 0, 1],
+        ['home_intro', 'Introduction', 'Image et texte de la section Notre philosophie', 'home', IMAGE_OPTIONAL, 1, 1, 1, 0, 2],
+
+        // Services page sections
+        ['services_hero', 'Image d\'en-tête Services', 'Image de fond de la bannière Services', 'services', IMAGE_REQUIRED, 1, 0, 0, 0, 1],
+        ['services_restaurant', 'Restaurant', 'Image de la section Restaurant', 'services', IMAGE_REQUIRED, 1, 1, 1, 0, 2],
+        ['services_restaurant_gallery', 'Galerie Restaurant', 'Images de la galerie du restaurant (3 images)', 'services', IMAGE_REQUIRED, 3, 1, 1, 0, 3],
+        ['services_bar', 'Bar', 'Image de la section Bar', 'services', IMAGE_REQUIRED, 1, 1, 1, 0, 4],
+        ['services_boulodrome', 'Boulodrome', 'Image de la section Boulodrome', 'services', IMAGE_REQUIRED, 1, 1, 1, 0, 5],
+        ['services_parking', 'Parking', 'Image de la section Parking', 'services', IMAGE_REQUIRED, 1, 1, 1, 0, 6],
+
+        // Activities page sections
+        ['activities_hero', 'Image d\'en-tête Activités', 'Image de fond de la bannière À découvrir', 'activities', IMAGE_REQUIRED, 1, 0, 0, 0, 1],
+        ['activities_bordeaux', 'Bordeaux', 'Image de la section Bordeaux', 'activities', IMAGE_REQUIRED, 1, 1, 1, 0, 2],
+        ['activities_saintemilion', 'Saint-Émilion', 'Image de la section Saint-Émilion', 'activities', IMAGE_REQUIRED, 1, 1, 1, 0, 3],
+        ['activities_wine', 'Oenotourisme', 'Images de la section Route des vins (4 images)', 'activities', IMAGE_REQUIRED, 4, 1, 1, 0, 4],
+        ['activities_countryside', 'Campagne', 'Image de la section Échappées en campagne', 'activities', IMAGE_REQUIRED, 1, 1, 1, 0, 5],
+
+        // Contact page sections
+        ['contact_hero', 'Image d\'en-tête Contact', 'Image de fond de la bannière Contact', 'contact', IMAGE_REQUIRED, 1, 0, 0, 0, 1],
+        ['contact_info', 'Informations de contact', 'Coordonnées et horaires (texte uniquement)', 'contact', IMAGE_FORBIDDEN, 1, 1, 1, 0, 2],
+    ];
+
+    $stmt = $pdo->prepare("
+        INSERT IGNORE INTO content_sections
+        (code, name, description, page, image_mode, max_blocks, has_title, has_description, has_link, sort_order)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ");
+
+    foreach ($sections as $section) {
+        $stmt->execute($section);
+    }
+}
+
+/**
+ * Get all content sections grouped by page
+ */
+function getContentSectionsByPage(): array {
+    $pdo = getDatabase();
+    $stmt = $pdo->query('SELECT * FROM content_sections ORDER BY page, sort_order');
+    $sections = $stmt->fetchAll();
+
+    $grouped = [];
+    foreach ($sections as $section) {
+        $grouped[$section['page']][] = $section;
+    }
+
+    return $grouped;
+}
+
+/**
+ * Get all content sections
+ */
+function getContentSections(): array {
+    $pdo = getDatabase();
+    $stmt = $pdo->query('SELECT * FROM content_sections ORDER BY page, sort_order');
+    return $stmt->fetchAll();
+}
+
+/**
+ * Get a content section by code
+ */
+function getContentSection(string $code): ?array {
+    $pdo = getDatabase();
+    $stmt = $pdo->prepare('SELECT * FROM content_sections WHERE code = ?');
+    $stmt->execute([$code]);
+    return $stmt->fetch() ?: null;
+}
+
+/**
+ * Get content blocks for a section
+ */
+function getContentBlocks(string $sectionCode, bool $activeOnly = false): array {
+    $pdo = getDatabase();
+    $sql = 'SELECT * FROM content_blocks WHERE section_code = ?';
+    if ($activeOnly) {
+        $sql .= ' AND is_active = 1';
+    }
+    $sql .= ' ORDER BY position ASC, id ASC';
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([$sectionCode]);
+    return $stmt->fetchAll();
+}
+
+/**
+ * Get a content block by ID
+ */
+function getContentBlock(int $id): ?array {
+    $pdo = getDatabase();
+    $stmt = $pdo->prepare('SELECT * FROM content_blocks WHERE id = ?');
+    $stmt->execute([$id]);
+    return $stmt->fetch() ?: null;
+}
+
+/**
+ * Create a content block
+ */
+function createContentBlock(string $sectionCode, array $data): ?int {
+    $section = getContentSection($sectionCode);
+    if (!$section) {
+        return null;
+    }
+
+    // Validate image requirement
+    if ($section['image_mode'] === IMAGE_REQUIRED && empty($data['image_filename'])) {
+        return null;
+    }
+
+    // Check max blocks limit
+    if ($section['max_blocks']) {
+        $currentCount = count(getContentBlocks($sectionCode));
+        if ($currentCount >= $section['max_blocks']) {
+            return null;
+        }
+    }
+
+    $pdo = getDatabase();
+
+    // Get next position
+    $stmt = $pdo->prepare('SELECT COALESCE(MAX(position), 0) + 1 FROM content_blocks WHERE section_code = ?');
+    $stmt->execute([$sectionCode]);
+    $nextPosition = $stmt->fetchColumn();
+
+    $stmt = $pdo->prepare('
+        INSERT INTO content_blocks (section_code, title, description, image_filename, image_alt, link_url, link_text, position, is_active)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ');
+
+    $success = $stmt->execute([
+        $sectionCode,
+        $data['title'] ?? null,
+        $data['description'] ?? null,
+        $data['image_filename'] ?? null,
+        $data['image_alt'] ?? null,
+        $data['link_url'] ?? null,
+        $data['link_text'] ?? null,
+        $data['position'] ?? $nextPosition,
+        $data['is_active'] ?? 1
+    ]);
+
+    return $success ? (int)$pdo->lastInsertId() : null;
+}
+
+/**
+ * Update a content block
+ */
+function updateContentBlock(int $id, array $data): bool {
+    $block = getContentBlock($id);
+    if (!$block) {
+        return false;
+    }
+
+    $section = getContentSection($block['section_code']);
+    if (!$section) {
+        return false;
+    }
+
+    // Validate image requirement
+    $imageFilename = $data['image_filename'] ?? $block['image_filename'];
+    if ($section['image_mode'] === IMAGE_REQUIRED && empty($imageFilename)) {
+        return false;
+    }
+
+    // Clear image if forbidden
+    if ($section['image_mode'] === IMAGE_FORBIDDEN) {
+        $imageFilename = null;
+    }
+
+    $pdo = getDatabase();
+    $stmt = $pdo->prepare('
+        UPDATE content_blocks SET
+            title = ?,
+            description = ?,
+            image_filename = ?,
+            image_alt = ?,
+            link_url = ?,
+            link_text = ?,
+            position = ?,
+            is_active = ?
+        WHERE id = ?
+    ');
+
+    return $stmt->execute([
+        $data['title'] ?? $block['title'],
+        $data['description'] ?? $block['description'],
+        $imageFilename,
+        $data['image_alt'] ?? $block['image_alt'],
+        $data['link_url'] ?? $block['link_url'],
+        $data['link_text'] ?? $block['link_text'],
+        $data['position'] ?? $block['position'],
+        $data['is_active'] ?? $block['is_active'],
+        $id
+    ]);
+}
+
+/**
+ * Delete a content block
+ */
+function deleteContentBlock(int $id): bool {
+    $block = getContentBlock($id);
+    if (!$block) {
+        return false;
+    }
+
+    // Delete associated image file if exists
+    if (!empty($block['image_filename']) && strpos($block['image_filename'], 'uploads/') === 0) {
+        $filePath = __DIR__ . '/../' . $block['image_filename'];
+        if (file_exists($filePath)) {
+            unlink($filePath);
+        }
+    }
+
+    $pdo = getDatabase();
+    $stmt = $pdo->prepare('DELETE FROM content_blocks WHERE id = ?');
+    return $stmt->execute([$id]);
+}
+
+/**
+ * Reorder content blocks
+ */
+function reorderContentBlocks(string $sectionCode, array $blockIds): bool {
+    $pdo = getDatabase();
+    $stmt = $pdo->prepare('UPDATE content_blocks SET position = ? WHERE id = ? AND section_code = ?');
+
+    $position = 1;
+    foreach ($blockIds as $id) {
+        $stmt->execute([$position, $id, $sectionCode]);
+        $position++;
+    }
+
+    return true;
+}
+
+/**
+ * Handle content block image upload
+ */
+function handleContentBlockImageUpload(array $file, int $blockId): array {
+    $block = getContentBlock($blockId);
+    if (!$block) {
+        return ['valid' => false, 'message' => 'Bloc de contenu introuvable.'];
+    }
+
+    $section = getContentSection($block['section_code']);
+    if (!$section || $section['image_mode'] === IMAGE_FORBIDDEN) {
+        return ['valid' => false, 'message' => 'Les images ne sont pas autorisées pour cette section.'];
+    }
+
+    // Validate file
+    $validation = validateUploadedFile($file);
+    if (!$validation['valid']) {
+        return $validation;
+    }
+
+    // Generate unique filename
+    $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+    $newFilename = 'content_' . $blockId . '_' . time() . '.' . $extension;
+    $uploadPath = UPLOAD_DIR . $newFilename;
+
+    // Delete old image if exists
+    if (!empty($block['image_filename']) && strpos($block['image_filename'], 'uploads/') === 0) {
+        $oldPath = __DIR__ . '/../' . $block['image_filename'];
+        if (file_exists($oldPath)) {
+            unlink($oldPath);
+        }
+    }
+
+    // Move uploaded file
+    if (!move_uploaded_file($file['tmp_name'], $uploadPath)) {
+        return ['valid' => false, 'message' => 'Erreur lors du téléchargement du fichier.'];
+    }
+
+    // Update block with new image
+    $pdo = getDatabase();
+    $stmt = $pdo->prepare('UPDATE content_blocks SET image_filename = ? WHERE id = ?');
+    $stmt->execute(['uploads/' . $newFilename, $blockId]);
+
+    return ['valid' => true, 'message' => 'Image téléchargée avec succès.', 'filename' => 'uploads/' . $newFilename];
+}
+
+/**
+ * Handle new content block image upload (before block is created)
+ */
+function handleNewContentImageUpload(array $file, string $sectionCode): array {
+    $section = getContentSection($sectionCode);
+    if (!$section || $section['image_mode'] === IMAGE_FORBIDDEN) {
+        return ['valid' => false, 'message' => 'Les images ne sont pas autorisées pour cette section.'];
+    }
+
+    // Validate file
+    $validation = validateUploadedFile($file);
+    if (!$validation['valid']) {
+        return $validation;
+    }
+
+    // Generate unique filename
+    $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+    $newFilename = 'content_new_' . time() . '_' . uniqid() . '.' . $extension;
+    $uploadPath = UPLOAD_DIR . $newFilename;
+
+    // Move uploaded file
+    if (!move_uploaded_file($file['tmp_name'], $uploadPath)) {
+        return ['valid' => false, 'message' => 'Erreur lors du téléchargement du fichier.'];
+    }
+
+    return ['valid' => true, 'message' => 'Image téléchargée avec succès.', 'filename' => 'uploads/' . $newFilename];
+}
+
+/**
+ * Get page names for display
+ */
+function getContentPageNames(): array {
+    return [
+        'home' => 'Accueil',
+        'services' => 'Services',
+        'activities' => 'À découvrir',
+        'contact' => 'Contact'
+    ];
+}
+
+/**
+ * Get image mode label
+ */
+function getImageModeLabel(string $mode): string {
+    $labels = [
+        IMAGE_REQUIRED => 'Image obligatoire',
+        IMAGE_OPTIONAL => 'Image optionnelle',
+        IMAGE_FORBIDDEN => 'Texte uniquement'
+    ];
+    return $labels[$mode] ?? $mode;
+}
+
+/**
+ * Get image mode badge class
+ */
+function getImageModeBadgeClass(string $mode): string {
+    $classes = [
+        IMAGE_REQUIRED => 'badge-required',
+        IMAGE_OPTIONAL => 'badge-optional',
+        IMAGE_FORBIDDEN => 'badge-text-only'
+    ];
+    return $classes[$mode] ?? '';
+}
+
+/**
+ * Migrate existing images to content blocks
+ */
+function migrateImagesToContentBlocks(): array {
+    $pdo = getDatabase();
+    $migrated = 0;
+    $errors = [];
+
+    // Map old sections to new section codes
+    $sectionMap = [
+        'home' => [
+            1 => ['section' => 'home_hero', 'position' => 1],
+            2 => ['section' => 'home_hero', 'position' => 2],
+            3 => ['section' => 'home_hero', 'position' => 3],
+            4 => ['section' => 'home_intro', 'position' => 1],
+        ],
+        'services' => [
+            1 => ['section' => 'services_rooms', 'position' => 1],
+            2 => ['section' => 'services_restaurant', 'position' => 1],
+        ],
+        'activities' => [
+            1 => ['section' => 'activities_discover', 'position' => 1],
+            2 => ['section' => 'activities_wine', 'position' => 1],
+        ],
+    ];
+
+    try {
+        // Check if old images table exists
+        $stmt = $pdo->query("SHOW TABLES LIKE 'images'");
+        if (!$stmt->fetch()) {
+            return ['migrated' => 0, 'errors' => ['Table images non trouvée.']];
+        }
+
+        // Get existing images
+        $images = $pdo->query('SELECT * FROM images ORDER BY section, position')->fetchAll();
+
+        foreach ($images as $image) {
+            $section = $image['section'];
+            $position = $image['position'];
+
+            if (isset($sectionMap[$section][$position])) {
+                $mapping = $sectionMap[$section][$position];
+
+                // Check if block already exists
+                $existingBlocks = getContentBlocks($mapping['section']);
+                $exists = false;
+                foreach ($existingBlocks as $block) {
+                    if ($block['image_filename'] === $image['filename']) {
+                        $exists = true;
+                        break;
+                    }
+                }
+
+                if (!$exists) {
+                    $blockId = createContentBlock($mapping['section'], [
+                        'title' => $image['title'] ?? '',
+                        'description' => '',
+                        'image_filename' => $image['filename'],
+                        'image_alt' => $image['alt_text'] ?? '',
+                        'position' => $mapping['position']
+                    ]);
+
+                    if ($blockId) {
+                        $migrated++;
+                    } else {
+                        $errors[] = "Impossible de migrer l'image {$image['id']}";
+                    }
+                }
+            }
+        }
+    } catch (PDOException $e) {
+        $errors[] = 'Erreur de base de données: ' . $e->getMessage();
+    }
+
+    return ['migrated' => $migrated, 'errors' => $errors];
+}
