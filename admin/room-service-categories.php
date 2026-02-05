@@ -43,12 +43,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     }
                 }
                 break;
+
+            case 'update_translations':
+                $code = $_POST['code'] ?? '';
+                $translations = [];
+                foreach (getSupportedLanguages() as $lang) {
+                    $name = trim($_POST["name_$lang"] ?? '');
+                    if (!empty($name)) {
+                        $translations[$lang] = $name;
+                    }
+                }
+                if (saveCategoryTranslations($code, $translations)) {
+                    $message = 'Traductions mises à jour avec succès.';
+                    $messageType = 'success';
+                } else {
+                    $message = 'Erreur lors de la mise à jour des traductions.';
+                    $messageType = 'error';
+                }
+                break;
         }
     }
 }
 
-// Get all categories
-$categories = getRoomServiceCategoriesAll();
+// Get all categories with translations
+$categories = getRoomServiceCategoriesAllWithTranslations();
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -132,6 +150,123 @@ $categories = getRoomServiceCategoriesAll();
             margin: 0;
             font-size: 0.875rem;
             color: var(--admin-text);
+        }
+        .btn-translate {
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+            background: #4299E1;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .btn-translate:hover {
+            background: #3182CE;
+        }
+        .actions-cell {
+            display: flex;
+            gap: 0.5rem;
+        }
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal.active {
+            display: flex;
+        }
+        .modal-content {
+            background: white;
+            border-radius: 8px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal-header {
+            padding: 1.25rem;
+            border-bottom: 1px solid var(--admin-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-header h3 {
+            margin: 0;
+            font-size: 1.125rem;
+        }
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--admin-text-light);
+        }
+        .modal-body {
+            padding: 1.25rem;
+        }
+        .modal-footer {
+            padding: 1.25rem;
+            border-top: 1px solid var(--admin-border);
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.75rem;
+        }
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 0.375rem;
+            font-weight: 500;
+            font-size: 0.875rem;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 0.625rem;
+            border: 1px solid var(--admin-border);
+            border-radius: 4px;
+            font-size: 0.875rem;
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--admin-primary);
+        }
+        .lang-label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .lang-label .flag {
+            font-size: 1rem;
+        }
+        .translation-hint {
+            font-size: 0.75rem;
+            color: var(--admin-text-light);
+            margin-top: 0.25rem;
+        }
+        .btn {
+            padding: 0.625rem 1.25rem;
+            border-radius: 4px;
+            font-size: 0.875rem;
+            cursor: pointer;
+            border: none;
+        }
+        .btn-outline {
+            background: white;
+            border: 1px solid var(--admin-border);
+            color: var(--admin-text);
+        }
+        .btn-primary {
+            background: var(--admin-primary);
+            color: white;
         }
     </style>
 </head>
@@ -291,7 +426,7 @@ $categories = getRoomServiceCategoriesAll();
                                         <th>Catégorie</th>
                                         <th>Plage horaire</th>
                                         <th>Statut actuel</th>
-                                        <th>Action</th>
+                                        <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -346,9 +481,14 @@ $categories = getRoomServiceCategoriesAll();
                                                 <?php endif; ?>
                                             </td>
                                             <td>
-                                                <button type="submit" form="form-<?= h($category['code']) ?>" class="btn btn-primary btn-save">
-                                                    Enregistrer
-                                                </button>
+                                                <div class="actions-cell">
+                                                    <button type="submit" form="form-<?= h($category['code']) ?>" class="btn btn-primary btn-save">
+                                                        Enregistrer
+                                                    </button>
+                                                    <button type="button" class="btn-translate" onclick="openTranslationModal('<?= h($category['code']) ?>', <?= htmlspecialchars(json_encode($category)) ?>)">
+                                                        🌐 Traductions
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
@@ -376,7 +516,90 @@ $categories = getRoomServiceCategoriesAll();
         </main>
     </div>
 
+    <!-- Translation Modal -->
+    <div id="translationModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Traduire la catégorie</h3>
+                <button type="button" class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <form method="POST" id="translationForm">
+                <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
+                <input type="hidden" name="action" value="update_translations">
+                <input type="hidden" name="code" id="translationCode">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="lang-label">
+                            <span class="flag">🇫🇷</span> Français *
+                        </label>
+                        <input type="text" name="name_fr" id="name_fr" required maxlength="100">
+                        <p class="translation-hint">Nom par défaut de la catégorie</p>
+                    </div>
+                    <div class="form-group">
+                        <label class="lang-label">
+                            <span class="flag">🇬🇧</span> English
+                        </label>
+                        <input type="text" name="name_en" id="name_en" maxlength="100">
+                        <p class="translation-hint">Laissez vide pour utiliser le français</p>
+                    </div>
+                    <div class="form-group">
+                        <label class="lang-label">
+                            <span class="flag">🇪🇸</span> Español
+                        </label>
+                        <input type="text" name="name_es" id="name_es" maxlength="100">
+                        <p class="translation-hint">Laissez vide pour utiliser le français</p>
+                    </div>
+                    <div class="form-group">
+                        <label class="lang-label">
+                            <span class="flag">🇮🇹</span> Italiano
+                        </label>
+                        <input type="text" name="name_it" id="name_it" maxlength="100">
+                        <p class="translation-hint">Laissez vide pour utiliser le français</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" onclick="closeModal()">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
+    // Translation modal functions
+    function openTranslationModal(code, category) {
+        document.getElementById('translationCode').value = code;
+
+        // Set French name (from base or translation)
+        const frName = category.translations?.fr || category.name || '';
+        document.getElementById('name_fr').value = frName;
+
+        // Set other languages
+        document.getElementById('name_en').value = category.translations?.en || '';
+        document.getElementById('name_es').value = category.translations?.es || '';
+        document.getElementById('name_it').value = category.translations?.it || '';
+
+        document.getElementById('translationModal').classList.add('active');
+    }
+
+    function closeModal() {
+        document.getElementById('translationModal').classList.remove('active');
+    }
+
+    // Close modal on outside click
+    document.getElementById('translationModal').addEventListener('click', (e) => {
+        if (e.target.id === 'translationModal') {
+            closeModal();
+        }
+    });
+
+    // Close modal on escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeModal();
+        }
+    });
+
     // Mobile menu toggle
     const sidebar = document.getElementById('adminSidebar');
     const overlay = document.getElementById('sidebarOverlay');

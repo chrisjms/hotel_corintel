@@ -841,6 +841,336 @@ function getRoomServicePaymentMethods(): array {
 }
 
 // =====================================================
+// MULTI-LANGUAGE TRANSLATION FUNCTIONS
+// =====================================================
+
+/**
+ * Get supported languages
+ */
+function getSupportedLanguages(): array {
+    return ['fr', 'en', 'es', 'it'];
+}
+
+/**
+ * Get default language code
+ */
+function getDefaultLanguage(): string {
+    return 'fr';
+}
+
+/**
+ * Get current language from cookie/session or default
+ */
+function getCurrentLanguage(): string {
+    // Check cookie first (set by JS i18n system)
+    if (isset($_COOKIE['hotel_corintel_lang'])) {
+        $lang = $_COOKIE['hotel_corintel_lang'];
+        if (in_array($lang, getSupportedLanguages())) {
+            return $lang;
+        }
+    }
+    // Check query parameter
+    if (isset($_GET['lang'])) {
+        $lang = $_GET['lang'];
+        if (in_array($lang, getSupportedLanguages())) {
+            return $lang;
+        }
+    }
+    return getDefaultLanguage();
+}
+
+/**
+ * Save item translations
+ * @param int $itemId Item ID
+ * @param array $translations Array of ['language_code' => ['name' => '', 'description' => '']]
+ */
+function saveItemTranslations(int $itemId, array $translations): bool {
+    $pdo = getDatabase();
+    $success = true;
+
+    foreach ($translations as $langCode => $data) {
+        if (!in_array($langCode, getSupportedLanguages())) {
+            continue;
+        }
+
+        $name = trim($data['name'] ?? '');
+        $description = trim($data['description'] ?? '');
+
+        // Skip if name is empty
+        if (empty($name)) {
+            continue;
+        }
+
+        try {
+            $stmt = $pdo->prepare('
+                INSERT INTO room_service_item_translations (item_id, language_code, name, description)
+                VALUES (?, ?, ?, ?)
+                ON DUPLICATE KEY UPDATE name = VALUES(name), description = VALUES(description)
+            ');
+            $success = $stmt->execute([$itemId, $langCode, $name, $description]) && $success;
+        } catch (PDOException $e) {
+            error_log('Error saving item translation: ' . $e->getMessage());
+            $success = false;
+        }
+    }
+
+    return $success;
+}
+
+/**
+ * Get item translations for all languages
+ * @param int $itemId Item ID
+ * @return array Translations keyed by language code
+ */
+function getItemTranslations(int $itemId): array {
+    $pdo = getDatabase();
+    $translations = [];
+
+    try {
+        $stmt = $pdo->prepare('
+            SELECT language_code, name, description
+            FROM room_service_item_translations
+            WHERE item_id = ?
+        ');
+        $stmt->execute([$itemId]);
+
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $translations[$row['language_code']] = [
+                'name' => $row['name'],
+                'description' => $row['description']
+            ];
+        }
+    } catch (PDOException $e) {
+        // Table might not exist yet
+    }
+
+    return $translations;
+}
+
+/**
+ * Get translated item name with fallback
+ * @param int $itemId Item ID
+ * @param string|null $langCode Language code (defaults to current language)
+ * @return string|null Translated name or null if not found
+ */
+function getItemTranslatedName(int $itemId, ?string $langCode = null): ?string {
+    $langCode = $langCode ?? getCurrentLanguage();
+    $defaultLang = getDefaultLanguage();
+    $pdo = getDatabase();
+
+    try {
+        // Try requested language first
+        $stmt = $pdo->prepare('
+            SELECT name FROM room_service_item_translations
+            WHERE item_id = ? AND language_code = ?
+        ');
+        $stmt->execute([$itemId, $langCode]);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($result && !empty($result['name'])) {
+            return $result['name'];
+        }
+
+        // Fallback to default language
+        if ($langCode !== $defaultLang) {
+            $stmt->execute([$itemId, $defaultLang]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($result && !empty($result['name'])) {
+                return $result['name'];
+            }
+        }
+    } catch (PDOException $e) {
+        // Table might not exist yet
+    }
+
+    return null;
+}
+
+/**
+ * Get translated item with fallback to base item
+ * @param array $item Base item array
+ * @param string|null $langCode Language code
+ * @return array Item with translated name and description
+ */
+function getItemWithTranslation(array $item, ?string $langCode = null): array {
+    $langCode = $langCode ?? getCurrentLanguage();
+    $translations = getItemTranslations($item['id']);
+
+    // Try current language
+    if (isset($translations[$langCode]) && !empty($translations[$langCode]['name'])) {
+        $item['name'] = $translations[$langCode]['name'];
+        $item['description'] = $translations[$langCode]['description'] ?? $item['description'];
+    }
+    // Fallback to default language
+    elseif ($langCode !== getDefaultLanguage() && isset($translations[getDefaultLanguage()])) {
+        $item['name'] = $translations[getDefaultLanguage()]['name'] ?? $item['name'];
+        $item['description'] = $translations[getDefaultLanguage()]['description'] ?? $item['description'];
+    }
+
+    return $item;
+}
+
+/**
+ * Get room service items with translations
+ * @param bool $activeOnly Only return active items
+ * @param string|null $langCode Language code
+ * @return array Items with translations applied
+ */
+function getRoomServiceItemsTranslated(bool $activeOnly = false, ?string $langCode = null): array {
+    $items = getRoomServiceItems($activeOnly);
+    $langCode = $langCode ?? getCurrentLanguage();
+
+    return array_map(function($item) use ($langCode) {
+        return getItemWithTranslation($item, $langCode);
+    }, $items);
+}
+
+/**
+ * Save category translations
+ * @param string $categoryCode Category code
+ * @param array $translations Array of ['language_code' => 'name']
+ */
+function saveCategoryTranslations(string $categoryCode, array $translations): bool {
+    $pdo = getDatabase();
+    $success = true;
+
+    foreach ($translations as $langCode => $name) {
+        if (!in_array($langCode, getSupportedLanguages())) {
+            continue;
+        }
+
+        $name = trim($name);
+        if (empty($name)) {
+            continue;
+        }
+
+        try {
+            $stmt = $pdo->prepare('
+                INSERT INTO room_service_category_translations (category_code, language_code, name)
+                VALUES (?, ?, ?)
+                ON DUPLICATE KEY UPDATE name = VALUES(name)
+            ');
+            $success = $stmt->execute([$categoryCode, $langCode, $name]) && $success;
+        } catch (PDOException $e) {
+            error_log('Error saving category translation: ' . $e->getMessage());
+            $success = false;
+        }
+    }
+
+    return $success;
+}
+
+/**
+ * Get category translations for all languages
+ * @param string $categoryCode Category code
+ * @return array Translations keyed by language code
+ */
+function getCategoryTranslations(string $categoryCode): array {
+    $pdo = getDatabase();
+    $translations = [];
+
+    try {
+        $stmt = $pdo->prepare('
+            SELECT language_code, name
+            FROM room_service_category_translations
+            WHERE category_code = ?
+        ');
+        $stmt->execute([$categoryCode]);
+
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $translations[$row['language_code']] = $row['name'];
+        }
+    } catch (PDOException $e) {
+        // Table might not exist yet
+    }
+
+    return $translations;
+}
+
+/**
+ * Get translated category name with fallback
+ * @param string $categoryCode Category code
+ * @param string|null $langCode Language code
+ * @return string|null Translated name or null
+ */
+function getCategoryTranslatedName(string $categoryCode, ?string $langCode = null): ?string {
+    $langCode = $langCode ?? getCurrentLanguage();
+    $defaultLang = getDefaultLanguage();
+    $pdo = getDatabase();
+
+    try {
+        // Try requested language first
+        $stmt = $pdo->prepare('
+            SELECT name FROM room_service_category_translations
+            WHERE category_code = ? AND language_code = ?
+        ');
+        $stmt->execute([$categoryCode, $langCode]);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($result && !empty($result['name'])) {
+            return $result['name'];
+        }
+
+        // Fallback to default language
+        if ($langCode !== $defaultLang) {
+            $stmt->execute([$categoryCode, $defaultLang]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($result && !empty($result['name'])) {
+                return $result['name'];
+            }
+        }
+    } catch (PDOException $e) {
+        // Table might not exist yet
+    }
+
+    return null;
+}
+
+/**
+ * Get room service categories with translations
+ * @param string|null $langCode Language code
+ * @return array Categories with translated names
+ */
+function getRoomServiceCategoriesTranslated(?string $langCode = null): array {
+    $langCode = $langCode ?? getCurrentLanguage();
+    $defaultLang = getDefaultLanguage();
+
+    try {
+        $pdo = getDatabase();
+        $stmt = $pdo->query('SELECT code, name FROM room_service_categories WHERE is_active = 1 ORDER BY position ASC');
+        $categories = [];
+
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $translatedName = getCategoryTranslatedName($row['code'], $langCode);
+            $categories[$row['code']] = $translatedName ?? $row['name'];
+        }
+
+        if (!empty($categories)) {
+            return $categories;
+        }
+    } catch (PDOException $e) {
+        // Table doesn't exist, use fallback
+    }
+
+    // Fallback to hardcoded categories
+    return getRoomServiceCategories();
+}
+
+/**
+ * Get all categories with full details including translations (for admin)
+ * @return array Categories with translations for each language
+ */
+function getRoomServiceCategoriesAllWithTranslations(): array {
+    $categories = getRoomServiceCategoriesAll();
+
+    foreach ($categories as &$category) {
+        $category['translations'] = getCategoryTranslations($category['code']);
+    }
+
+    return $categories;
+}
+
+// =====================================================
 // ROOM SERVICE STATISTICS FUNCTIONS
 // =====================================================
 

@@ -9,10 +9,25 @@ require_once __DIR__ . '/includes/functions.php';
 // Get message categories for the contact reception modal
 $messageCategories = getGuestMessageCategories();
 
-// Get active items
-$items = getRoomServiceItems(true);
-$categories = getRoomServiceCategories();
+// Get current language for translations
+$currentLang = getCurrentLanguage();
+
+// Get active items with translations
+$items = getRoomServiceItemsTranslated(true, $currentLang);
+$categories = getRoomServiceCategoriesTranslated($currentLang);
 $paymentMethods = getRoomServicePaymentMethods();
+
+// Store all translations for JavaScript (for dynamic language switching)
+$allItemTranslations = [];
+foreach ($items as $item) {
+    $allItemTranslations[$item['id']] = getItemTranslations($item['id']);
+}
+
+// Store all category translations for JavaScript
+$allCategoryTranslations = [];
+foreach (array_keys($categories) as $catCode) {
+    $allCategoryTranslations[$catCode] = getCategoryTranslations($catCode);
+}
 
 // Group items by category
 $itemsByCategory = [];
@@ -876,6 +891,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     </div>
   </div>
 
+  <!-- Dynamic content translations (for room service items and categories) -->
+  <script>
+    // Item translations from database
+    window.itemTranslations = <?= json_encode($allItemTranslations) ?>;
+    // Category translations from database
+    window.categoryTranslations = <?= json_encode($allCategoryTranslations) ?>;
+    // Default language
+    window.defaultLang = '<?= getDefaultLanguage() ?>';
+  </script>
+
   <script src="js/translations.js"></script>
   <script src="js/i18n.js"></script>
   <script src="js/animations.js"></script>
@@ -1148,6 +1173,155 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         modalError.style.display = 'block';
       }
     });
+
+    // ===========================================
+    // Dynamic Content Translation (Items & Categories)
+    // ===========================================
+
+    /**
+     * Get translation for an item based on current language
+     */
+    function getItemTranslation(itemId, field, fallback) {
+      const lang = window.I18n ? window.I18n.currentLang : window.defaultLang;
+      const translations = window.itemTranslations[itemId];
+
+      if (translations) {
+        // Try current language
+        if (translations[lang] && translations[lang][field]) {
+          return translations[lang][field];
+        }
+        // Fallback to default language
+        if (translations[window.defaultLang] && translations[window.defaultLang][field]) {
+          return translations[window.defaultLang][field];
+        }
+      }
+
+      return fallback;
+    }
+
+    /**
+     * Get translation for a category based on current language
+     */
+    function getCategoryTranslation(categoryCode, fallback) {
+      const lang = window.I18n ? window.I18n.currentLang : window.defaultLang;
+      const translations = window.categoryTranslations[categoryCode];
+
+      if (translations) {
+        // Try current language
+        if (translations[lang]) {
+          return translations[lang];
+        }
+        // Fallback to default language
+        if (translations[window.defaultLang]) {
+          return translations[window.defaultLang];
+        }
+      }
+
+      return fallback;
+    }
+
+    /**
+     * Update all dynamic content (items & categories) for current language
+     */
+    function updateDynamicTranslations() {
+      // Update item names
+      document.querySelectorAll('.item-card').forEach(card => {
+        const itemId = card.dataset.itemId;
+        const nameEl = card.querySelector('.item-name');
+        const descEl = card.querySelector('.item-description');
+
+        if (nameEl) {
+          const originalName = nameEl.dataset.originalName || nameEl.textContent;
+          nameEl.dataset.originalName = originalName;
+          nameEl.textContent = getItemTranslation(itemId, 'name', originalName);
+        }
+
+        if (descEl) {
+          const originalDesc = descEl.dataset.originalDesc || descEl.textContent;
+          descEl.dataset.originalDesc = originalDesc;
+          const translated = getItemTranslation(itemId, 'description', originalDesc);
+          descEl.textContent = translated || '';
+        }
+      });
+
+      // Update category titles (those not handled by data-i18n)
+      document.querySelectorAll('.category-title').forEach(title => {
+        const section = title.closest('.category-section');
+        if (section) {
+          const categoryCode = section.dataset.category;
+          if (categoryCode && window.categoryTranslations[categoryCode]) {
+            const originalName = title.dataset.originalName || title.textContent;
+            title.dataset.originalName = originalName;
+            title.textContent = getCategoryTranslation(categoryCode, originalName);
+          }
+        }
+      });
+
+      // Update cart items if any
+      updateCart();
+    }
+
+    // Override the original updateCart to use translated names
+    const originalUpdateCart = updateCart;
+    updateCart = function() {
+      const cartItems = document.getElementById('cartItems');
+      const cartEmpty = document.getElementById('cartEmpty');
+      const cartTotal = document.getElementById('cartTotal');
+      const orderItems = document.getElementById('orderItems');
+      const submitBtn = document.getElementById('submitBtn');
+
+      let total = 0;
+      let html = '';
+      const itemsArray = [];
+
+      for (const [id, item] of Object.entries(cart)) {
+        if (item.quantity > 0) {
+          const subtotal = item.price * item.quantity;
+          total += subtotal;
+          // Use translated name
+          const translatedName = getItemTranslation(id, 'name', item.name);
+          html += `
+            <div class="cart-item">
+              <div class="cart-item-info">
+                <div class="cart-item-name">${translatedName}</div>
+                <div class="cart-item-qty">${item.quantity} x ${formatPrice(item.price)}</div>
+              </div>
+              <span class="cart-item-subtotal">${formatPrice(subtotal)}</span>
+              <button type="button" class="cart-item-remove" onclick="removeFromCart(${id})">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;">
+                  <line x1="18" y1="6" x2="6" y2="18"/>
+                  <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
+            </div>
+          `;
+          itemsArray.push({
+            id: parseInt(id),
+            quantity: item.quantity
+          });
+        }
+      }
+
+      cartItems.innerHTML = html;
+      cartEmpty.style.display = html ? 'none' : 'block';
+      cartTotal.textContent = formatPrice(total);
+      orderItems.value = JSON.stringify(itemsArray);
+      submitBtn.disabled = itemsArray.length === 0;
+    };
+
+    // Listen for language changes and update dynamic content
+    // The I18n system stores original switchLanguage, we need to extend it
+    if (window.I18n) {
+      const originalSwitchLanguage = window.I18n.switchLanguage.bind(window.I18n);
+      window.I18n.switchLanguage = function(lang) {
+        originalSwitchLanguage(lang);
+        // Update dynamic content after I18n has updated
+        setTimeout(updateDynamicTranslations, 50);
+      };
+    }
+
+    // Initial update of dynamic translations on page load
+    setTimeout(updateDynamicTranslations, 100);
   </script>
 </body>
 </html>

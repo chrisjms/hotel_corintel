@@ -48,6 +48,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                         'is_active' => 1
                     ]);
                     if ($itemId) {
+                        // Save translations
+                        $translations = [];
+                        foreach (getSupportedLanguages() as $lang) {
+                            $transName = trim($_POST["name_$lang"] ?? '');
+                            $transDesc = trim($_POST["description_$lang"] ?? '');
+                            if (!empty($transName)) {
+                                $translations[$lang] = [
+                                    'name' => $transName,
+                                    'description' => $transDesc
+                                ];
+                            }
+                        }
+                        // Use main fields as French translation if not provided
+                        if (empty($translations['fr']['name'])) {
+                            $translations['fr'] = [
+                                'name' => $name,
+                                'description' => $description
+                            ];
+                        }
+                        saveItemTranslations($itemId, $translations);
+
                         // Handle image upload if provided
                         if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
                             handleRoomServiceItemImageUpload($_FILES['image'], $itemId);
@@ -91,6 +112,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                         'is_active' => $isActive
                     ]);
                     if ($success) {
+                        // Save translations
+                        $translations = [];
+                        foreach (getSupportedLanguages() as $lang) {
+                            $transName = trim($_POST["name_$lang"] ?? '');
+                            $transDesc = trim($_POST["description_$lang"] ?? '');
+                            if (!empty($transName)) {
+                                $translations[$lang] = [
+                                    'name' => $transName,
+                                    'description' => $transDesc
+                                ];
+                            }
+                        }
+                        // Use main fields as French translation if not provided
+                        if (empty($translations['fr']['name'])) {
+                            $translations['fr'] = [
+                                'name' => $name,
+                                'description' => $description
+                            ];
+                        }
+                        saveItemTranslations($id, $translations);
+
                         $message = 'Article mis à jour.';
                         $messageType = 'success';
                     } else {
@@ -137,9 +179,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
 }
 
-// Get all items
+// Get all items with their translations
 $items = getRoomServiceItems();
 $stats = getRoomServiceStats();
+
+// Prepare items with translations for JavaScript
+$itemsWithTranslations = [];
+foreach ($items as $item) {
+    $item['translations'] = getItemTranslations($item['id']);
+    $itemsWithTranslations[$item['id']] = $item;
+}
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -243,7 +292,54 @@ $stats = getRoomServiceStats();
             color: #fff;
         }
         .modal-lg {
-            max-width: 600px;
+            max-width: 700px;
+        }
+        /* Language Tabs */
+        .lang-tabs {
+            display: flex;
+            gap: 0;
+            border-bottom: 2px solid var(--admin-border);
+            margin-bottom: 1.5rem;
+        }
+        .lang-tab {
+            padding: 0.75rem 1.25rem;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--admin-text-light);
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            transition: all 0.2s ease;
+        }
+        .lang-tab:hover {
+            color: var(--admin-primary);
+        }
+        .lang-tab.active {
+            color: var(--admin-primary);
+            border-bottom-color: var(--admin-primary);
+        }
+        .lang-tab .flag {
+            margin-right: 0.5rem;
+        }
+        .lang-content {
+            display: none;
+        }
+        .lang-content.active {
+            display: block;
+        }
+        .translation-note {
+            background: rgba(66, 153, 225, 0.1);
+            border-left: 3px solid #4299E1;
+            padding: 0.75rem 1rem;
+            margin-bottom: 1rem;
+            border-radius: 0 4px 4px 0;
+            font-size: 0.8125rem;
+            color: var(--admin-text);
+        }
+        .translation-note strong {
+            color: #2B6CB0;
         }
     </style>
 </head>
@@ -544,14 +640,84 @@ $stats = getRoomServiceStats();
                 <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
                 <input type="hidden" name="action" value="create">
                 <div class="modal-body">
-                    <div class="form-group">
-                        <label for="createName">Nom *</label>
-                        <input type="text" id="createName" name="name" required maxlength="100">
+                    <!-- Language Tabs -->
+                    <div class="lang-tabs" id="createLangTabs">
+                        <button type="button" class="lang-tab active" data-lang="fr" onclick="switchCreateTab('fr')">
+                            <span class="flag">🇫🇷</span> Français
+                        </button>
+                        <button type="button" class="lang-tab" data-lang="en" onclick="switchCreateTab('en')">
+                            <span class="flag">🇬🇧</span> English
+                        </button>
+                        <button type="button" class="lang-tab" data-lang="es" onclick="switchCreateTab('es')">
+                            <span class="flag">🇪🇸</span> Español
+                        </button>
+                        <button type="button" class="lang-tab" data-lang="it" onclick="switchCreateTab('it')">
+                            <span class="flag">🇮🇹</span> Italiano
+                        </button>
                     </div>
-                    <div class="form-group">
-                        <label for="createDescription">Description</label>
-                        <textarea id="createDescription" name="description" rows="3" maxlength="500"></textarea>
+
+                    <!-- French (default) -->
+                    <div class="lang-content active" id="createLang-fr">
+                        <div class="form-group">
+                            <label for="createName">Nom * (Français)</label>
+                            <input type="text" id="createName" name="name" required maxlength="100">
+                            <input type="hidden" name="name_fr" id="createName_fr">
+                        </div>
+                        <div class="form-group">
+                            <label for="createDescription">Description (Français)</label>
+                            <textarea id="createDescription" name="description" rows="3" maxlength="500"></textarea>
+                            <input type="hidden" name="description_fr" id="createDescription_fr">
+                        </div>
                     </div>
+
+                    <!-- English -->
+                    <div class="lang-content" id="createLang-en">
+                        <div class="translation-note">
+                            <strong>Traduction anglaise</strong> - Si vide, la version française sera utilisée.
+                        </div>
+                        <div class="form-group">
+                            <label for="createName_en">Name (English)</label>
+                            <input type="text" id="createName_en" name="name_en" maxlength="100">
+                        </div>
+                        <div class="form-group">
+                            <label for="createDescription_en">Description (English)</label>
+                            <textarea id="createDescription_en" name="description_en" rows="3" maxlength="500"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Spanish -->
+                    <div class="lang-content" id="createLang-es">
+                        <div class="translation-note">
+                            <strong>Traduction espagnole</strong> - Si vide, la version française sera utilisée.
+                        </div>
+                        <div class="form-group">
+                            <label for="createName_es">Nombre (Español)</label>
+                            <input type="text" id="createName_es" name="name_es" maxlength="100">
+                        </div>
+                        <div class="form-group">
+                            <label for="createDescription_es">Descripción (Español)</label>
+                            <textarea id="createDescription_es" name="description_es" rows="3" maxlength="500"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Italian -->
+                    <div class="lang-content" id="createLang-it">
+                        <div class="translation-note">
+                            <strong>Traduction italienne</strong> - Si vide, la version française sera utilisée.
+                        </div>
+                        <div class="form-group">
+                            <label for="createName_it">Nome (Italiano)</label>
+                            <input type="text" id="createName_it" name="name_it" maxlength="100">
+                        </div>
+                        <div class="form-group">
+                            <label for="createDescription_it">Descrizione (Italiano)</label>
+                            <textarea id="createDescription_it" name="description_it" rows="3" maxlength="500"></textarea>
+                        </div>
+                    </div>
+
+                    <hr style="margin: 1.5rem 0; border: none; border-top: 1px solid var(--admin-border);">
+
+                    <!-- Common fields (not translatable) -->
                     <div class="form-group">
                         <label for="createPrice">Prix (€) *</label>
                         <input type="number" id="createPrice" name="price" required min="0.01" step="0.01">
@@ -594,14 +760,84 @@ $stats = getRoomServiceStats();
                 <input type="hidden" name="action" value="update">
                 <input type="hidden" name="id" id="editId">
                 <div class="modal-body">
-                    <div class="form-group">
-                        <label for="editName">Nom *</label>
-                        <input type="text" id="editName" name="name" required maxlength="100">
+                    <!-- Language Tabs -->
+                    <div class="lang-tabs" id="editLangTabs">
+                        <button type="button" class="lang-tab active" data-lang="fr" onclick="switchEditTab('fr')">
+                            <span class="flag">🇫🇷</span> Français
+                        </button>
+                        <button type="button" class="lang-tab" data-lang="en" onclick="switchEditTab('en')">
+                            <span class="flag">🇬🇧</span> English
+                        </button>
+                        <button type="button" class="lang-tab" data-lang="es" onclick="switchEditTab('es')">
+                            <span class="flag">🇪🇸</span> Español
+                        </button>
+                        <button type="button" class="lang-tab" data-lang="it" onclick="switchEditTab('it')">
+                            <span class="flag">🇮🇹</span> Italiano
+                        </button>
                     </div>
-                    <div class="form-group">
-                        <label for="editDescription">Description</label>
-                        <textarea id="editDescription" name="description" rows="3" maxlength="500"></textarea>
+
+                    <!-- French (default) -->
+                    <div class="lang-content active" id="editLang-fr">
+                        <div class="form-group">
+                            <label for="editName">Nom * (Français)</label>
+                            <input type="text" id="editName" name="name" required maxlength="100">
+                            <input type="hidden" name="name_fr" id="editName_fr">
+                        </div>
+                        <div class="form-group">
+                            <label for="editDescription">Description (Français)</label>
+                            <textarea id="editDescription" name="description" rows="3" maxlength="500"></textarea>
+                            <input type="hidden" name="description_fr" id="editDescription_fr">
+                        </div>
                     </div>
+
+                    <!-- English -->
+                    <div class="lang-content" id="editLang-en">
+                        <div class="translation-note">
+                            <strong>Traduction anglaise</strong> - Si vide, la version française sera utilisée.
+                        </div>
+                        <div class="form-group">
+                            <label for="editName_en">Name (English)</label>
+                            <input type="text" id="editName_en" name="name_en" maxlength="100">
+                        </div>
+                        <div class="form-group">
+                            <label for="editDescription_en">Description (English)</label>
+                            <textarea id="editDescription_en" name="description_en" rows="3" maxlength="500"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Spanish -->
+                    <div class="lang-content" id="editLang-es">
+                        <div class="translation-note">
+                            <strong>Traduction espagnole</strong> - Si vide, la version française sera utilisée.
+                        </div>
+                        <div class="form-group">
+                            <label for="editName_es">Nombre (Español)</label>
+                            <input type="text" id="editName_es" name="name_es" maxlength="100">
+                        </div>
+                        <div class="form-group">
+                            <label for="editDescription_es">Descripción (Español)</label>
+                            <textarea id="editDescription_es" name="description_es" rows="3" maxlength="500"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Italian -->
+                    <div class="lang-content" id="editLang-it">
+                        <div class="translation-note">
+                            <strong>Traduction italienne</strong> - Si vide, la version française sera utilisée.
+                        </div>
+                        <div class="form-group">
+                            <label for="editName_it">Nome (Italiano)</label>
+                            <input type="text" id="editName_it" name="name_it" maxlength="100">
+                        </div>
+                        <div class="form-group">
+                            <label for="editDescription_it">Descrizione (Italiano)</label>
+                            <textarea id="editDescription_it" name="description_it" rows="3" maxlength="500"></textarea>
+                        </div>
+                    </div>
+
+                    <hr style="margin: 1.5rem 0; border: none; border-top: 1px solid var(--admin-border);">
+
+                    <!-- Common fields (not translatable) -->
                     <div class="form-group">
                         <label for="editPrice">Prix (€) *</label>
                         <input type="number" id="editPrice" name="price" required min="0.01" step="0.01">
@@ -668,19 +904,75 @@ $stats = getRoomServiceStats();
         </div>
     </div>
 
+    <!-- Items translations data for JavaScript -->
     <script>
+        const itemsTranslations = <?= json_encode($itemsWithTranslations) ?>;
+    </script>
+
+    <script>
+        // Language tab switching for Create modal
+        function switchCreateTab(lang) {
+            document.querySelectorAll('#createLangTabs .lang-tab').forEach(tab => {
+                tab.classList.toggle('active', tab.dataset.lang === lang);
+            });
+            document.querySelectorAll('#createModal .lang-content').forEach(content => {
+                content.classList.toggle('active', content.id === `createLang-${lang}`);
+            });
+        }
+
+        // Language tab switching for Edit modal
+        function switchEditTab(lang) {
+            document.querySelectorAll('#editLangTabs .lang-tab').forEach(tab => {
+                tab.classList.toggle('active', tab.dataset.lang === lang);
+            });
+            document.querySelectorAll('#editModal .lang-content').forEach(content => {
+                content.classList.toggle('active', content.id === `editLang-${lang}`);
+            });
+        }
+
         function openCreateModal() {
+            // Reset form
+            document.querySelector('#createModal form').reset();
+            // Reset tabs to French
+            switchCreateTab('fr');
             document.getElementById('createModal').classList.add('active');
         }
 
         function openEditModal(item) {
+            const itemData = itemsTranslations[item.id] || item;
+            const translations = itemData.translations || {};
+
             document.getElementById('editId').value = item.id;
-            document.getElementById('editName').value = item.name || '';
-            document.getElementById('editDescription').value = item.description || '';
+
+            // Set French values (from main fields or translations)
+            const frTrans = translations.fr || {};
+            document.getElementById('editName').value = frTrans.name || item.name || '';
+            document.getElementById('editDescription').value = frTrans.description || item.description || '';
+
+            // Set English translations
+            const enTrans = translations.en || {};
+            document.getElementById('editName_en').value = enTrans.name || '';
+            document.getElementById('editDescription_en').value = enTrans.description || '';
+
+            // Set Spanish translations
+            const esTrans = translations.es || {};
+            document.getElementById('editName_es').value = esTrans.name || '';
+            document.getElementById('editDescription_es').value = esTrans.description || '';
+
+            // Set Italian translations
+            const itTrans = translations.it || {};
+            document.getElementById('editName_it').value = itTrans.name || '';
+            document.getElementById('editDescription_it').value = itTrans.description || '';
+
+            // Set common fields
             document.getElementById('editPrice').value = item.price;
             document.getElementById('editCategory').value = item.category || 'general';
             document.getElementById('editPosition').value = item.position || 0;
             document.getElementById('editActive').checked = item.is_active == 1;
+
+            // Reset tabs to French
+            switchEditTab('fr');
+
             document.getElementById('editModal').classList.add('active');
         }
 
@@ -760,6 +1052,17 @@ $stats = getRoomServiceStats();
 
         uploadArea.addEventListener('click', () => {
             imageInput.click();
+        });
+
+        // Sync French translation fields before form submission
+        document.querySelector('#createModal form').addEventListener('submit', function() {
+            document.getElementById('createName_fr').value = document.getElementById('createName').value;
+            document.getElementById('createDescription_fr').value = document.getElementById('createDescription').value;
+        });
+
+        document.querySelector('#editModal form').addEventListener('submit', function() {
+            document.getElementById('editName_fr').value = document.getElementById('editName').value;
+            document.getElementById('editDescription_fr').value = document.getElementById('editDescription').value;
         });
 
         // Mobile menu toggle
