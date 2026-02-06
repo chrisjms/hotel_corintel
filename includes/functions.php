@@ -706,6 +706,180 @@ function updateCategoryTimeWindow(string $code, ?string $timeStart, ?string $tim
 }
 
 /**
+ * Create a new room service category
+ * @param array $data Category data (code, name, time_start, time_end, position, is_active)
+ * @return int|false The new category ID or false on failure
+ */
+function createRoomServiceCategory(array $data): int|false {
+    $pdo = getDatabase();
+
+    // Check if code already exists
+    $stmt = $pdo->prepare('SELECT id FROM room_service_categories WHERE code = ?');
+    $stmt->execute([$data['code']]);
+    if ($stmt->fetch()) {
+        return false; // Code already exists
+    }
+
+    $stmt = $pdo->prepare('
+        INSERT INTO room_service_categories (code, name, time_start, time_end, position, is_active)
+        VALUES (?, ?, ?, ?, ?, ?)
+    ');
+    $success = $stmt->execute([
+        $data['code'],
+        $data['name'],
+        $data['time_start'] ?? null,
+        $data['time_end'] ?? null,
+        $data['position'] ?? 0,
+        $data['is_active'] ?? 1
+    ]);
+    return $success ? (int)$pdo->lastInsertId() : false;
+}
+
+/**
+ * Update a room service category
+ * @param string $code Category code
+ * @param array $data Category data to update
+ * @return bool Success status
+ */
+function updateRoomServiceCategory(string $code, array $data): bool {
+    $pdo = getDatabase();
+
+    // If code is being changed, check if new code already exists
+    if (isset($data['new_code']) && $data['new_code'] !== $code) {
+        $stmt = $pdo->prepare('SELECT id FROM room_service_categories WHERE code = ? AND code != ?');
+        $stmt->execute([$data['new_code'], $code]);
+        if ($stmt->fetch()) {
+            return false; // New code already exists
+        }
+    }
+
+    $stmt = $pdo->prepare('
+        UPDATE room_service_categories
+        SET code = ?, name = ?, time_start = ?, time_end = ?, position = ?, is_active = ?
+        WHERE code = ?
+    ');
+    return $stmt->execute([
+        $data['new_code'] ?? $code,
+        $data['name'],
+        $data['time_start'] ?? null,
+        $data['time_end'] ?? null,
+        $data['position'] ?? 0,
+        $data['is_active'] ?? 1,
+        $code
+    ]);
+}
+
+/**
+ * Delete a room service category
+ * @param string $code Category code
+ * @param string|null $reassignTo Code of category to reassign items to (null to prevent deletion if items exist)
+ * @return array ['success' => bool, 'message' => string, 'items_count' => int]
+ */
+function deleteRoomServiceCategory(string $code, ?string $reassignTo = null): array {
+    $pdo = getDatabase();
+
+    // Don't allow deletion of 'general' category
+    if ($code === 'general') {
+        return [
+            'success' => false,
+            'message' => 'La catégorie "Général" ne peut pas être supprimée.',
+            'items_count' => 0
+        ];
+    }
+
+    // Check if category exists
+    $category = getRoomServiceCategoryByCode($code);
+    if (!$category) {
+        return [
+            'success' => false,
+            'message' => 'Catégorie non trouvée.',
+            'items_count' => 0
+        ];
+    }
+
+    // Count items in this category
+    $stmt = $pdo->prepare('SELECT COUNT(*) as count FROM room_service_items WHERE category = ?');
+    $stmt->execute([$code]);
+    $itemsCount = (int)$stmt->fetch()['count'];
+
+    if ($itemsCount > 0) {
+        if ($reassignTo === null) {
+            return [
+                'success' => false,
+                'message' => "Cette catégorie contient $itemsCount article(s). Veuillez d'abord les réassigner.",
+                'items_count' => $itemsCount
+            ];
+        }
+
+        // Check if reassign category exists
+        $reassignCategory = getRoomServiceCategoryByCode($reassignTo);
+        if (!$reassignCategory) {
+            return [
+                'success' => false,
+                'message' => 'La catégorie de réassignation n\'existe pas.',
+                'items_count' => $itemsCount
+            ];
+        }
+
+        // Reassign items
+        $stmt = $pdo->prepare('UPDATE room_service_items SET category = ? WHERE category = ?');
+        $stmt->execute([$reassignTo, $code]);
+    }
+
+    // Delete category translations
+    try {
+        $stmt = $pdo->prepare('DELETE FROM room_service_category_translations WHERE category_code = ?');
+        $stmt->execute([$code]);
+    } catch (PDOException $e) {
+        // Table might not exist
+    }
+
+    // Delete the category
+    $stmt = $pdo->prepare('DELETE FROM room_service_categories WHERE code = ?');
+    $success = $stmt->execute([$code]);
+
+    return [
+        'success' => $success,
+        'message' => $success ? 'Catégorie supprimée avec succès.' : 'Erreur lors de la suppression.',
+        'items_count' => $itemsCount
+    ];
+}
+
+/**
+ * Toggle category active status
+ * @param string $code Category code
+ * @return bool Success status
+ */
+function toggleRoomServiceCategoryStatus(string $code): bool {
+    $pdo = getDatabase();
+    $stmt = $pdo->prepare('UPDATE room_service_categories SET is_active = NOT is_active WHERE code = ?');
+    return $stmt->execute([$code]);
+}
+
+/**
+ * Get count of items in a category
+ * @param string $code Category code
+ * @return int Number of items
+ */
+function getCategoryItemsCount(string $code): int {
+    $pdo = getDatabase();
+    $stmt = $pdo->prepare('SELECT COUNT(*) as count FROM room_service_items WHERE category = ?');
+    $stmt->execute([$code]);
+    return (int)$stmt->fetch()['count'];
+}
+
+/**
+ * Get next position for a new category
+ * @return int Next position value
+ */
+function getNextCategoryPosition(): int {
+    $pdo = getDatabase();
+    $stmt = $pdo->query('SELECT MAX(position) as max_pos FROM room_service_categories');
+    $result = $stmt->fetch();
+    return ($result['max_pos'] ?? 0) + 1;
+}
+
+/**
  * Check if a category is currently available based on time window
  * @param string $code Category code
  * @param string|null $checkTime Time to check (HH:MM format), defaults to current time
