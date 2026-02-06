@@ -706,6 +706,180 @@ function updateCategoryTimeWindow(string $code, ?string $timeStart, ?string $tim
 }
 
 /**
+ * Create a new room service category
+ * @param array $data Category data (code, name, time_start, time_end, position, is_active)
+ * @return int|false The new category ID or false on failure
+ */
+function createRoomServiceCategory(array $data): int|false {
+    $pdo = getDatabase();
+
+    // Check if code already exists
+    $stmt = $pdo->prepare('SELECT id FROM room_service_categories WHERE code = ?');
+    $stmt->execute([$data['code']]);
+    if ($stmt->fetch()) {
+        return false; // Code already exists
+    }
+
+    $stmt = $pdo->prepare('
+        INSERT INTO room_service_categories (code, name, time_start, time_end, position, is_active)
+        VALUES (?, ?, ?, ?, ?, ?)
+    ');
+    $success = $stmt->execute([
+        $data['code'],
+        $data['name'],
+        $data['time_start'] ?? null,
+        $data['time_end'] ?? null,
+        $data['position'] ?? 0,
+        $data['is_active'] ?? 1
+    ]);
+    return $success ? (int)$pdo->lastInsertId() : false;
+}
+
+/**
+ * Update a room service category
+ * @param string $code Category code
+ * @param array $data Category data to update
+ * @return bool Success status
+ */
+function updateRoomServiceCategory(string $code, array $data): bool {
+    $pdo = getDatabase();
+
+    // If code is being changed, check if new code already exists
+    if (isset($data['new_code']) && $data['new_code'] !== $code) {
+        $stmt = $pdo->prepare('SELECT id FROM room_service_categories WHERE code = ? AND code != ?');
+        $stmt->execute([$data['new_code'], $code]);
+        if ($stmt->fetch()) {
+            return false; // New code already exists
+        }
+    }
+
+    $stmt = $pdo->prepare('
+        UPDATE room_service_categories
+        SET code = ?, name = ?, time_start = ?, time_end = ?, position = ?, is_active = ?
+        WHERE code = ?
+    ');
+    return $stmt->execute([
+        $data['new_code'] ?? $code,
+        $data['name'],
+        $data['time_start'] ?? null,
+        $data['time_end'] ?? null,
+        $data['position'] ?? 0,
+        $data['is_active'] ?? 1,
+        $code
+    ]);
+}
+
+/**
+ * Delete a room service category
+ * @param string $code Category code
+ * @param string|null $reassignTo Code of category to reassign items to (null to prevent deletion if items exist)
+ * @return array ['success' => bool, 'message' => string, 'items_count' => int]
+ */
+function deleteRoomServiceCategory(string $code, ?string $reassignTo = null): array {
+    $pdo = getDatabase();
+
+    // Don't allow deletion of 'general' category
+    if ($code === 'general') {
+        return [
+            'success' => false,
+            'message' => 'La catégorie "Général" ne peut pas être supprimée.',
+            'items_count' => 0
+        ];
+    }
+
+    // Check if category exists
+    $category = getRoomServiceCategoryByCode($code);
+    if (!$category) {
+        return [
+            'success' => false,
+            'message' => 'Catégorie non trouvée.',
+            'items_count' => 0
+        ];
+    }
+
+    // Count items in this category
+    $stmt = $pdo->prepare('SELECT COUNT(*) as count FROM room_service_items WHERE category = ?');
+    $stmt->execute([$code]);
+    $itemsCount = (int)$stmt->fetch()['count'];
+
+    if ($itemsCount > 0) {
+        if ($reassignTo === null) {
+            return [
+                'success' => false,
+                'message' => "Cette catégorie contient $itemsCount article(s). Veuillez d'abord les réassigner.",
+                'items_count' => $itemsCount
+            ];
+        }
+
+        // Check if reassign category exists
+        $reassignCategory = getRoomServiceCategoryByCode($reassignTo);
+        if (!$reassignCategory) {
+            return [
+                'success' => false,
+                'message' => 'La catégorie de réassignation n\'existe pas.',
+                'items_count' => $itemsCount
+            ];
+        }
+
+        // Reassign items
+        $stmt = $pdo->prepare('UPDATE room_service_items SET category = ? WHERE category = ?');
+        $stmt->execute([$reassignTo, $code]);
+    }
+
+    // Delete category translations
+    try {
+        $stmt = $pdo->prepare('DELETE FROM room_service_category_translations WHERE category_code = ?');
+        $stmt->execute([$code]);
+    } catch (PDOException $e) {
+        // Table might not exist
+    }
+
+    // Delete the category
+    $stmt = $pdo->prepare('DELETE FROM room_service_categories WHERE code = ?');
+    $success = $stmt->execute([$code]);
+
+    return [
+        'success' => $success,
+        'message' => $success ? 'Catégorie supprimée avec succès.' : 'Erreur lors de la suppression.',
+        'items_count' => $itemsCount
+    ];
+}
+
+/**
+ * Toggle category active status
+ * @param string $code Category code
+ * @return bool Success status
+ */
+function toggleRoomServiceCategoryStatus(string $code): bool {
+    $pdo = getDatabase();
+    $stmt = $pdo->prepare('UPDATE room_service_categories SET is_active = NOT is_active WHERE code = ?');
+    return $stmt->execute([$code]);
+}
+
+/**
+ * Get count of items in a category
+ * @param string $code Category code
+ * @return int Number of items
+ */
+function getCategoryItemsCount(string $code): int {
+    $pdo = getDatabase();
+    $stmt = $pdo->prepare('SELECT COUNT(*) as count FROM room_service_items WHERE category = ?');
+    $stmt->execute([$code]);
+    return (int)$stmt->fetch()['count'];
+}
+
+/**
+ * Get next position for a new category
+ * @return int Next position value
+ */
+function getNextCategoryPosition(): int {
+    $pdo = getDatabase();
+    $stmt = $pdo->query('SELECT MAX(position) as max_pos FROM room_service_categories');
+    $result = $stmt->fetch();
+    return ($result['max_pos'] ?? 0) + 1;
+}
+
+/**
  * Check if a category is currently available based on time window
  * @param string $code Category code
  * @param string|null $checkTime Time to check (HH:MM format), defaults to current time
@@ -838,6 +1012,336 @@ function getRoomServicePaymentMethods(): array {
         'card' => 'Carte bancaire',
         'cash' => 'Espèces'
     ];
+}
+
+// =====================================================
+// MULTI-LANGUAGE TRANSLATION FUNCTIONS
+// =====================================================
+
+/**
+ * Get supported languages
+ */
+function getSupportedLanguages(): array {
+    return ['fr', 'en', 'es', 'it'];
+}
+
+/**
+ * Get default language code
+ */
+function getDefaultLanguage(): string {
+    return 'fr';
+}
+
+/**
+ * Get current language from cookie/session or default
+ */
+function getCurrentLanguage(): string {
+    // Check cookie first (set by JS i18n system)
+    if (isset($_COOKIE['hotel_corintel_lang'])) {
+        $lang = $_COOKIE['hotel_corintel_lang'];
+        if (in_array($lang, getSupportedLanguages())) {
+            return $lang;
+        }
+    }
+    // Check query parameter
+    if (isset($_GET['lang'])) {
+        $lang = $_GET['lang'];
+        if (in_array($lang, getSupportedLanguages())) {
+            return $lang;
+        }
+    }
+    return getDefaultLanguage();
+}
+
+/**
+ * Save item translations
+ * @param int $itemId Item ID
+ * @param array $translations Array of ['language_code' => ['name' => '', 'description' => '']]
+ */
+function saveItemTranslations(int $itemId, array $translations): bool {
+    $pdo = getDatabase();
+    $success = true;
+
+    foreach ($translations as $langCode => $data) {
+        if (!in_array($langCode, getSupportedLanguages())) {
+            continue;
+        }
+
+        $name = trim($data['name'] ?? '');
+        $description = trim($data['description'] ?? '');
+
+        // Skip if name is empty
+        if (empty($name)) {
+            continue;
+        }
+
+        try {
+            $stmt = $pdo->prepare('
+                INSERT INTO room_service_item_translations (item_id, language_code, name, description)
+                VALUES (?, ?, ?, ?)
+                ON DUPLICATE KEY UPDATE name = VALUES(name), description = VALUES(description)
+            ');
+            $success = $stmt->execute([$itemId, $langCode, $name, $description]) && $success;
+        } catch (PDOException $e) {
+            error_log('Error saving item translation: ' . $e->getMessage());
+            $success = false;
+        }
+    }
+
+    return $success;
+}
+
+/**
+ * Get item translations for all languages
+ * @param int $itemId Item ID
+ * @return array Translations keyed by language code
+ */
+function getItemTranslations(int $itemId): array {
+    $pdo = getDatabase();
+    $translations = [];
+
+    try {
+        $stmt = $pdo->prepare('
+            SELECT language_code, name, description
+            FROM room_service_item_translations
+            WHERE item_id = ?
+        ');
+        $stmt->execute([$itemId]);
+
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $translations[$row['language_code']] = [
+                'name' => $row['name'],
+                'description' => $row['description']
+            ];
+        }
+    } catch (PDOException $e) {
+        // Table might not exist yet
+    }
+
+    return $translations;
+}
+
+/**
+ * Get translated item name with fallback
+ * @param int $itemId Item ID
+ * @param string|null $langCode Language code (defaults to current language)
+ * @return string|null Translated name or null if not found
+ */
+function getItemTranslatedName(int $itemId, ?string $langCode = null): ?string {
+    $langCode = $langCode ?? getCurrentLanguage();
+    $defaultLang = getDefaultLanguage();
+    $pdo = getDatabase();
+
+    try {
+        // Try requested language first
+        $stmt = $pdo->prepare('
+            SELECT name FROM room_service_item_translations
+            WHERE item_id = ? AND language_code = ?
+        ');
+        $stmt->execute([$itemId, $langCode]);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($result && !empty($result['name'])) {
+            return $result['name'];
+        }
+
+        // Fallback to default language
+        if ($langCode !== $defaultLang) {
+            $stmt->execute([$itemId, $defaultLang]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($result && !empty($result['name'])) {
+                return $result['name'];
+            }
+        }
+    } catch (PDOException $e) {
+        // Table might not exist yet
+    }
+
+    return null;
+}
+
+/**
+ * Get translated item with fallback to base item
+ * @param array $item Base item array
+ * @param string|null $langCode Language code
+ * @return array Item with translated name and description
+ */
+function getItemWithTranslation(array $item, ?string $langCode = null): array {
+    $langCode = $langCode ?? getCurrentLanguage();
+    $translations = getItemTranslations($item['id']);
+
+    // Try current language
+    if (isset($translations[$langCode]) && !empty($translations[$langCode]['name'])) {
+        $item['name'] = $translations[$langCode]['name'];
+        $item['description'] = $translations[$langCode]['description'] ?? $item['description'];
+    }
+    // Fallback to default language
+    elseif ($langCode !== getDefaultLanguage() && isset($translations[getDefaultLanguage()])) {
+        $item['name'] = $translations[getDefaultLanguage()]['name'] ?? $item['name'];
+        $item['description'] = $translations[getDefaultLanguage()]['description'] ?? $item['description'];
+    }
+
+    return $item;
+}
+
+/**
+ * Get room service items with translations
+ * @param bool $activeOnly Only return active items
+ * @param string|null $langCode Language code
+ * @return array Items with translations applied
+ */
+function getRoomServiceItemsTranslated(bool $activeOnly = false, ?string $langCode = null): array {
+    $items = getRoomServiceItems($activeOnly);
+    $langCode = $langCode ?? getCurrentLanguage();
+
+    return array_map(function($item) use ($langCode) {
+        return getItemWithTranslation($item, $langCode);
+    }, $items);
+}
+
+/**
+ * Save category translations
+ * @param string $categoryCode Category code
+ * @param array $translations Array of ['language_code' => 'name']
+ */
+function saveCategoryTranslations(string $categoryCode, array $translations): bool {
+    $pdo = getDatabase();
+    $success = true;
+
+    foreach ($translations as $langCode => $name) {
+        if (!in_array($langCode, getSupportedLanguages())) {
+            continue;
+        }
+
+        $name = trim($name);
+        if (empty($name)) {
+            continue;
+        }
+
+        try {
+            $stmt = $pdo->prepare('
+                INSERT INTO room_service_category_translations (category_code, language_code, name)
+                VALUES (?, ?, ?)
+                ON DUPLICATE KEY UPDATE name = VALUES(name)
+            ');
+            $success = $stmt->execute([$categoryCode, $langCode, $name]) && $success;
+        } catch (PDOException $e) {
+            error_log('Error saving category translation: ' . $e->getMessage());
+            $success = false;
+        }
+    }
+
+    return $success;
+}
+
+/**
+ * Get category translations for all languages
+ * @param string $categoryCode Category code
+ * @return array Translations keyed by language code
+ */
+function getCategoryTranslations(string $categoryCode): array {
+    $pdo = getDatabase();
+    $translations = [];
+
+    try {
+        $stmt = $pdo->prepare('
+            SELECT language_code, name
+            FROM room_service_category_translations
+            WHERE category_code = ?
+        ');
+        $stmt->execute([$categoryCode]);
+
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $translations[$row['language_code']] = $row['name'];
+        }
+    } catch (PDOException $e) {
+        // Table might not exist yet
+    }
+
+    return $translations;
+}
+
+/**
+ * Get translated category name with fallback
+ * @param string $categoryCode Category code
+ * @param string|null $langCode Language code
+ * @return string|null Translated name or null
+ */
+function getCategoryTranslatedName(string $categoryCode, ?string $langCode = null): ?string {
+    $langCode = $langCode ?? getCurrentLanguage();
+    $defaultLang = getDefaultLanguage();
+    $pdo = getDatabase();
+
+    try {
+        // Try requested language first
+        $stmt = $pdo->prepare('
+            SELECT name FROM room_service_category_translations
+            WHERE category_code = ? AND language_code = ?
+        ');
+        $stmt->execute([$categoryCode, $langCode]);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($result && !empty($result['name'])) {
+            return $result['name'];
+        }
+
+        // Fallback to default language
+        if ($langCode !== $defaultLang) {
+            $stmt->execute([$categoryCode, $defaultLang]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($result && !empty($result['name'])) {
+                return $result['name'];
+            }
+        }
+    } catch (PDOException $e) {
+        // Table might not exist yet
+    }
+
+    return null;
+}
+
+/**
+ * Get room service categories with translations
+ * @param string|null $langCode Language code
+ * @return array Categories with translated names
+ */
+function getRoomServiceCategoriesTranslated(?string $langCode = null): array {
+    $langCode = $langCode ?? getCurrentLanguage();
+    $defaultLang = getDefaultLanguage();
+
+    try {
+        $pdo = getDatabase();
+        $stmt = $pdo->query('SELECT code, name FROM room_service_categories WHERE is_active = 1 ORDER BY position ASC');
+        $categories = [];
+
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $translatedName = getCategoryTranslatedName($row['code'], $langCode);
+            $categories[$row['code']] = $translatedName ?? $row['name'];
+        }
+
+        if (!empty($categories)) {
+            return $categories;
+        }
+    } catch (PDOException $e) {
+        // Table doesn't exist, use fallback
+    }
+
+    // Fallback to hardcoded categories
+    return getRoomServiceCategories();
+}
+
+/**
+ * Get all categories with full details including translations (for admin)
+ * @return array Categories with translations for each language
+ */
+function getRoomServiceCategoriesAllWithTranslations(): array {
+    $categories = getRoomServiceCategoriesAll();
+
+    foreach ($categories as &$category) {
+        $category['translations'] = getCategoryTranslations($category['code']);
+    }
+
+    return $categories;
 }
 
 // =====================================================
@@ -1694,4 +2198,489 @@ function getThemeCSS(): string {
     }
 
     return '<style id="theme-override">:root { ' . implode(' ', $css) . ' }</style>';
+}
+
+// =====================================================
+// CONTENT MANAGEMENT FUNCTIONS
+// =====================================================
+
+/**
+ * Image requirement modes for content sections
+ */
+define('IMAGE_REQUIRED', 'required');
+define('IMAGE_OPTIONAL', 'optional');
+define('IMAGE_FORBIDDEN', 'forbidden');
+
+/**
+ * Initialize content management tables
+ */
+function initContentTables(): void {
+    $pdo = getDatabase();
+
+    // Content sections configuration table
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS content_sections (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            code VARCHAR(50) UNIQUE NOT NULL,
+            name VARCHAR(100) NOT NULL,
+            description TEXT,
+            page VARCHAR(50) NOT NULL,
+            image_mode ENUM('required', 'optional', 'forbidden') DEFAULT 'optional',
+            max_blocks INT DEFAULT NULL,
+            has_title TINYINT(1) DEFAULT 1,
+            has_description TINYINT(1) DEFAULT 1,
+            has_link TINYINT(1) DEFAULT 0,
+            sort_order INT DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    ");
+
+    // Content blocks table
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS content_blocks (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            section_code VARCHAR(50) NOT NULL,
+            title VARCHAR(255),
+            description TEXT,
+            image_filename VARCHAR(255),
+            image_alt VARCHAR(255),
+            link_url VARCHAR(500),
+            link_text VARCHAR(100),
+            position INT DEFAULT 0,
+            is_active TINYINT(1) DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            INDEX idx_section (section_code),
+            INDEX idx_position (position),
+            FOREIGN KEY (section_code) REFERENCES content_sections(code) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    ");
+}
+
+/**
+ * Seed default content sections
+ */
+function seedContentSections(): void {
+    $pdo = getDatabase();
+
+    $sections = [
+        // Home page sections
+        ['home_hero', 'Carrousel d\'accueil', 'Images du diaporama principal (3 images recommandées)', 'home', IMAGE_REQUIRED, null, 0, 0, 0, 1],
+        ['home_intro', 'Introduction', 'Image et texte de la section Notre philosophie', 'home', IMAGE_OPTIONAL, 1, 1, 1, 0, 2],
+
+        // Services page sections
+        ['services_hero', 'Image d\'en-tête Services', 'Image de fond de la bannière Services', 'services', IMAGE_REQUIRED, 1, 0, 0, 0, 1],
+        ['services_restaurant', 'Restaurant', 'Image de la section Restaurant', 'services', IMAGE_REQUIRED, 1, 1, 1, 0, 2],
+        ['services_restaurant_gallery', 'Galerie Restaurant', 'Images de la galerie du restaurant (3 images)', 'services', IMAGE_REQUIRED, 3, 1, 1, 0, 3],
+        ['services_bar', 'Bar', 'Image de la section Bar', 'services', IMAGE_REQUIRED, 1, 1, 1, 0, 4],
+        ['services_boulodrome', 'Boulodrome', 'Image de la section Boulodrome', 'services', IMAGE_REQUIRED, 1, 1, 1, 0, 5],
+        ['services_parking', 'Parking', 'Image de la section Parking', 'services', IMAGE_REQUIRED, 1, 1, 1, 0, 6],
+
+        // Activities page sections
+        ['activities_hero', 'Image d\'en-tête Activités', 'Image de fond de la bannière À découvrir', 'activities', IMAGE_REQUIRED, 1, 0, 0, 0, 1],
+        ['activities_bordeaux', 'Bordeaux', 'Image de la section Bordeaux', 'activities', IMAGE_REQUIRED, 1, 1, 1, 0, 2],
+        ['activities_saintemilion', 'Saint-Émilion', 'Image de la section Saint-Émilion', 'activities', IMAGE_REQUIRED, 1, 1, 1, 0, 3],
+        ['activities_wine', 'Oenotourisme', 'Images de la section Route des vins (4 images)', 'activities', IMAGE_REQUIRED, 4, 1, 1, 0, 4],
+        ['activities_countryside', 'Campagne', 'Image de la section Échappées en campagne', 'activities', IMAGE_REQUIRED, 1, 1, 1, 0, 5],
+
+        // Contact page sections
+        ['contact_hero', 'Image d\'en-tête Contact', 'Image de fond de la bannière Contact', 'contact', IMAGE_REQUIRED, 1, 0, 0, 0, 1],
+        ['contact_info', 'Informations de contact', 'Coordonnées et horaires (texte uniquement)', 'contact', IMAGE_FORBIDDEN, 1, 1, 1, 0, 2],
+    ];
+
+    $stmt = $pdo->prepare("
+        INSERT IGNORE INTO content_sections
+        (code, name, description, page, image_mode, max_blocks, has_title, has_description, has_link, sort_order)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ");
+
+    foreach ($sections as $section) {
+        $stmt->execute($section);
+    }
+}
+
+/**
+ * Get all content sections grouped by page
+ */
+function getContentSectionsByPage(): array {
+    $pdo = getDatabase();
+    $stmt = $pdo->query('SELECT * FROM content_sections ORDER BY page, sort_order');
+    $sections = $stmt->fetchAll();
+
+    $grouped = [];
+    foreach ($sections as $section) {
+        $grouped[$section['page']][] = $section;
+    }
+
+    return $grouped;
+}
+
+/**
+ * Get all content sections
+ */
+function getContentSections(): array {
+    $pdo = getDatabase();
+    $stmt = $pdo->query('SELECT * FROM content_sections ORDER BY page, sort_order');
+    return $stmt->fetchAll();
+}
+
+/**
+ * Get a content section by code
+ */
+function getContentSection(string $code): ?array {
+    $pdo = getDatabase();
+    $stmt = $pdo->prepare('SELECT * FROM content_sections WHERE code = ?');
+    $stmt->execute([$code]);
+    return $stmt->fetch() ?: null;
+}
+
+/**
+ * Get content blocks for a section
+ */
+function getContentBlocks(string $sectionCode, bool $activeOnly = false): array {
+    $pdo = getDatabase();
+    $sql = 'SELECT * FROM content_blocks WHERE section_code = ?';
+    if ($activeOnly) {
+        $sql .= ' AND is_active = 1';
+    }
+    $sql .= ' ORDER BY position ASC, id ASC';
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([$sectionCode]);
+    return $stmt->fetchAll();
+}
+
+/**
+ * Get a content block by ID
+ */
+function getContentBlock(int $id): ?array {
+    $pdo = getDatabase();
+    $stmt = $pdo->prepare('SELECT * FROM content_blocks WHERE id = ?');
+    $stmt->execute([$id]);
+    return $stmt->fetch() ?: null;
+}
+
+/**
+ * Create a content block
+ */
+function createContentBlock(string $sectionCode, array $data): ?int {
+    $section = getContentSection($sectionCode);
+    if (!$section) {
+        return null;
+    }
+
+    // Validate image requirement
+    if ($section['image_mode'] === IMAGE_REQUIRED && empty($data['image_filename'])) {
+        return null;
+    }
+
+    // Check max blocks limit
+    if ($section['max_blocks']) {
+        $currentCount = count(getContentBlocks($sectionCode));
+        if ($currentCount >= $section['max_blocks']) {
+            return null;
+        }
+    }
+
+    $pdo = getDatabase();
+
+    // Get next position
+    $stmt = $pdo->prepare('SELECT COALESCE(MAX(position), 0) + 1 FROM content_blocks WHERE section_code = ?');
+    $stmt->execute([$sectionCode]);
+    $nextPosition = $stmt->fetchColumn();
+
+    $stmt = $pdo->prepare('
+        INSERT INTO content_blocks (section_code, title, description, image_filename, image_alt, link_url, link_text, position, is_active)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ');
+
+    $success = $stmt->execute([
+        $sectionCode,
+        $data['title'] ?? null,
+        $data['description'] ?? null,
+        $data['image_filename'] ?? null,
+        $data['image_alt'] ?? null,
+        $data['link_url'] ?? null,
+        $data['link_text'] ?? null,
+        $data['position'] ?? $nextPosition,
+        $data['is_active'] ?? 1
+    ]);
+
+    return $success ? (int)$pdo->lastInsertId() : null;
+}
+
+/**
+ * Update a content block
+ */
+function updateContentBlock(int $id, array $data): bool {
+    $block = getContentBlock($id);
+    if (!$block) {
+        return false;
+    }
+
+    $section = getContentSection($block['section_code']);
+    if (!$section) {
+        return false;
+    }
+
+    // Validate image requirement
+    $imageFilename = $data['image_filename'] ?? $block['image_filename'];
+    if ($section['image_mode'] === IMAGE_REQUIRED && empty($imageFilename)) {
+        return false;
+    }
+
+    // Clear image if forbidden
+    if ($section['image_mode'] === IMAGE_FORBIDDEN) {
+        $imageFilename = null;
+    }
+
+    $pdo = getDatabase();
+    $stmt = $pdo->prepare('
+        UPDATE content_blocks SET
+            title = ?,
+            description = ?,
+            image_filename = ?,
+            image_alt = ?,
+            link_url = ?,
+            link_text = ?,
+            position = ?,
+            is_active = ?
+        WHERE id = ?
+    ');
+
+    return $stmt->execute([
+        $data['title'] ?? $block['title'],
+        $data['description'] ?? $block['description'],
+        $imageFilename,
+        $data['image_alt'] ?? $block['image_alt'],
+        $data['link_url'] ?? $block['link_url'],
+        $data['link_text'] ?? $block['link_text'],
+        $data['position'] ?? $block['position'],
+        $data['is_active'] ?? $block['is_active'],
+        $id
+    ]);
+}
+
+/**
+ * Delete a content block
+ */
+function deleteContentBlock(int $id): bool {
+    $block = getContentBlock($id);
+    if (!$block) {
+        return false;
+    }
+
+    // Delete associated image file if exists
+    if (!empty($block['image_filename']) && strpos($block['image_filename'], 'uploads/') === 0) {
+        $filePath = __DIR__ . '/../' . $block['image_filename'];
+        if (file_exists($filePath)) {
+            unlink($filePath);
+        }
+    }
+
+    $pdo = getDatabase();
+    $stmt = $pdo->prepare('DELETE FROM content_blocks WHERE id = ?');
+    return $stmt->execute([$id]);
+}
+
+/**
+ * Reorder content blocks
+ */
+function reorderContentBlocks(string $sectionCode, array $blockIds): bool {
+    $pdo = getDatabase();
+    $stmt = $pdo->prepare('UPDATE content_blocks SET position = ? WHERE id = ? AND section_code = ?');
+
+    $position = 1;
+    foreach ($blockIds as $id) {
+        $stmt->execute([$position, $id, $sectionCode]);
+        $position++;
+    }
+
+    return true;
+}
+
+/**
+ * Handle content block image upload
+ */
+function handleContentBlockImageUpload(array $file, int $blockId): array {
+    $block = getContentBlock($blockId);
+    if (!$block) {
+        return ['valid' => false, 'message' => 'Bloc de contenu introuvable.'];
+    }
+
+    $section = getContentSection($block['section_code']);
+    if (!$section || $section['image_mode'] === IMAGE_FORBIDDEN) {
+        return ['valid' => false, 'message' => 'Les images ne sont pas autorisées pour cette section.'];
+    }
+
+    // Validate file
+    $validation = validateUploadedFile($file);
+    if (!$validation['valid']) {
+        return $validation;
+    }
+
+    // Generate unique filename
+    $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+    $newFilename = 'content_' . $blockId . '_' . time() . '.' . $extension;
+    $uploadPath = UPLOAD_DIR . $newFilename;
+
+    // Delete old image if exists
+    if (!empty($block['image_filename']) && strpos($block['image_filename'], 'uploads/') === 0) {
+        $oldPath = __DIR__ . '/../' . $block['image_filename'];
+        if (file_exists($oldPath)) {
+            unlink($oldPath);
+        }
+    }
+
+    // Move uploaded file
+    if (!move_uploaded_file($file['tmp_name'], $uploadPath)) {
+        return ['valid' => false, 'message' => 'Erreur lors du téléchargement du fichier.'];
+    }
+
+    // Update block with new image
+    $pdo = getDatabase();
+    $stmt = $pdo->prepare('UPDATE content_blocks SET image_filename = ? WHERE id = ?');
+    $stmt->execute(['uploads/' . $newFilename, $blockId]);
+
+    return ['valid' => true, 'message' => 'Image téléchargée avec succès.', 'filename' => 'uploads/' . $newFilename];
+}
+
+/**
+ * Handle new content block image upload (before block is created)
+ */
+function handleNewContentImageUpload(array $file, string $sectionCode): array {
+    $section = getContentSection($sectionCode);
+    if (!$section || $section['image_mode'] === IMAGE_FORBIDDEN) {
+        return ['valid' => false, 'message' => 'Les images ne sont pas autorisées pour cette section.'];
+    }
+
+    // Validate file
+    $validation = validateUploadedFile($file);
+    if (!$validation['valid']) {
+        return $validation;
+    }
+
+    // Generate unique filename
+    $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+    $newFilename = 'content_new_' . time() . '_' . uniqid() . '.' . $extension;
+    $uploadPath = UPLOAD_DIR . $newFilename;
+
+    // Move uploaded file
+    if (!move_uploaded_file($file['tmp_name'], $uploadPath)) {
+        return ['valid' => false, 'message' => 'Erreur lors du téléchargement du fichier.'];
+    }
+
+    return ['valid' => true, 'message' => 'Image téléchargée avec succès.', 'filename' => 'uploads/' . $newFilename];
+}
+
+/**
+ * Get page names for display
+ */
+function getContentPageNames(): array {
+    return [
+        'home' => 'Accueil',
+        'services' => 'Services',
+        'activities' => 'À découvrir',
+        'contact' => 'Contact'
+    ];
+}
+
+/**
+ * Get image mode label
+ */
+function getImageModeLabel(string $mode): string {
+    $labels = [
+        IMAGE_REQUIRED => 'Image obligatoire',
+        IMAGE_OPTIONAL => 'Image optionnelle',
+        IMAGE_FORBIDDEN => 'Texte uniquement'
+    ];
+    return $labels[$mode] ?? $mode;
+}
+
+/**
+ * Get image mode badge class
+ */
+function getImageModeBadgeClass(string $mode): string {
+    $classes = [
+        IMAGE_REQUIRED => 'badge-required',
+        IMAGE_OPTIONAL => 'badge-optional',
+        IMAGE_FORBIDDEN => 'badge-text-only'
+    ];
+    return $classes[$mode] ?? '';
+}
+
+/**
+ * Migrate existing images to content blocks
+ */
+function migrateImagesToContentBlocks(): array {
+    $pdo = getDatabase();
+    $migrated = 0;
+    $errors = [];
+
+    // Map old sections to new section codes
+    $sectionMap = [
+        'home' => [
+            1 => ['section' => 'home_hero', 'position' => 1],
+            2 => ['section' => 'home_hero', 'position' => 2],
+            3 => ['section' => 'home_hero', 'position' => 3],
+            4 => ['section' => 'home_intro', 'position' => 1],
+        ],
+        'services' => [
+            1 => ['section' => 'services_rooms', 'position' => 1],
+            2 => ['section' => 'services_restaurant', 'position' => 1],
+        ],
+        'activities' => [
+            1 => ['section' => 'activities_discover', 'position' => 1],
+            2 => ['section' => 'activities_wine', 'position' => 1],
+        ],
+    ];
+
+    try {
+        // Check if old images table exists
+        $stmt = $pdo->query("SHOW TABLES LIKE 'images'");
+        if (!$stmt->fetch()) {
+            return ['migrated' => 0, 'errors' => ['Table images non trouvée.']];
+        }
+
+        // Get existing images
+        $images = $pdo->query('SELECT * FROM images ORDER BY section, position')->fetchAll();
+
+        foreach ($images as $image) {
+            $section = $image['section'];
+            $position = $image['position'];
+
+            if (isset($sectionMap[$section][$position])) {
+                $mapping = $sectionMap[$section][$position];
+
+                // Check if block already exists
+                $existingBlocks = getContentBlocks($mapping['section']);
+                $exists = false;
+                foreach ($existingBlocks as $block) {
+                    if ($block['image_filename'] === $image['filename']) {
+                        $exists = true;
+                        break;
+                    }
+                }
+
+                if (!$exists) {
+                    $blockId = createContentBlock($mapping['section'], [
+                        'title' => $image['title'] ?? '',
+                        'description' => '',
+                        'image_filename' => $image['filename'],
+                        'image_alt' => $image['alt_text'] ?? '',
+                        'position' => $mapping['position']
+                    ]);
+
+                    if ($blockId) {
+                        $migrated++;
+                    } else {
+                        $errors[] = "Impossible de migrer l'image {$image['id']}";
+                    }
+                }
+            }
+        }
+    } catch (PDOException $e) {
+        $errors[] = 'Erreur de base de données: ' . $e->getMessage();
+    }
+
+    return ['migrated' => $migrated, 'errors' => $errors];
 }

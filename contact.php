@@ -56,32 +56,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
 }
 
-// Initialize database images
-$useDatabase = false;
-$images = [];
+// Load content helper for dynamic content
+require_once __DIR__ . '/includes/content-helper.php';
 
-try {
-    require_once __DIR__ . '/includes/images-helper.php';
-    $images = sectionImages('contact');
-    $useDatabase = !empty($images);
-} catch (Exception $e) {
-    // Database unavailable, use fallback images
-}
-
-/**
- * Get image URL by position, with fallback
- */
-function getImg($images, $position, $fallback) {
-    foreach ($images as $img) {
-        if ($img['position'] == $position) {
-            return $img['filename'];
-        }
-    }
-    return $fallback;
-}
-
-// Define image variables with fallbacks
-$heroImage = $useDatabase ? getImg($images, 1, 'images/acceuil/dehors_nuit.jpg') : 'images/acceuil/dehors_nuit.jpg';
+// Get hero image from content system with fallback
+$heroImage = contentImage('contact_hero', 1, 'images/acceuil/dehors_nuit.jpg');
 ?>
 <!DOCTYPE html>
 <html lang="fr">

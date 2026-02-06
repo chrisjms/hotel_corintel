@@ -9,39 +9,18 @@ require_once __DIR__ . '/includes/functions.php';
 // Get message categories for the contact reception modal
 $messageCategories = getGuestMessageCategories();
 
-// Initialize database images
-$useDatabase = false;
-$images = [];
+// Load content helper for dynamic content
+require_once __DIR__ . '/includes/content-helper.php';
 
-try {
-    require_once __DIR__ . '/includes/images-helper.php';
-    $images = sectionImages('activities');
-    $useDatabase = !empty($images);
-} catch (Exception $e) {
-    // Database unavailable, use fallback images
-}
-
-/**
- * Get image URL by position, with fallback
- */
-function getImg($images, $position, $fallback) {
-    foreach ($images as $img) {
-        if ($img['position'] == $position) {
-            return $img['filename'];
-        }
-    }
-    return $fallback;
-}
-
-// Define image variables with fallbacks
-$heroImage = $useDatabase ? getImg($images, 1, 'images/acceuil/plan_large.jpg') : 'images/acceuil/plan_large.jpg';
-$bordeauxImage = $useDatabase ? getImg($images, 2, 'images/acceuil/plan_large-2.png') : 'images/acceuil/plan_large-2.png';
-$saintEmilionImage = $useDatabase ? getImg($images, 3, 'images/resto/21968112.jpg') : 'images/resto/21968112.jpg';
-$tastingImage = $useDatabase ? getImg($images, 4, 'images/resto/property-amenity-2.jpg') : 'images/resto/property-amenity-2.jpg';
-$cellarsImage = $useDatabase ? getImg($images, 5, 'images/resto/restaurant-hotel-tresses-3.jpg') : 'images/resto/restaurant-hotel-tresses-3.jpg';
-$walksImage = $useDatabase ? getImg($images, 6, 'images/resto/barlounge.jpg') : 'images/resto/barlounge.jpg';
-$gastronomyImage = $useDatabase ? getImg($images, 7, 'images/acceuil/1759071986_IMG_2108.jpeg') : 'images/acceuil/1759071986_IMG_2108.jpeg';
-$countrysideImage = $useDatabase ? getImg($images, 8, 'images/acceuil/bar.jpg') : 'images/acceuil/bar.jpg';
+// Get images from content system with fallbacks
+$heroImage = contentImage('activities_hero', 1, 'images/acceuil/plan_large.jpg');
+$bordeauxImage = contentImage('activities_bordeaux', 1, 'images/acceuil/plan_large-2.png');
+$saintEmilionImage = contentImage('activities_saintemilion', 1, 'images/resto/21968112.jpg');
+$tastingImage = contentImage('activities_wine', 1, 'images/resto/property-amenity-2.jpg');
+$cellarsImage = contentImage('activities_wine', 2, 'images/resto/restaurant-hotel-tresses-3.jpg');
+$walksImage = contentImage('activities_wine', 3, 'images/resto/barlounge.jpg');
+$gastronomyImage = contentImage('activities_wine', 4, 'images/acceuil/1759071986_IMG_2108.jpeg');
+$countrysideImage = contentImage('activities_countryside', 1, 'images/acceuil/bar.jpg');
 ?>
 <!DOCTYPE html>
 <html lang="fr">

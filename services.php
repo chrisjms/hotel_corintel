@@ -9,39 +9,18 @@ require_once __DIR__ . '/includes/functions.php';
 // Get message categories for the contact reception modal
 $messageCategories = getGuestMessageCategories();
 
-// Initialize database images
-$useDatabase = false;
-$images = [];
+// Load content helper for dynamic content
+require_once __DIR__ . '/includes/content-helper.php';
 
-try {
-    require_once __DIR__ . '/includes/images-helper.php';
-    $images = sectionImages('services');
-    $useDatabase = !empty($images);
-} catch (Exception $e) {
-    // Database unavailable, use fallback images
-}
-
-/**
- * Get image URL by position, with fallback
- */
-function getImg($images, $position, $fallback) {
-    foreach ($images as $img) {
-        if ($img['position'] == $position) {
-            return $img['filename'];
-        }
-    }
-    return $fallback;
-}
-
-// Define image variables with fallbacks
-$heroImage = $useDatabase ? getImg($images, 1, 'images/resto/restaurant-hotel-bordeaux-1.jpg') : 'images/resto/restaurant-hotel-bordeaux-1.jpg';
-$restaurantImage = $useDatabase ? getImg($images, 2, 'images/resto/petit_dej.jpg') : 'images/resto/petit_dej.jpg';
-$galleryImage1 = $useDatabase ? getImg($images, 3, 'images/resto/restaurant-hotel-tresses-1.jpg') : 'images/resto/restaurant-hotel-tresses-1.jpg';
-$galleryImage2 = $useDatabase ? getImg($images, 4, 'images/resto/restaurant-hotel-tresses-2.jpg') : 'images/resto/restaurant-hotel-tresses-2.jpg';
-$galleryImage3 = $useDatabase ? getImg($images, 5, 'images/resto/property-amenity.jpg') : 'images/resto/property-amenity.jpg';
-$barImage = $useDatabase ? getImg($images, 6, 'images/acceuil/bar.jpg') : 'images/acceuil/bar.jpg';
-$boulodromeImage = $useDatabase ? getImg($images, 7, 'images/acceuil/boulodrome.jpg') : 'images/acceuil/boulodrome.jpg';
-$parkingImage = $useDatabase ? getImg($images, 8, 'images/parking/hotel-bordeaux-parking.jpg') : 'images/parking/hotel-bordeaux-parking.jpg';
+// Get images from content system with fallbacks
+$heroImage = contentImage('services_hero', 1, 'images/resto/restaurant-hotel-bordeaux-1.jpg');
+$restaurantImage = contentImage('services_restaurant', 1, 'images/resto/petit_dej.jpg');
+$galleryImage1 = contentImage('services_restaurant_gallery', 1, 'images/resto/restaurant-hotel-tresses-1.jpg');
+$galleryImage2 = contentImage('services_restaurant_gallery', 2, 'images/resto/restaurant-hotel-tresses-2.jpg');
+$galleryImage3 = contentImage('services_restaurant_gallery', 3, 'images/resto/property-amenity.jpg');
+$barImage = contentImage('services_bar', 1, 'images/acceuil/bar.jpg');
+$boulodromeImage = contentImage('services_boulodrome', 1, 'images/acceuil/boulodrome.jpg');
+$parkingImage = contentImage('services_parking', 1, 'images/parking/hotel-bordeaux-parking.jpg');
 ?>
 <!DOCTYPE html>
 <html lang="fr">
