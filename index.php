@@ -12,10 +12,11 @@ $messageCategories = getGuestMessageCategories();
 // Load content helper for dynamic content
 require_once __DIR__ . '/includes/content-helper.php';
 
-// Get hero carousel images from content system
-$heroSlide1 = contentImage('home_hero', 1, 'images/acceuil/plan-large3.png');
-$heroSlide2 = contentImage('home_hero', 2, 'images/resto/restaurant-hotel-bordeaux-1.jpg');
-$heroSlide3 = contentImage('home_hero', 3, 'images/acceuil/bar.jpg');
+// Get hero carousel images from content system (all images, no limit)
+$heroSlides = content('home_hero');
+
+// Get hero overlay texts with all translations
+$heroOverlay = getSectionOverlayWithTranslations('home_hero');
 
 // Get intro section image
 $introImage = contentImage('home_intro', 1, 'images/acceuil/entree-hotel.jpeg');
@@ -71,35 +72,106 @@ $introImage = contentImage('home_intro', 1, 'images/acceuil/entree-hotel.jpeg');
   <!-- Hero Section -->
   <section class="hero">
     <div class="hero-carousel" id="heroCarousel">
-      <div class="hero-slide active">
-        <img src="<?= htmlspecialchars($heroSlide1) ?>" alt="Vue panoramique de l'Hôtel Corintel">
-        <div class="hero-overlay"></div>
-      </div>
-      <div class="hero-slide">
-        <img src="<?= htmlspecialchars($heroSlide2) ?>" alt="Vue du restaurant">
-        <div class="hero-overlay"></div>
-      </div>
-      <div class="hero-slide">
-        <img src="<?= htmlspecialchars($heroSlide3) ?>" alt="Bar de l'Hôtel Corintel">
-        <div class="hero-overlay"></div>
-      </div>
+      <?php if (empty($heroSlides)): ?>
+        <!-- Placeholder when no images are configured -->
+        <div class="hero-slide active hero-placeholder">
+          <div class="hero-placeholder-content">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+              <circle cx="8.5" cy="8.5" r="1.5"/>
+              <polyline points="21 15 16 10 5 21"/>
+            </svg>
+          </div>
+          <div class="hero-overlay"></div>
+        </div>
+      <?php else: ?>
+        <?php foreach ($heroSlides as $index => $slide): ?>
+          <?php if (!empty($slide['image_filename'])): ?>
+            <div class="hero-slide<?= $index === 0 ? ' active' : '' ?>">
+              <img src="<?= htmlspecialchars($slide['image_filename']) ?>" alt="<?= htmlspecialchars($slide['image_alt'] ?? 'Image de l\'Hôtel Corintel') ?>">
+              <div class="hero-overlay"></div>
+            </div>
+          <?php endif; ?>
+        <?php endforeach; ?>
+      <?php endif; ?>
     </div>
     <div class="hero-content">
-      <p class="hero-subtitle" data-i18n="home.heroSubtitle">Bienvenue à l'Hôtel Corintel</p>
-      <h1 class="hero-title" data-i18n="home.heroTitle">Un havre de paix<br>aux portes de Bordeaux</h1>
-      <p class="hero-description" data-i18n="home.heroDescription">
-        Découvrez notre hôtel de charme 3 étoiles, niché dans la campagne bordelaise,
-        à quelques minutes de Bordeaux et Saint-Émilion.
-      </p>
+      <?php
+      // Default fallback texts (used if not configured in admin)
+      $defaultSubtitle = 'Bienvenue à l\'Hôtel Corintel';
+      $defaultTitle = 'Un havre de paix<br>aux portes de Bordeaux';
+      $defaultDescription = 'Découvrez notre hôtel de charme 3 étoiles, niché dans la campagne bordelaise, à quelques minutes de Bordeaux et Saint-Émilion.';
+
+      // Use database values if available, otherwise use defaults
+      $displaySubtitle = !empty($heroOverlay['subtitle']) ? $heroOverlay['subtitle'] : $defaultSubtitle;
+      $displayTitle = !empty($heroOverlay['title']) ? $heroOverlay['title'] : $defaultTitle;
+      $displayDescription = !empty($heroOverlay['description']) ? $heroOverlay['description'] : $defaultDescription;
+
+      // Check if database has overlay configured
+      $hasDbOverlay = !empty($heroOverlay['subtitle']) || !empty($heroOverlay['title']) || !empty($heroOverlay['description']);
+
+      // Prepare translations JSON for JavaScript i18n system
+      $overlayTranslations = [];
+      if ($hasDbOverlay) {
+          $overlayTranslations = [
+              'fr' => [
+                  'subtitle' => $displaySubtitle,
+                  'title' => $displayTitle,
+                  'description' => $displayDescription
+              ]
+          ];
+          foreach (['en', 'es', 'it'] as $lang) {
+              if (isset($heroOverlay['translations'][$lang])) {
+                  $trans = $heroOverlay['translations'][$lang];
+                  $overlayTranslations[$lang] = [
+                      'subtitle' => !empty($trans['subtitle']) ? $trans['subtitle'] : $displaySubtitle,
+                      'title' => !empty($trans['title']) ? $trans['title'] : $displayTitle,
+                      'description' => !empty($trans['description']) ? $trans['description'] : $displayDescription
+                  ];
+              } else {
+                  // Fallback to French
+                  $overlayTranslations[$lang] = $overlayTranslations['fr'];
+              }
+          }
+      }
+      ?>
+      <?php if ($hasDbOverlay): ?>
+      <p class="hero-subtitle" data-overlay-text="subtitle"><?= htmlspecialchars($displaySubtitle) ?></p>
+      <h1 class="hero-title" data-overlay-text="title"><?= $displayTitle ?></h1>
+      <p class="hero-description" data-overlay-text="description"><?= htmlspecialchars($displayDescription) ?></p>
+      <?php else: ?>
+      <p class="hero-subtitle" data-i18n="home.heroSubtitle"><?= $displaySubtitle ?></p>
+      <h1 class="hero-title" data-i18n="home.heroTitle"><?= $displayTitle ?></h1>
+      <p class="hero-description" data-i18n="home.heroDescription"><?= htmlspecialchars($displayDescription) ?></p>
+      <?php endif; ?>
       <div class="hero-buttons">
         <a href="services.php" class="btn btn-primary" data-i18n="home.discoverServices">Découvrir nos services</a>
       </div>
     </div>
+    <?php if ($hasDbOverlay): ?>
+    <script>
+      // Hero overlay translations from database
+      window.heroOverlayTranslations = <?= json_encode($overlayTranslations, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
+    </script>
+    <?php endif; ?>
+    <?php
+    // Count actual slides with images
+    $slideCount = 0;
+    if (!empty($heroSlides)) {
+        foreach ($heroSlides as $slide) {
+            if (!empty($slide['image_filename'])) {
+                $slideCount++;
+            }
+        }
+    }
+    ?>
+    <?php if ($slideCount > 1): ?>
     <div class="carousel-nav" id="carouselNav">
-      <span class="carousel-dot active" data-index="0"></span>
-      <span class="carousel-dot" data-index="1"></span>
-      <span class="carousel-dot" data-index="2"></span>
+      <?php for ($i = 0; $i < $slideCount; $i++): ?>
+        <span class="carousel-dot<?= $i === 0 ? ' active' : '' ?>" data-index="<?= $i ?>"></span>
+      <?php endfor; ?>
     </div>
+    <?php endif; ?>
   </section>
 
   <!-- Introduction Section -->
@@ -381,37 +453,45 @@ $introImage = contentImage('home_intro', 1, 'images/acceuil/entree-hotel.jpeg');
       }
     });
 
-    // Hero carousel
+    // Hero carousel (dynamic - handles any number of slides)
     const slides = document.querySelectorAll('.hero-slide');
     const dots = document.querySelectorAll('.carousel-dot');
     let currentSlide = 0;
+    let slideInterval = null;
 
-    function showSlide(index) {
-      slides.forEach((slide, i) => {
-        slide.classList.remove('active');
-        dots[i].classList.remove('active');
-      });
-      slides[index].classList.add('active');
-      dots[index].classList.add('active');
-    }
+    // Only run carousel if there are multiple slides
+    if (slides.length > 1) {
+      function showSlide(index) {
+        slides.forEach((slide, i) => {
+          slide.classList.remove('active');
+        });
+        dots.forEach((dot, i) => {
+          dot.classList.remove('active');
+        });
+        slides[index].classList.add('active');
+        if (dots[index]) {
+          dots[index].classList.add('active');
+        }
+      }
 
-    function nextSlide() {
-      currentSlide = (currentSlide + 1) % slides.length;
-      showSlide(currentSlide);
-    }
-
-    // Auto-advance carousel
-    let slideInterval = setInterval(nextSlide, 5000);
-
-    // Dot navigation
-    dots.forEach((dot, index) => {
-      dot.addEventListener('click', () => {
-        currentSlide = index;
+      function nextSlide() {
+        currentSlide = (currentSlide + 1) % slides.length;
         showSlide(currentSlide);
-        clearInterval(slideInterval);
-        slideInterval = setInterval(nextSlide, 5000);
+      }
+
+      // Auto-advance carousel
+      slideInterval = setInterval(nextSlide, 5000);
+
+      // Dot navigation
+      dots.forEach((dot, index) => {
+        dot.addEventListener('click', () => {
+          currentSlide = index;
+          showSlide(currentSlide);
+          clearInterval(slideInterval);
+          slideInterval = setInterval(nextSlide, 5000);
+        });
       });
-    });
+    }
 
     // Scroll to top button
     const scrollTop = document.getElementById('scrollTop');

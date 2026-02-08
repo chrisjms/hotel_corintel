@@ -2255,6 +2255,37 @@ function initContentTables(): void {
             FOREIGN KEY (section_code) REFERENCES content_sections(code) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     ");
+
+    // Add overlay columns to content_sections if not exist
+    try {
+        $pdo->exec("ALTER TABLE content_sections ADD COLUMN overlay_subtitle VARCHAR(255) DEFAULT NULL");
+    } catch (PDOException $e) { /* Column may already exist */ }
+
+    try {
+        $pdo->exec("ALTER TABLE content_sections ADD COLUMN overlay_title VARCHAR(255) DEFAULT NULL");
+    } catch (PDOException $e) { /* Column may already exist */ }
+
+    try {
+        $pdo->exec("ALTER TABLE content_sections ADD COLUMN overlay_description TEXT DEFAULT NULL");
+    } catch (PDOException $e) { /* Column may already exist */ }
+
+    try {
+        $pdo->exec("ALTER TABLE content_sections ADD COLUMN has_overlay TINYINT(1) DEFAULT 0");
+    } catch (PDOException $e) { /* Column may already exist */ }
+
+    // Section overlay translations table
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS section_overlay_translations (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            section_code VARCHAR(50) NOT NULL,
+            language_code VARCHAR(5) NOT NULL,
+            overlay_subtitle VARCHAR(255),
+            overlay_title VARCHAR(255),
+            overlay_description TEXT,
+            UNIQUE KEY unique_section_lang (section_code, language_code),
+            FOREIGN KEY (section_code) REFERENCES content_sections(code) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    ");
 }
 
 /**
@@ -2297,6 +2328,28 @@ function seedContentSections(): void {
     foreach ($sections as $section) {
         $stmt->execute($section);
     }
+
+    // Seed default overlay texts for home_hero if not already set
+    seedDefaultOverlayTexts();
+}
+
+/**
+ * Seed default overlay texts for sections that need them
+ * Note: Fields are left empty - admin uses placeholders for guidance
+ */
+function seedDefaultOverlayTexts(): void {
+    $pdo = getDatabase();
+
+    // Enable overlay for home_hero and ensure it's configured as image-only (no title/description per image)
+    $stmt = $pdo->prepare('
+        UPDATE content_sections
+        SET has_overlay = 1,
+            has_title = 0,
+            has_description = 0,
+            has_link = 0
+        WHERE code = ?
+    ');
+    $stmt->execute(['home_hero']);
 }
 
 /**
@@ -2683,4 +2736,151 @@ function migrateImagesToContentBlocks(): array {
     }
 
     return ['migrated' => $migrated, 'errors' => $errors];
+}
+
+// =====================================================
+// SECTION OVERLAY TEXT FUNCTIONS
+// =====================================================
+
+/**
+ * Check if section has overlay text capability
+ */
+function sectionHasOverlay(string $sectionCode): bool {
+    $pdo = getDatabase();
+    $stmt = $pdo->prepare('SELECT has_overlay FROM content_sections WHERE code = ?');
+    $stmt->execute([$sectionCode]);
+    $result = $stmt->fetchColumn();
+    return $result == 1;
+}
+
+/**
+ * Enable overlay for a section
+ */
+function enableSectionOverlay(string $sectionCode): bool {
+    $pdo = getDatabase();
+    $stmt = $pdo->prepare('UPDATE content_sections SET has_overlay = 1 WHERE code = ?');
+    return $stmt->execute([$sectionCode]);
+}
+
+/**
+ * Get section overlay texts (default language - French)
+ */
+function getSectionOverlay(string $sectionCode): array {
+    $pdo = getDatabase();
+    $stmt = $pdo->prepare('SELECT overlay_subtitle, overlay_title, overlay_description FROM content_sections WHERE code = ?');
+    $stmt->execute([$sectionCode]);
+    $result = $stmt->fetch();
+
+    return [
+        'subtitle' => $result['overlay_subtitle'] ?? '',
+        'title' => $result['overlay_title'] ?? '',
+        'description' => $result['overlay_description'] ?? ''
+    ];
+}
+
+/**
+ * Get section overlay texts with all translations
+ */
+function getSectionOverlayWithTranslations(string $sectionCode): array {
+    $overlay = getSectionOverlay($sectionCode);
+
+    // Get translations
+    $pdo = getDatabase();
+    $stmt = $pdo->prepare('SELECT language_code, overlay_subtitle, overlay_title, overlay_description FROM section_overlay_translations WHERE section_code = ?');
+    $stmt->execute([$sectionCode]);
+    $translations = $stmt->fetchAll();
+
+    $overlay['translations'] = [];
+    foreach ($translations as $trans) {
+        $overlay['translations'][$trans['language_code']] = [
+            'subtitle' => $trans['overlay_subtitle'] ?? '',
+            'title' => $trans['overlay_title'] ?? '',
+            'description' => $trans['overlay_description'] ?? ''
+        ];
+    }
+
+    return $overlay;
+}
+
+/**
+ * Save section overlay texts (French - default)
+ */
+function saveSectionOverlay(string $sectionCode, string $subtitle, string $title, string $description): bool {
+    $pdo = getDatabase();
+    $stmt = $pdo->prepare('
+        UPDATE content_sections
+        SET overlay_subtitle = ?, overlay_title = ?, overlay_description = ?, has_overlay = 1
+        WHERE code = ?
+    ');
+    return $stmt->execute([trim($subtitle), trim($title), trim($description), $sectionCode]);
+}
+
+/**
+ * Save section overlay translations
+ */
+function saveSectionOverlayTranslations(string $sectionCode, array $translations): bool {
+    $pdo = getDatabase();
+    $success = true;
+
+    foreach ($translations as $langCode => $texts) {
+        if (!in_array($langCode, getSupportedLanguages()) || $langCode === 'fr') {
+            continue;
+        }
+
+        $subtitle = trim($texts['subtitle'] ?? '');
+        $title = trim($texts['title'] ?? '');
+        $description = trim($texts['description'] ?? '');
+
+        // Skip if all empty
+        if (empty($subtitle) && empty($title) && empty($description)) {
+            // Delete existing translation if all fields are empty
+            $stmt = $pdo->prepare('DELETE FROM section_overlay_translations WHERE section_code = ? AND language_code = ?');
+            $stmt->execute([$sectionCode, $langCode]);
+            continue;
+        }
+
+        try {
+            $stmt = $pdo->prepare('
+                INSERT INTO section_overlay_translations (section_code, language_code, overlay_subtitle, overlay_title, overlay_description)
+                VALUES (?, ?, ?, ?, ?)
+                ON DUPLICATE KEY UPDATE
+                    overlay_subtitle = VALUES(overlay_subtitle),
+                    overlay_title = VALUES(overlay_title),
+                    overlay_description = VALUES(overlay_description)
+            ');
+            $success = $stmt->execute([$sectionCode, $langCode, $subtitle, $title, $description]) && $success;
+        } catch (PDOException $e) {
+            $success = false;
+        }
+    }
+
+    return $success;
+}
+
+/**
+ * Get section overlay for a specific language (with French fallback)
+ */
+function getSectionOverlayForLanguage(string $sectionCode, string $langCode = 'fr'): array {
+    // Always get French as base/fallback
+    $base = getSectionOverlay($sectionCode);
+
+    if ($langCode === 'fr') {
+        return $base;
+    }
+
+    // Try to get translation
+    $pdo = getDatabase();
+    $stmt = $pdo->prepare('SELECT overlay_subtitle, overlay_title, overlay_description FROM section_overlay_translations WHERE section_code = ? AND language_code = ?');
+    $stmt->execute([$sectionCode, $langCode]);
+    $trans = $stmt->fetch();
+
+    if ($trans) {
+        return [
+            'subtitle' => !empty($trans['overlay_subtitle']) ? $trans['overlay_subtitle'] : $base['subtitle'],
+            'title' => !empty($trans['overlay_title']) ? $trans['overlay_title'] : $base['title'],
+            'description' => !empty($trans['overlay_description']) ? $trans['overlay_description'] : $base['description']
+        ];
+    }
+
+    return $base;
 }

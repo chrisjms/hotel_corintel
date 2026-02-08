@@ -272,6 +272,19 @@
           document.title = pageTitle + ' | Hôtel Corintel';
         }
       }
+
+      // Handle database-driven overlay translations (e.g., hero carousel texts)
+      if (window.heroOverlayTranslations) {
+        const overlayTrans = window.heroOverlayTranslations[this.currentLang] || window.heroOverlayTranslations['fr'];
+        if (overlayTrans) {
+          document.querySelectorAll('[data-overlay-text]').forEach(el => {
+            const field = el.dataset.overlayText;
+            if (overlayTrans[field]) {
+              el.innerHTML = overlayTrans[field];
+            }
+          });
+        }
+      }
     },
 
     /**

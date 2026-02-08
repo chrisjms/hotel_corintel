@@ -185,6 +185,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     $messageType = 'error';
                 }
                 break;
+
+            case 'save_overlay':
+                $sectionCode = $_POST['section_code'] ?? '';
+                $section = getContentSection($sectionCode);
+
+                if (!$section) {
+                    $message = 'Section invalide.';
+                    $messageType = 'error';
+                    break;
+                }
+
+                // Save French (default) overlay texts
+                $subtitle = $_POST['overlay_subtitle'] ?? '';
+                $title = $_POST['overlay_title'] ?? '';
+                $description = $_POST['overlay_description'] ?? '';
+
+                $success = saveSectionOverlay($sectionCode, $subtitle, $title, $description);
+
+                // Save translations
+                $translations = [];
+                foreach (['en', 'es', 'it'] as $lang) {
+                    $translations[$lang] = [
+                        'subtitle' => $_POST["overlay_subtitle_$lang"] ?? '',
+                        'title' => $_POST["overlay_title_$lang"] ?? '',
+                        'description' => $_POST["overlay_description_$lang"] ?? ''
+                    ];
+                }
+                $success = saveSectionOverlayTranslations($sectionCode, $translations) && $success;
+
+                if ($success) {
+                    $message = 'Textes de la section enregistrés avec succès.';
+                    $messageType = 'success';
+                    $currentSection = $sectionCode;
+                } else {
+                    $message = 'Erreur lors de l\'enregistrement.';
+                    $messageType = 'error';
+                }
+                break;
         }
     }
 }
@@ -569,6 +607,160 @@ if ($editBlockId) {
                 justify-content: flex-end;
             }
         }
+
+        /* Section overlay text panel */
+        .overlay-panel {
+            background: var(--admin-bg);
+            border: 1px solid var(--admin-border);
+            border-radius: var(--admin-radius);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .overlay-panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--admin-border);
+        }
+        .overlay-panel-header h4 {
+            margin: 0;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .overlay-panel-header h4 svg {
+            width: 18px;
+            height: 18px;
+            color: var(--admin-primary);
+        }
+        .overlay-form-row {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        .overlay-form-row.full-width {
+            grid-template-columns: 1fr;
+        }
+        .overlay-field-group label {
+            display: block;
+            margin-bottom: 0.375rem;
+            font-weight: 500;
+            font-size: 0.875rem;
+            color: var(--admin-text);
+        }
+        .overlay-field-group input,
+        .overlay-field-group textarea {
+            width: 100%;
+            padding: 0.625rem;
+            border: 1px solid var(--admin-border);
+            border-radius: 4px;
+            font-size: 0.875rem;
+        }
+        .overlay-field-group input:focus,
+        .overlay-field-group textarea:focus {
+            outline: none;
+            border-color: var(--admin-primary);
+        }
+        .overlay-field-group textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+        .overlay-field-hint {
+            font-size: 0.75rem;
+            color: var(--admin-text-light);
+            margin-top: 0.25rem;
+        }
+        .overlay-translations {
+            margin-top: 1.5rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--admin-border);
+        }
+        .overlay-translations-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            cursor: pointer;
+            user-select: none;
+        }
+        .overlay-translations-header h5 {
+            margin: 0;
+            font-size: 0.875rem;
+            color: var(--admin-text-light);
+        }
+        .overlay-translations-header svg {
+            width: 16px;
+            height: 16px;
+            transition: transform 0.2s;
+        }
+        .overlay-translations-header.collapsed svg {
+            transform: rotate(-90deg);
+        }
+        .overlay-translations-content {
+            display: block;
+        }
+        .overlay-translations-content.hidden {
+            display: none;
+        }
+        .translation-lang-group {
+            background: var(--admin-card);
+            border: 1px solid var(--admin-border);
+            border-radius: 6px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        .translation-lang-group:last-child {
+            margin-bottom: 0;
+        }
+        .translation-lang-label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 500;
+            font-size: 0.875rem;
+            margin-bottom: 0.75rem;
+            color: var(--admin-text);
+        }
+        .translation-lang-label .flag {
+            font-size: 1rem;
+        }
+        .translation-fields {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+        }
+        .translation-fields .full-width {
+            grid-column: 1 / -1;
+        }
+        .translation-field input,
+        .translation-field textarea {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid var(--admin-border);
+            border-radius: 4px;
+            font-size: 0.8125rem;
+        }
+        .translation-field label {
+            display: block;
+            font-size: 0.75rem;
+            color: var(--admin-text-light);
+            margin-bottom: 0.25rem;
+        }
+        .translation-field textarea {
+            min-height: 60px;
+            resize: vertical;
+        }
+        .overlay-actions {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--admin-border);
+        }
     </style>
 </head>
 <body>
@@ -714,29 +906,13 @@ if ($editBlockId) {
 
                 <?php if ($editBlock): ?>
                     <!-- Edit Block Form -->
+                    <?php $isImageOnlyEdit = $currentSectionData && !$currentSectionData['has_title'] && !$currentSectionData['has_description']; ?>
                     <div class="card">
                         <div class="card-header">
-                            <h2>Modifier le contenu</h2>
+                            <h2><?= $isImageOnlyEdit ? 'Modifier l\'image' : 'Modifier le contenu' ?></h2>
                             <a href="?section=<?= h($currentSection) ?>" class="btn btn-outline">Retour</a>
                         </div>
                         <div class="card-body">
-                            <?php if ($currentSectionData): ?>
-                            <div class="section-info">
-                                <svg class="section-info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <circle cx="12" cy="12" r="10"/>
-                                    <line x1="12" y1="16" x2="12" y2="12"/>
-                                    <line x1="12" y1="8" x2="12.01" y2="8"/>
-                                </svg>
-                                <div class="section-info-content">
-                                    <h3><?= h($currentSectionData['name']) ?></h3>
-                                    <p><?= h($currentSectionData['description']) ?></p>
-                                </div>
-                                <span class="image-mode-badge <?= getImageModeBadgeClass($currentSectionData['image_mode']) ?>">
-                                    <?= getImageModeLabel($currentSectionData['image_mode']) ?>
-                                </span>
-                            </div>
-                            <?php endif; ?>
-
                             <form method="POST" enctype="multipart/form-data" class="content-form">
                                 <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
                                 <input type="hidden" name="action" value="update">
@@ -822,27 +998,13 @@ if ($editBlockId) {
 
                 <?php elseif ($viewMode === 'add' && $currentSection && $currentSectionData): ?>
                     <!-- Add Block Form -->
+                    <?php $isImageOnlySection = !$currentSectionData['has_title'] && !$currentSectionData['has_description']; ?>
                     <div class="card">
                         <div class="card-header">
-                            <h2>Ajouter du contenu</h2>
+                            <h2><?= $isImageOnlySection ? 'Ajouter une image' : 'Ajouter du contenu' ?></h2>
                             <a href="?section=<?= h($currentSection) ?>" class="btn btn-outline">Retour</a>
                         </div>
                         <div class="card-body">
-                            <div class="section-info">
-                                <svg class="section-info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <circle cx="12" cy="12" r="10"/>
-                                    <line x1="12" y1="16" x2="12" y2="12"/>
-                                    <line x1="12" y1="8" x2="12.01" y2="8"/>
-                                </svg>
-                                <div class="section-info-content">
-                                    <h3><?= h($currentSectionData['name']) ?></h3>
-                                    <p><?= h($currentSectionData['description']) ?></p>
-                                </div>
-                                <span class="image-mode-badge <?= getImageModeBadgeClass($currentSectionData['image_mode']) ?>">
-                                    <?= getImageModeLabel($currentSectionData['image_mode']) ?>
-                                </span>
-                            </div>
-
                             <form method="POST" enctype="multipart/form-data" class="content-form">
                                 <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
                                 <input type="hidden" name="action" value="create">
@@ -918,11 +1080,12 @@ if ($editBlockId) {
                             <h2>Sections du site</h2>
                         </div>
                         <div class="card-body">
-                            <?php foreach ($sectionsByPage as $page => $sections): ?>
+                            <?php foreach ($pageNames as $page => $pageName): ?>
+                            <?php if (!isset($sectionsByPage[$page])) continue; ?>
                             <div class="page-group">
-                                <div class="page-group-title"><?= h($pageNames[$page] ?? $page) ?></div>
+                                <div class="page-group-title"><?= h($pageName) ?></div>
                                 <div class="sections-nav">
-                                    <?php foreach ($sections as $section): ?>
+                                    <?php foreach ($sectionsByPage[$page] as $section): ?>
                                     <a href="?section=<?= h($section['code']) ?>"
                                        class="section-btn <?= $currentSection === $section['code'] ? 'active' : '' ?>">
                                         <?= h($section['name']) ?>
@@ -959,27 +1122,109 @@ if ($editBlockId) {
                                     <line x1="12" y1="5" x2="12" y2="19"/>
                                     <line x1="5" y1="12" x2="19" y2="12"/>
                                 </svg>
-                                Ajouter
+                                <?= (!$currentSectionData['has_title'] && !$currentSectionData['has_description']) ? 'Ajouter une image' : 'Ajouter' ?>
                             </a>
                             <?php endif; ?>
                         </div>
                         <div class="card-body">
-                            <div class="section-info">
-                                <svg class="section-info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <circle cx="12" cy="12" r="10"/>
-                                    <line x1="12" y1="16" x2="12" y2="12"/>
-                                    <line x1="12" y1="8" x2="12.01" y2="8"/>
-                                </svg>
-                                <div class="section-info-content">
-                                    <p><?= h($currentSectionData['description']) ?></p>
-                                    <?php if ($currentSectionData['max_blocks']): ?>
-                                    <p><strong>Limite:</strong> <?= count($blocks) ?>/<?= $currentSectionData['max_blocks'] ?> bloc(s)</p>
-                                    <?php endif; ?>
-                                </div>
-                                <span class="image-mode-badge <?= getImageModeBadgeClass($currentSectionData['image_mode']) ?>">
-                                    <?= getImageModeLabel($currentSectionData['image_mode']) ?>
-                                </span>
+                            <?php
+                            // Show overlay text panel for sections that support it (currently home_hero)
+                            $showOverlayPanel = in_array($currentSection, ['home_hero']);
+                            if ($showOverlayPanel):
+                                $overlayData = getSectionOverlayWithTranslations($currentSection);
+                            ?>
+                            <div class="overlay-panel">
+                                <form method="POST">
+                                    <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
+                                    <input type="hidden" name="action" value="save_overlay">
+                                    <input type="hidden" name="section_code" value="<?= h($currentSection) ?>">
+
+                                    <div class="overlay-panel-header">
+                                        <h4>
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M12 20h9"/>
+                                                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                                            </svg>
+                                            Textes de la section
+                                        </h4>
+                                    </div>
+
+                                    <div class="overlay-form-row">
+                                        <div class="overlay-field-group">
+                                            <label for="overlay_subtitle">Sous-titre</label>
+                                            <input type="text" id="overlay_subtitle" name="overlay_subtitle" value="<?= h($overlayData['subtitle']) ?>" placeholder="Ex: Bienvenue à l'Hôtel Corintel">
+                                            <p class="overlay-field-hint">Texte affiché au-dessus du titre principal</p>
+                                        </div>
+                                        <div class="overlay-field-group">
+                                            <label for="overlay_title">Titre principal</label>
+                                            <input type="text" id="overlay_title" name="overlay_title" value="<?= h($overlayData['title']) ?>" placeholder="Ex: Un havre de paix aux portes de Bordeaux">
+                                            <p class="overlay-field-hint">Titre accrocheur en grand format</p>
+                                        </div>
+                                    </div>
+
+                                    <div class="overlay-form-row full-width">
+                                        <div class="overlay-field-group">
+                                            <label for="overlay_description">Description</label>
+                                            <textarea id="overlay_description" name="overlay_description" placeholder="Ex: Découvrez notre hôtel de charme 3 étoiles..."><?= h($overlayData['description']) ?></textarea>
+                                            <p class="overlay-field-hint">Paragraphe descriptif sous le titre</p>
+                                        </div>
+                                    </div>
+
+                                    <div class="overlay-translations">
+                                        <div class="overlay-translations-header" id="translationsToggle">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <polyline points="6 9 12 15 18 9"/>
+                                            </svg>
+                                            <h5>Traductions (optionnel)</h5>
+                                        </div>
+
+                                        <div class="overlay-translations-content" id="translationsContent">
+                                            <?php
+                                            $languages = [
+                                                'en' => ['flag' => '🇬🇧', 'name' => 'English'],
+                                                'es' => ['flag' => '🇪🇸', 'name' => 'Español'],
+                                                'it' => ['flag' => '🇮🇹', 'name' => 'Italiano']
+                                            ];
+                                            foreach ($languages as $langCode => $langInfo):
+                                                $trans = $overlayData['translations'][$langCode] ?? ['subtitle' => '', 'title' => '', 'description' => ''];
+                                            ?>
+                                            <div class="translation-lang-group">
+                                                <div class="translation-lang-label">
+                                                    <span class="flag"><?= $langInfo['flag'] ?></span>
+                                                    <?= $langInfo['name'] ?>
+                                                </div>
+                                                <div class="translation-fields">
+                                                    <div class="translation-field">
+                                                        <label>Sous-titre</label>
+                                                        <input type="text" name="overlay_subtitle_<?= $langCode ?>" value="<?= h($trans['subtitle']) ?>" placeholder="Subtitle">
+                                                    </div>
+                                                    <div class="translation-field">
+                                                        <label>Titre</label>
+                                                        <input type="text" name="overlay_title_<?= $langCode ?>" value="<?= h($trans['title']) ?>" placeholder="Title">
+                                                    </div>
+                                                    <div class="translation-field full-width">
+                                                        <label>Description</label>
+                                                        <textarea name="overlay_description_<?= $langCode ?>" placeholder="Description"><?= h($trans['description']) ?></textarea>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <?php endforeach; ?>
+                                        </div>
+                                    </div>
+
+                                    <div class="overlay-actions">
+                                        <button type="submit" class="btn btn-primary">
+                                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                                                <polyline points="17 21 17 13 7 13 7 21"/>
+                                                <polyline points="7 3 7 8 15 8"/>
+                                            </svg>
+                                            Enregistrer les textes
+                                        </button>
+                                    </div>
+                                </form>
                             </div>
+                            <?php endif; ?>
 
                             <?php if (empty($blocks)): ?>
                             <div class="empty-state">
@@ -988,11 +1233,12 @@ if ($editBlockId) {
                                     <line x1="3" y1="9" x2="21" y2="9"/>
                                     <line x1="9" y1="21" x2="9" y2="9"/>
                                 </svg>
-                                <h3>Aucun contenu</h3>
-                                <p>Cette section ne contient pas encore de contenu.</p>
+                                <?php $isImageOnly = !$currentSectionData['has_title'] && !$currentSectionData['has_description']; ?>
+                                <h3><?= $isImageOnly ? 'Aucune image' : 'Aucun contenu' ?></h3>
+                                <p>Cette section ne contient pas encore <?= $isImageOnly ? 'd\'image' : 'de contenu' ?>.</p>
                                 <?php if ($canAdd): ?>
                                 <a href="?section=<?= h($currentSection) ?>&view=add" class="btn btn-primary" style="margin-top: 1rem;">
-                                    Ajouter du contenu
+                                    <?= $isImageOnly ? 'Ajouter une image' : 'Ajouter du contenu' ?>
                                 </a>
                                 <?php endif; ?>
                             </div>
@@ -1023,16 +1269,22 @@ if ($editBlockId) {
                                     <?php endif; ?>
 
                                     <div class="block-content">
+                                        <?php if ($currentSectionData['has_title']): ?>
                                         <div class="block-title"><?= h($block['title']) ?: '<em>Sans titre</em>' ?></div>
-                                        <?php if ($block['description']): ?>
+                                        <?php else: ?>
+                                        <div class="block-title">Image <?= $block['position'] ?></div>
+                                        <?php endif; ?>
+                                        <?php if ($currentSectionData['has_description'] && $block['description']): ?>
                                         <div class="block-description"><?= h($block['description']) ?></div>
                                         <?php endif; ?>
                                         <div class="block-meta">
+                                            <?php if ($currentSectionData['has_title']): ?>
                                             <span>Position: <?= $block['position'] ?></span>
+                                            <?php endif; ?>
                                             <?php if (!$block['is_active']): ?>
                                             <span style="color: #C53030;">Inactif</span>
                                             <?php endif; ?>
-                                            <?php if ($block['link_url']): ?>
+                                            <?php if ($currentSectionData['has_link'] && $block['link_url']): ?>
                                             <span>Lien: <?= h($block['link_text'] ?: 'Oui') ?></span>
                                             <?php endif; ?>
                                         </div>
@@ -1093,6 +1345,17 @@ if ($editBlockId) {
     menuToggle?.addEventListener('click', openSidebar);
     sidebarClose?.addEventListener('click', closeSidebar);
     overlay?.addEventListener('click', closeSidebar);
+
+    // Translations toggle
+    const translationsToggle = document.getElementById('translationsToggle');
+    const translationsContent = document.getElementById('translationsContent');
+
+    if (translationsToggle && translationsContent) {
+        translationsToggle.addEventListener('click', () => {
+            translationsToggle.classList.toggle('collapsed');
+            translationsContent.classList.toggle('hidden');
+        });
+    }
 
     // Image upload area interaction
     const uploadArea = document.getElementById('uploadArea');
