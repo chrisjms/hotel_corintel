@@ -23,6 +23,9 @@ $introImage = contentImage('home_intro', 1, 'images/acceuil/entree-hotel.jpeg');
 
 // Get intro overlay texts with all translations
 $introOverlay = getSectionOverlayWithTranslations('home_intro');
+
+// Get intro features with translations
+$introFeatures = getSectionFeaturesWithTranslations('home_intro');
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -249,42 +252,62 @@ $introOverlay = getSectionOverlayWithTranslations('home_intro');
               }
           }
           ?>
+          <?php if (!empty($introFeatures)): ?>
+          <div class="intro-features">
+            <?php foreach ($introFeatures as $feature): ?>
+            <div class="intro-feature">
+              <?= getIconSvg($feature['icon_code']) ?>
+              <span data-feature-id="<?= $feature['id'] ?>"><?= h($feature['label']) ?></span>
+            </div>
+            <?php endforeach; ?>
+          </div>
+          <?php else: ?>
+          <!-- Fallback to static features if none configured -->
           <div class="intro-features">
             <div class="intro-feature">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/>
-                <circle cx="12" cy="10" r="3"/>
+                <path d="M12 22c6.5-3.5 10-8.5 10-13A10 10 0 0 0 2 9c0 4.5 3.5 9.5 10 13z"/>
               </svg>
               <span data-i18n="home.featureGarden">Jardin paisible</span>
             </div>
             <div class="intro-feature">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M17 11h1a3 3 0 0 1 0 6h-1M2 11h14v7a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3v-7zM6 7v4M10 7v4M14 7v4M8 3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2 0z"/>
+                <path d="M18 8h1a4 4 0 0 1 0 8h-1M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8zM6 1v4M10 1v4M14 1v4"/>
               </svg>
-              <span data-i18n="home.featureTerrace">Terrasse ombragée</span>
+              <span data-i18n="home.featureBreakfast">Petit-déjeuner inclus</span>
             </div>
             <div class="intro-feature">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
-                <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
               </svg>
-              <span data-i18n="home.featureLounge">Salon commun</span>
-            </div>
-            <div class="intro-feature">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="1" y="3" width="15" height="13" rx="2" ry="2"/>
-                <path d="M16 8h4a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-1"/>
-              </svg>
-              <span data-i18n="home.featureParking">Parking gratuit</span>
+              <span data-i18n="home.featureLocation">Proche centre-ville</span>
             </div>
           </div>
+          <?php endif; ?>
         </div>
       </div>
     </div>
-    <?php if ($hasIntroOverlay): ?>
+    <?php if ($hasIntroOverlay || !empty($introFeatures)): ?>
     <script>
+      <?php if ($hasIntroOverlay): ?>
       // Intro overlay translations from database
       window.introOverlayTranslations = <?= json_encode($introTranslations, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
+      <?php endif; ?>
+      <?php if (!empty($introFeatures)): ?>
+      // Intro feature translations from database
+      window.introFeatureTranslations = <?php
+        $featureTrans = [];
+        foreach ($introFeatures as $f) {
+            $featureTrans[$f['id']] = [
+                'fr' => $f['label'],
+                'en' => $f['translations']['en'] ?? $f['label'],
+                'es' => $f['translations']['es'] ?? $f['label'],
+                'it' => $f['translations']['it'] ?? $f['label']
+            ];
+        }
+        echo json_encode($featureTrans, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
+      ?>;
+      <?php endif; ?>
     </script>
     <?php endif; ?>
   </section>

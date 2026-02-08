@@ -312,6 +312,20 @@
           });
         }
       }
+
+      // Feature translations (data-feature-id)
+      if (window.introFeatureTranslations) {
+        document.querySelectorAll('[data-feature-id]').forEach(el => {
+          const featureId = el.dataset.featureId;
+          const featureTrans = window.introFeatureTranslations[featureId];
+          if (featureTrans) {
+            const label = featureTrans[this.currentLang] || featureTrans['fr'];
+            if (label) {
+              el.textContent = label;
+            }
+          }
+        });
+      }
     },
 
     /**

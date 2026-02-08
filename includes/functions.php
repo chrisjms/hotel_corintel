@@ -2286,6 +2286,39 @@ function initContentTables(): void {
             FOREIGN KEY (section_code) REFERENCES content_sections(code) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     ");
+
+    // Add has_features flag to content_sections if not exist
+    try {
+        $pdo->exec("ALTER TABLE content_sections ADD COLUMN has_features TINYINT(1) DEFAULT 0");
+    } catch (PDOException $e) { /* Column may already exist */ }
+
+    // Section features table (reusable for any section)
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS section_features (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            section_code VARCHAR(50) NOT NULL,
+            icon_code VARCHAR(50) NOT NULL,
+            label VARCHAR(100) NOT NULL,
+            position INT DEFAULT 0,
+            is_active TINYINT(1) DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_section (section_code),
+            INDEX idx_position (position),
+            FOREIGN KEY (section_code) REFERENCES content_sections(code) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    ");
+
+    // Section feature translations table
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS section_feature_translations (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            feature_id INT NOT NULL,
+            language_code VARCHAR(5) NOT NULL,
+            label VARCHAR(100) NOT NULL,
+            UNIQUE KEY unique_feature_lang (feature_id, language_code),
+            FOREIGN KEY (feature_id) REFERENCES section_features(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    ");
 }
 
 /**
@@ -2352,15 +2385,68 @@ function seedDefaultOverlayTexts(): void {
     $stmt->execute(['home_hero']);
 
     // Enable overlay for home_intro and configure as image-only (texts managed via overlay)
+    // Also enable features for home_intro
     $stmt = $pdo->prepare('
         UPDATE content_sections
         SET has_overlay = 1,
             has_title = 0,
             has_description = 0,
-            has_link = 0
+            has_link = 0,
+            has_features = 1
         WHERE code = ?
     ');
     $stmt->execute(['home_intro']);
+
+    // Seed default features for home_intro
+    seedDefaultIntroFeatures();
+}
+
+/**
+ * Seed default features for home_intro section
+ */
+function seedDefaultIntroFeatures(): void {
+    $pdo = getDatabase();
+
+    // Check if features already exist for home_intro
+    $stmt = $pdo->prepare('SELECT COUNT(*) FROM section_features WHERE section_code = ?');
+    $stmt->execute(['home_intro']);
+    if ($stmt->fetchColumn() > 0) {
+        return; // Already seeded
+    }
+
+    // Default features matching the original design
+    $defaultFeatures = [
+        ['icon' => 'tree', 'label_fr' => 'Jardin paisible', 'label_en' => 'Peaceful garden', 'label_es' => 'Jardín tranquilo', 'label_it' => 'Giardino tranquillo'],
+        ['icon' => 'coffee', 'label_fr' => 'Petit-déjeuner inclus', 'label_en' => 'Breakfast included', 'label_es' => 'Desayuno incluido', 'label_it' => 'Colazione inclusa'],
+        ['icon' => 'map-pin', 'label_fr' => 'Proche centre-ville', 'label_en' => 'Near city center', 'label_es' => 'Cerca del centro', 'label_it' => 'Vicino al centro']
+    ];
+
+    $position = 0;
+    foreach ($defaultFeatures as $feature) {
+        // Insert feature
+        $stmt = $pdo->prepare('
+            INSERT INTO section_features (section_code, icon_code, label, position, is_active)
+            VALUES (?, ?, ?, ?, 1)
+        ');
+        $stmt->execute(['home_intro', $feature['icon'], $feature['label_fr'], $position]);
+        $featureId = $pdo->lastInsertId();
+
+        // Insert translations
+        $translations = [
+            'en' => $feature['label_en'],
+            'es' => $feature['label_es'],
+            'it' => $feature['label_it']
+        ];
+        foreach ($translations as $lang => $label) {
+            $stmt = $pdo->prepare('
+                INSERT INTO section_feature_translations (feature_id, language_code, label)
+                VALUES (?, ?, ?)
+            ');
+            $stmt->execute([$featureId, $lang, $label]);
+        }
+
+        $position++;
+    }
 }
 
 /**
@@ -2894,4 +2980,425 @@ function getSectionOverlayForLanguage(string $sectionCode, string $langCode = 'f
     }
 
     return $base;
+}
+
+// =====================================================
+// ICON LIBRARY (Centralized, Reusable)
+// =====================================================
+
+/**
+ * Get all available icons for feature indicators
+ * Centralized icon library - reusable across all sections
+ */
+function getAvailableIcons(): array {
+    return [
+        // Nature & Outdoor
+        'garden' => [
+            'name' => 'Jardin',
+            'category' => 'nature',
+            'svg' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/><circle cx="12" cy="10" r="3"/></svg>'
+        ],
+        'tree' => [
+            'name' => 'Arbre',
+            'category' => 'nature',
+            'svg' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22v-7"/><path d="M9 22h6"/><path d="M12 15L8 9h8l-4 6z"/><path d="M12 9L8 3h8l-4 6z"/></svg>'
+        ],
+        'sun' => [
+            'name' => 'Soleil',
+            'category' => 'nature',
+            'svg' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>'
+        ],
+        'flower' => [
+            'name' => 'Fleur',
+            'category' => 'nature',
+            'svg' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4"/><path d="M12 18v4"/><path d="M4.93 4.93l2.83 2.83"/><path d="M16.24 16.24l2.83 2.83"/><path d="M2 12h4"/><path d="M18 12h4"/><path d="M4.93 19.07l2.83-2.83"/><path d="M16.24 7.76l2.83-2.83"/></svg>'
+        ],
+        'mountain' => [
+            'name' => 'Montagne',
+            'category' => 'nature',
+            'svg' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3l4 8 5-5 5 15H2L8 3z"/></svg>'
+        ],
+        'countryside' => [
+            'name' => 'Campagne',
+            'category' => 'nature',
+            'svg' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/></svg>'
+        ],
+
+        // Amenities
+        'terrace' => [
+            'name' => 'Terrasse',
+            'category' => 'amenities',
+            'svg' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 11h1a3 3 0 0 1 0 6h-1"/><path d="M2 11h14v7a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3v-7z"/><path d="M6 7v4"/><path d="M10 7v4"/><path d="M14 7v4"/></svg>'
+        ],
+        'lounge' => [
+            'name' => 'Salon',
+            'category' => 'amenities',
+            'svg' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>'
+        ],
+        'parking' => [
+            'name' => 'Parking',
+            'category' => 'amenities',
+            'svg' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13" rx="2" ry="2"/><path d="M16 8h4a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-1"/></svg>'
+        ],
+        'wifi' => [
+            'name' => 'WiFi',
+            'category' => 'amenities',
+            'svg' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1"/></svg>'
+        ],
+        'pool' => [
+            'name' => 'Piscine',
+            'category' => 'amenities',
+            'svg' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12h20"/><path d="M2 16c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/><path d="M2 20c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/></svg>'
+        ],
+        'spa' => [
+            'name' => 'Spa',
+            'category' => 'amenities',
+            'svg' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2c-4 4-6 8-6 10a6 6 0 1 0 12 0c0-2-2-6-6-10z"/></svg>'
+        ],
+        'gym' => [
+            'name' => 'Fitness',
+            'category' => 'amenities',
+            'svg' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6.5 6.5a2 2 0 0 1 3 0L12 9l2.5-2.5a2 2 0 0 1 3 0l2 2a2 2 0 0 1 0 3L17 14l2.5 2.5a2 2 0 0 1 0 3l-2 2a2 2 0 0 1-3 0L12 19l-2.5 2.5a2 2 0 0 1-3 0l-2-2a2 2 0 0 1 0-3L7 14l-2.5-2.5a2 2 0 0 1 0-3l2-2z"/></svg>'
+        ],
+        'aircon' => [
+            'name' => 'Climatisation',
+            'category' => 'amenities',
+            'svg' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="8" rx="2"/><path d="M6 12v4"/><path d="M10 12v6"/><path d="M14 12v4"/><path d="M18 12v6"/></svg>'
+        ],
+
+        // Dining
+        'restaurant' => [
+            'name' => 'Restaurant',
+            'category' => 'dining',
+            'svg' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>'
+        ],
+        'bar' => [
+            'name' => 'Bar',
+            'category' => 'dining',
+            'svg' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 22h8"/><path d="M12 11v11"/><path d="M5 3l7 8 7-8"/></svg>'
+        ],
+        'coffee' => [
+            'name' => 'Café',
+            'category' => 'dining',
+            'svg' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V8z"/><line x1="6" y1="2" x2="6" y2="4"/><line x1="10" y1="2" x2="10" y2="4"/><line x1="14" y1="2" x2="14" y2="4"/></svg>'
+        ],
+        'wine' => [
+            'name' => 'Vin',
+            'category' => 'dining',
+            'svg' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 22h8"/><path d="M12 15v7"/><path d="M5 3h14l-1.5 9a5.5 5.5 0 0 1-11 0L5 3z"/></svg>'
+        ],
+        'room-service' => [
+            'name' => 'Room Service',
+            'category' => 'dining',
+            'svg' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15h16a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-2a1 1 0 0 1 1-1z"/><path d="M12 4a6 6 0 0 1 6 6v5H6v-5a6 6 0 0 1 6-6z"/></svg>'
+        ],
+
+        // Comfort
+        'bed' => [
+            'name' => 'Lit',
+            'category' => 'comfort',
+            'svg' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4v16"/><path d="M22 4v16"/><path d="M2 12h20"/><path d="M2 20h20"/><rect x="6" y="8" width="12" height="4" rx="1"/></svg>'
+        ],
+        'fireplace' => [
+            'name' => 'Cheminée',
+            'category' => 'comfort',
+            'svg' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 17c-2 0-3-2-3-4 0-3 3-5 3-7 0 2 3 4 3 7 0 2-1 4-3 4z"/></svg>'
+        ],
+
+        // Location
+        'map-pin' => [
+            'name' => 'Localisation',
+            'category' => 'location',
+            'svg' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>'
+        ],
+        'vineyard' => [
+            'name' => 'Vignoble',
+            'category' => 'location',
+            'svg' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="6" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="12" r="3"/><path d="M12 9v13"/><path d="M9 22h6"/></svg>'
+        ],
+
+        // Activities
+        'bike' => [
+            'name' => 'Vélo',
+            'category' => 'activities',
+            'svg' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="18.5" cy="17.5" r="3.5"/><circle cx="15" cy="5" r="1"/><path d="M12 17.5V14l-3-3 4-3 2 3h2"/></svg>'
+        ],
+        'hiking' => [
+            'name' => 'Randonnée',
+            'category' => 'activities',
+            'svg' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="13" cy="4" r="2"/><path d="M4 17l3-3 3 3"/><path d="M15 21l-3-9 4-3"/><path d="M8 14l3-3"/></svg>'
+        ],
+        'golf' => [
+            'name' => 'Golf',
+            'category' => 'activities',
+            'svg' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 18V4l6 4-6 4"/><circle cx="12" cy="20" r="2"/></svg>'
+        ],
+        'tennis' => [
+            'name' => 'Tennis',
+            'category' => 'activities',
+            'svg' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20"/><path d="M12 2a14.5 14.5 0 0 1 0 20"/></svg>'
+        ],
+
+        // Family & Accessibility
+        'family' => [
+            'name' => 'Famille',
+            'category' => 'family',
+            'svg' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="7" r="2"/><circle cx="15" cy="7" r="2"/><path d="M9 11v10"/><path d="M15 11v10"/><path d="M5 21h4"/><path d="M15 21h4"/></svg>'
+        ],
+        'pets' => [
+            'name' => 'Animaux acceptés',
+            'category' => 'family',
+            'svg' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="4" r="2"/><circle cx="18" cy="8" r="2"/><circle cx="4" cy="8" r="2"/><path d="M9 10c0 1 1 2 2 2s2-1 2-2"/><ellipse cx="11" cy="17" rx="5" ry="6"/></svg>'
+        ],
+        'accessible' => [
+            'name' => 'Accessible',
+            'category' => 'family',
+            'svg' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="4" r="2"/><path d="M16 22l-2-5H7"/><path d="M12 12v-2l4 1"/><circle cx="9" cy="19" r="3"/></svg>'
+        ]
+    ];
+}
+
+/**
+ * Get icon categories
+ */
+function getIconCategories(): array {
+    return [
+        'nature' => 'Nature & Extérieur',
+        'amenities' => 'Équipements',
+        'dining' => 'Restauration',
+        'comfort' => 'Confort',
+        'location' => 'Localisation',
+        'activities' => 'Activités',
+        'family' => 'Famille & Accessibilité'
+    ];
+}
+
+/**
+ * Get icon by code
+ */
+function getIcon(string $code): ?array {
+    $icons = getAvailableIcons();
+    return $icons[$code] ?? null;
+}
+
+/**
+ * Get icon SVG by code
+ */
+function getIconSvg(string $code): string {
+    $icon = getIcon($code);
+    return $icon['svg'] ?? '';
+}
+
+// =====================================================
+// SECTION FEATURES (Reusable CRUD Functions)
+// =====================================================
+
+/**
+ * Check if section supports features
+ */
+function sectionHasFeatures(string $sectionCode): bool {
+    $pdo = getDatabase();
+    $stmt = $pdo->prepare('SELECT has_features FROM content_sections WHERE code = ?');
+    $stmt->execute([$sectionCode]);
+    $result = $stmt->fetchColumn();
+    return $result == 1;
+}
+
+/**
+ * Enable features for a section
+ */
+function enableSectionFeatures(string $sectionCode): bool {
+    $pdo = getDatabase();
+    $stmt = $pdo->prepare('UPDATE content_sections SET has_features = 1 WHERE code = ?');
+    return $stmt->execute([$sectionCode]);
+}
+
+/**
+ * Get all features for a section
+ */
+function getSectionFeatures(string $sectionCode, bool $activeOnly = true): array {
+    $pdo = getDatabase();
+    $sql = 'SELECT * FROM section_features WHERE section_code = ?';
+    if ($activeOnly) {
+        $sql .= ' AND is_active = 1';
+    }
+    $sql .= ' ORDER BY position ASC, id ASC';
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([$sectionCode]);
+    return $stmt->fetchAll();
+}
+
+/**
+ * Get features with all translations
+ */
+function getSectionFeaturesWithTranslations(string $sectionCode, bool $activeOnly = true): array {
+    $features = getSectionFeatures($sectionCode, $activeOnly);
+    $pdo = getDatabase();
+
+    foreach ($features as &$feature) {
+        $stmt = $pdo->prepare('SELECT language_code, label FROM section_feature_translations WHERE feature_id = ?');
+        $stmt->execute([$feature['id']]);
+        $translations = $stmt->fetchAll();
+
+        $feature['translations'] = [];
+        foreach ($translations as $trans) {
+            $feature['translations'][$trans['language_code']] = $trans['label'];
+        }
+
+        // Add icon data
+        $icon = getIcon($feature['icon_code']);
+        $feature['icon_svg'] = $icon['svg'] ?? '';
+        $feature['icon_name'] = $icon['name'] ?? $feature['icon_code'];
+    }
+
+    return $features;
+}
+
+/**
+ * Get a single feature by ID
+ */
+function getSectionFeature(int $id): ?array {
+    $pdo = getDatabase();
+    $stmt = $pdo->prepare('SELECT * FROM section_features WHERE id = ?');
+    $stmt->execute([$id]);
+    $feature = $stmt->fetch();
+
+    if ($feature) {
+        // Get translations
+        $stmt = $pdo->prepare('SELECT language_code, label FROM section_feature_translations WHERE feature_id = ?');
+        $stmt->execute([$id]);
+        $translations = $stmt->fetchAll();
+
+        $feature['translations'] = [];
+        foreach ($translations as $trans) {
+            $feature['translations'][$trans['language_code']] = $trans['label'];
+        }
+    }
+
+    return $feature ?: null;
+}
+
+/**
+ * Create a new feature
+ */
+function createSectionFeature(string $sectionCode, string $iconCode, string $label): ?int {
+    $pdo = getDatabase();
+
+    // Get next position
+    $stmt = $pdo->prepare('SELECT COALESCE(MAX(position), 0) + 1 FROM section_features WHERE section_code = ?');
+    $stmt->execute([$sectionCode]);
+    $nextPosition = $stmt->fetchColumn();
+
+    $stmt = $pdo->prepare('
+        INSERT INTO section_features (section_code, icon_code, label, position)
+        VALUES (?, ?, ?, ?)
+    ');
+
+    $success = $stmt->execute([$sectionCode, $iconCode, trim($label), $nextPosition]);
+    return $success ? (int)$pdo->lastInsertId() : null;
+}
+
+/**
+ * Update a feature
+ */
+function updateSectionFeature(int $id, string $iconCode, string $label, bool $isActive = true): bool {
+    $pdo = getDatabase();
+    $stmt = $pdo->prepare('
+        UPDATE section_features
+        SET icon_code = ?, label = ?, is_active = ?
+        WHERE id = ?
+    ');
+    return $stmt->execute([$iconCode, trim($label), $isActive ? 1 : 0, $id]);
+}
+
+/**
+ * Delete a feature
+ */
+function deleteSectionFeature(int $id): bool {
+    $pdo = getDatabase();
+    $stmt = $pdo->prepare('DELETE FROM section_features WHERE id = ?');
+    return $stmt->execute([$id]);
+}
+
+/**
+ * Reorder features
+ */
+function reorderSectionFeatures(string $sectionCode, array $featureIds): bool {
+    $pdo = getDatabase();
+    $stmt = $pdo->prepare('UPDATE section_features SET position = ? WHERE id = ? AND section_code = ?');
+
+    $position = 1;
+    foreach ($featureIds as $id) {
+        $stmt->execute([$position, $id, $sectionCode]);
+        $position++;
+    }
+
+    return true;
+}
+
+/**
+ * Save feature translations
+ */
+function saveSectionFeatureTranslations(int $featureId, array $translations): bool {
+    $pdo = getDatabase();
+    $success = true;
+
+    foreach ($translations as $langCode => $label) {
+        if (!in_array($langCode, getSupportedLanguages()) || $langCode === 'fr') {
+            continue;
+        }
+
+        $label = trim($label);
+        if (empty($label)) {
+            // Delete translation if empty
+            $stmt = $pdo->prepare('DELETE FROM section_feature_translations WHERE feature_id = ? AND language_code = ?');
+            $stmt->execute([$featureId, $langCode]);
+            continue;
+        }
+
+        try {
+            $stmt = $pdo->prepare('
+                INSERT INTO section_feature_translations (feature_id, language_code, label)
+                VALUES (?, ?, ?)
+                ON DUPLICATE KEY UPDATE label = VALUES(label)
+            ');
+            $success = $stmt->execute([$featureId, $langCode, $label]) && $success;
+        } catch (PDOException $e) {
+            $success = false;
+        }
+    }
+
+    return $success;
+}
+
+/**
+ * Get feature label for a specific language
+ */
+function getFeatureLabelForLanguage(array $feature, string $langCode = 'fr'): string {
+    if ($langCode === 'fr') {
+        return $feature['label'];
+    }
+
+    return $feature['translations'][$langCode] ?? $feature['label'];
+}
+
+/**
+ * Seed default features for a section
+ */
+function seedSectionFeatures(string $sectionCode, array $defaultFeatures): void {
+    $pdo = getDatabase();
+
+    // Check if features already exist
+    $stmt = $pdo->prepare('SELECT COUNT(*) FROM section_features WHERE section_code = ?');
+    $stmt->execute([$sectionCode]);
+    if ($stmt->fetchColumn() > 0) {
+        return; // Already seeded
+    }
+
+    foreach ($defaultFeatures as $feature) {
+        $featureId = createSectionFeature($sectionCode, $feature['icon'], $feature['label']);
+        if ($featureId && isset($feature['translations'])) {
+            saveSectionFeatureTranslations($featureId, $feature['translations']);
+        }
+    }
 }
