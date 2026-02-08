@@ -273,14 +273,41 @@
         }
       }
 
-      // Handle database-driven overlay translations (e.g., hero carousel texts)
+      // Handle database-driven overlay translations
+      this.applyOverlayTranslations();
+    },
+
+    /**
+     * Apply overlay translations from database for dynamic content sections
+     */
+    applyOverlayTranslations() {
+      // Hero section overlay (data-overlay-text)
       if (window.heroOverlayTranslations) {
-        const overlayTrans = window.heroOverlayTranslations[this.currentLang] || window.heroOverlayTranslations['fr'];
-        if (overlayTrans) {
+        const heroTrans = window.heroOverlayTranslations[this.currentLang] || window.heroOverlayTranslations['fr'];
+        if (heroTrans) {
           document.querySelectorAll('[data-overlay-text]').forEach(el => {
             const field = el.dataset.overlayText;
-            if (overlayTrans[field]) {
-              el.innerHTML = overlayTrans[field];
+            if (heroTrans[field]) {
+              el.innerHTML = heroTrans[field];
+            }
+          });
+        }
+      }
+
+      // Intro section overlay (data-overlay-intro)
+      if (window.introOverlayTranslations) {
+        const introTrans = window.introOverlayTranslations[this.currentLang] || window.introOverlayTranslations['fr'];
+        if (introTrans) {
+          document.querySelectorAll('[data-overlay-intro]').forEach(el => {
+            const field = el.dataset.overlayIntro;
+            if (introTrans[field]) {
+              if (field === 'description') {
+                // Split description into paragraphs and render
+                const paragraphs = introTrans[field].split(/\n\s*\n/).filter(p => p.trim());
+                el.innerHTML = paragraphs.map(p => '<p>' + p.replace(/\n/g, '<br>') + '</p>').join('');
+              } else {
+                el.innerHTML = introTrans[field];
+              }
             }
           });
         }

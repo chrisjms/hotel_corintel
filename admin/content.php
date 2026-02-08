@@ -1128,10 +1128,32 @@ if ($editBlockId) {
                         </div>
                         <div class="card-body">
                             <?php
-                            // Show overlay text panel for sections that support it (currently home_hero)
-                            $showOverlayPanel = in_array($currentSection, ['home_hero']);
+                            // Show overlay text panel for sections that support it
+                            $sectionsWithOverlay = ['home_hero', 'home_intro'];
+                            $showOverlayPanel = in_array($currentSection, $sectionsWithOverlay);
                             if ($showOverlayPanel):
                                 $overlayData = getSectionOverlayWithTranslations($currentSection);
+
+                                // Section-specific configuration for placeholders and hints
+                                $overlayConfig = [
+                                    'home_hero' => [
+                                        'subtitle_placeholder' => 'Ex: Bienvenue à l\'Hôtel Corintel',
+                                        'subtitle_hint' => 'Texte affiché au-dessus du titre principal',
+                                        'title_placeholder' => 'Ex: Un havre de paix aux portes de Bordeaux',
+                                        'title_hint' => 'Titre accrocheur en grand format',
+                                        'description_placeholder' => 'Ex: Découvrez notre hôtel de charme 3 étoiles...',
+                                        'description_hint' => 'Paragraphe descriptif sous le titre'
+                                    ],
+                                    'home_intro' => [
+                                        'subtitle_placeholder' => 'Ex: Notre philosophie',
+                                        'subtitle_hint' => 'Petit texte au-dessus du titre',
+                                        'title_placeholder' => 'Ex: Une atmosphère chaleureuse et conviviale',
+                                        'title_hint' => 'Titre de la section',
+                                        'description_placeholder' => 'Ex: L\'Hôtel Corintel vous accueille dans un cadre paisible...',
+                                        'description_hint' => 'Texte descriptif (utilisez deux lignes vides pour séparer les paragraphes)'
+                                    ]
+                                ];
+                                $config = $overlayConfig[$currentSection] ?? $overlayConfig['home_hero'];
                             ?>
                             <div class="overlay-panel">
                                 <form method="POST">
@@ -1152,21 +1174,21 @@ if ($editBlockId) {
                                     <div class="overlay-form-row">
                                         <div class="overlay-field-group">
                                             <label for="overlay_subtitle">Sous-titre</label>
-                                            <input type="text" id="overlay_subtitle" name="overlay_subtitle" value="<?= h($overlayData['subtitle']) ?>" placeholder="Ex: Bienvenue à l'Hôtel Corintel">
-                                            <p class="overlay-field-hint">Texte affiché au-dessus du titre principal</p>
+                                            <input type="text" id="overlay_subtitle" name="overlay_subtitle" value="<?= h($overlayData['subtitle']) ?>" placeholder="<?= h($config['subtitle_placeholder']) ?>">
+                                            <p class="overlay-field-hint"><?= h($config['subtitle_hint']) ?></p>
                                         </div>
                                         <div class="overlay-field-group">
                                             <label for="overlay_title">Titre principal</label>
-                                            <input type="text" id="overlay_title" name="overlay_title" value="<?= h($overlayData['title']) ?>" placeholder="Ex: Un havre de paix aux portes de Bordeaux">
-                                            <p class="overlay-field-hint">Titre accrocheur en grand format</p>
+                                            <input type="text" id="overlay_title" name="overlay_title" value="<?= h($overlayData['title']) ?>" placeholder="<?= h($config['title_placeholder']) ?>">
+                                            <p class="overlay-field-hint"><?= h($config['title_hint']) ?></p>
                                         </div>
                                     </div>
 
                                     <div class="overlay-form-row full-width">
                                         <div class="overlay-field-group">
                                             <label for="overlay_description">Description</label>
-                                            <textarea id="overlay_description" name="overlay_description" placeholder="Ex: Découvrez notre hôtel de charme 3 étoiles..."><?= h($overlayData['description']) ?></textarea>
-                                            <p class="overlay-field-hint">Paragraphe descriptif sous le titre</p>
+                                            <textarea id="overlay_description" name="overlay_description" placeholder="<?= h($config['description_placeholder']) ?>"><?= h($overlayData['description']) ?></textarea>
+                                            <p class="overlay-field-hint"><?= h($config['description_hint']) ?></p>
                                         </div>
                                     </div>
 

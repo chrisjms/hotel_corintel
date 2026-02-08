@@ -20,6 +20,9 @@ $heroOverlay = getSectionOverlayWithTranslations('home_hero');
 
 // Get intro section image
 $introImage = contentImage('home_intro', 1, 'images/acceuil/entree-hotel.jpeg');
+
+// Get intro overlay texts with all translations
+$introOverlay = getSectionOverlayWithTranslations('home_intro');
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -182,8 +185,34 @@ $introImage = contentImage('home_intro', 1, 'images/acceuil/entree-hotel.jpeg');
           <img src="<?= htmlspecialchars($introImage) ?>" alt="L'entrée accueillante de l'Hôtel Corintel">
         </div>
         <div class="intro-content">
-          <p class="section-subtitle" data-i18n="home.introSubtitle">Notre philosophie</p>
-          <h2 data-i18n="home.introTitle">Une atmosphère chaleureuse et conviviale</h2>
+          <?php
+          // Default fallback texts for intro section
+          $defaultIntroSubtitle = 'Notre philosophie';
+          $defaultIntroTitle = 'Une atmosphère chaleureuse et conviviale';
+          $defaultIntroDescription = "L'Hôtel Corintel vous accueille dans un cadre paisible et verdoyant, où se mêlent le charme de la campagne bordelaise et le confort d'un établissement 3 étoiles.\n\nEntouré de nature, notre hôtel offre une expérience de détente authentique. Profitez de notre jardin, de notre terrasse ombragée et de notre salon commun pour des moments de quiétude loin du tumulte de la ville.";
+
+          // Use database values if available
+          $displayIntroSubtitle = !empty($introOverlay['subtitle']) ? $introOverlay['subtitle'] : $defaultIntroSubtitle;
+          $displayIntroTitle = !empty($introOverlay['title']) ? $introOverlay['title'] : $defaultIntroTitle;
+          $displayIntroDescription = !empty($introOverlay['description']) ? $introOverlay['description'] : $defaultIntroDescription;
+
+          // Check if database has overlay configured
+          $hasIntroOverlay = !empty($introOverlay['subtitle']) || !empty($introOverlay['title']) || !empty($introOverlay['description']);
+
+          // Convert description paragraphs (split by double newline)
+          $introParagraphs = array_filter(array_map('trim', preg_split('/\n\s*\n/', $displayIntroDescription)));
+          ?>
+          <?php if ($hasIntroOverlay): ?>
+          <p class="section-subtitle" data-overlay-intro="subtitle"><?= htmlspecialchars($displayIntroSubtitle) ?></p>
+          <h2 data-overlay-intro="title"><?= htmlspecialchars($displayIntroTitle) ?></h2>
+          <div data-overlay-intro="description">
+            <?php foreach ($introParagraphs as $paragraph): ?>
+            <p><?= nl2br(htmlspecialchars($paragraph)) ?></p>
+            <?php endforeach; ?>
+          </div>
+          <?php else: ?>
+          <p class="section-subtitle" data-i18n="home.introSubtitle"><?= $displayIntroSubtitle ?></p>
+          <h2 data-i18n="home.introTitle"><?= $displayIntroTitle ?></h2>
           <p data-i18n="home.introText1">
             L'Hôtel Corintel vous accueille dans un cadre paisible et verdoyant,
             où se mêlent le charme de la campagne bordelaise et le confort d'un
@@ -194,6 +223,32 @@ $introImage = contentImage('home_intro', 1, 'images/acceuil/entree-hotel.jpeg');
             Profitez de notre jardin, de notre terrasse ombragée et de notre salon commun
             pour des moments de quiétude loin du tumulte de la ville.
           </p>
+          <?php endif; ?>
+          <?php
+          // Prepare intro translations for JavaScript
+          $introTranslations = [];
+          if ($hasIntroOverlay) {
+              $introTranslations = [
+                  'fr' => [
+                      'subtitle' => $displayIntroSubtitle,
+                      'title' => $displayIntroTitle,
+                      'description' => $displayIntroDescription
+                  ]
+              ];
+              foreach (['en', 'es', 'it'] as $lang) {
+                  if (isset($introOverlay['translations'][$lang])) {
+                      $trans = $introOverlay['translations'][$lang];
+                      $introTranslations[$lang] = [
+                          'subtitle' => !empty($trans['subtitle']) ? $trans['subtitle'] : $displayIntroSubtitle,
+                          'title' => !empty($trans['title']) ? $trans['title'] : $displayIntroTitle,
+                          'description' => !empty($trans['description']) ? $trans['description'] : $displayIntroDescription
+                      ];
+                  } else {
+                      $introTranslations[$lang] = $introTranslations['fr'];
+                  }
+              }
+          }
+          ?>
           <div class="intro-features">
             <div class="intro-feature">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -226,6 +281,12 @@ $introImage = contentImage('home_intro', 1, 'images/acceuil/entree-hotel.jpeg');
         </div>
       </div>
     </div>
+    <?php if ($hasIntroOverlay): ?>
+    <script>
+      // Intro overlay translations from database
+      window.introOverlayTranslations = <?= json_encode($introTranslations, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
+    </script>
+    <?php endif; ?>
   </section>
 
   <!-- Services Preview Section -->

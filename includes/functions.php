@@ -2297,7 +2297,7 @@ function seedContentSections(): void {
     $sections = [
         // Home page sections
         ['home_hero', 'Carrousel d\'accueil', 'Images du diaporama principal (3 images recommandées)', 'home', IMAGE_REQUIRED, null, 0, 0, 0, 1],
-        ['home_intro', 'Introduction', 'Image et texte de la section Notre philosophie', 'home', IMAGE_OPTIONAL, 1, 1, 1, 0, 2],
+        ['home_intro', 'Introduction', 'Image de la section Notre philosophie', 'home', IMAGE_OPTIONAL, 1, 0, 0, 0, 2],
 
         // Services page sections
         ['services_hero', 'Image d\'en-tête Services', 'Image de fond de la bannière Services', 'services', IMAGE_REQUIRED, 1, 0, 0, 0, 1],
@@ -2350,6 +2350,17 @@ function seedDefaultOverlayTexts(): void {
         WHERE code = ?
     ');
     $stmt->execute(['home_hero']);
+
+    // Enable overlay for home_intro and configure as image-only (texts managed via overlay)
+    $stmt = $pdo->prepare('
+        UPDATE content_sections
+        SET has_overlay = 1,
+            has_title = 0,
+            has_description = 0,
+            has_link = 0
+        WHERE code = ?
+    ');
+    $stmt->execute(['home_intro']);
 }
 
 /**
