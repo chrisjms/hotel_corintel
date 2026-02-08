@@ -1221,6 +1221,49 @@ if ($editBlockId) {
                 grid-template-columns: repeat(5, 1fr);
             }
         }
+
+        /* Images panel */
+        .images-panel {
+            background: var(--admin-bg);
+            border: 1px solid var(--admin-border);
+            border-radius: var(--admin-radius);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .images-panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--admin-border);
+        }
+        .images-panel-header h4 {
+            margin: 0;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .images-panel-header h4 svg {
+            width: 18px;
+            height: 18px;
+            color: var(--admin-primary);
+        }
+        .images-panel .empty-state {
+            padding: 2rem 1rem;
+        }
+        .images-panel .empty-state-icon {
+            width: 48px;
+            height: 48px;
+        }
+        .images-panel .empty-state h3 {
+            font-size: 1rem;
+            margin-bottom: 0.25rem;
+        }
+        .images-panel .empty-state p {
+            font-size: 0.875rem;
+        }
     </style>
 </head>
 <body>
@@ -1567,24 +1610,16 @@ if ($editBlockId) {
                     </div>
 
                     <?php if ($currentSection && $currentSectionData): ?>
+                    <?php
+                    // Calculate if adding is allowed (used in images panel)
+                    $canAdd = true;
+                    if ($currentSectionData['max_blocks']) {
+                        $canAdd = count($blocks) < $currentSectionData['max_blocks'];
+                    }
+                    ?>
                     <div class="card">
                         <div class="card-header">
                             <h2><?= h($currentSectionData['name']) ?></h2>
-                            <?php
-                            $canAdd = true;
-                            if ($currentSectionData['max_blocks']) {
-                                $canAdd = count($blocks) < $currentSectionData['max_blocks'];
-                            }
-                            ?>
-                            <?php if ($canAdd): ?>
-                            <a href="?section=<?= h($currentSection) ?>&view=add" class="btn btn-primary">
-                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-                                    <line x1="12" y1="5" x2="12" y2="19"/>
-                                    <line x1="5" y1="12" x2="19" y2="12"/>
-                                </svg>
-                                <?= (!$currentSectionData['has_title'] && !$currentSectionData['has_description']) ? 'Ajouter une image' : 'Ajouter' ?>
-                            </a>
-                            <?php endif; ?>
                         </div>
                         <div class="card-body">
                             <?php
@@ -1866,24 +1901,45 @@ if ($editBlockId) {
                             </div>
                             <?php endif; ?>
 
-                            <?php if (empty($blocks)): ?>
-                            <div class="empty-state">
-                                <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                                    <line x1="3" y1="9" x2="21" y2="9"/>
-                                    <line x1="9" y1="21" x2="9" y2="9"/>
-                                </svg>
-                                <?php $isImageOnly = !$currentSectionData['has_title'] && !$currentSectionData['has_description']; ?>
-                                <h3><?= $isImageOnly ? 'Aucune image' : 'Aucun contenu' ?></h3>
-                                <p>Cette section ne contient pas encore <?= $isImageOnly ? 'd\'image' : 'de contenu' ?>.</p>
-                                <?php if ($canAdd): ?>
-                                <a href="?section=<?= h($currentSection) ?>&view=add" class="btn btn-primary" style="margin-top: 1rem;">
-                                    <?= $isImageOnly ? 'Ajouter une image' : 'Ajouter du contenu' ?>
-                                </a>
-                                <?php endif; ?>
-                            </div>
-                            <?php else: ?>
-                            <div class="content-blocks" id="contentBlocks" data-section="<?= h($currentSection) ?>">
+                            <?php
+                            // Show images panel for sections that support images
+                            $showImagesPanel = $currentSectionData && $currentSectionData['image_mode'] !== IMAGE_FORBIDDEN;
+                            $isImageOnly = $currentSectionData && !$currentSectionData['has_title'] && !$currentSectionData['has_description'];
+                            if ($showImagesPanel):
+                            ?>
+                            <div class="images-panel">
+                                <div class="images-panel-header">
+                                    <h4>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                            <circle cx="8.5" cy="8.5" r="1.5"/>
+                                            <polyline points="21 15 16 10 5 21"/>
+                                        </svg>
+                                        Images
+                                    </h4>
+                                    <?php if ($canAdd): ?>
+                                    <a href="?section=<?= h($currentSection) ?>&view=add" class="btn btn-sm btn-primary">
+                                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                                            <line x1="12" y1="5" x2="12" y2="19"/>
+                                            <line x1="5" y1="12" x2="19" y2="12"/>
+                                        </svg>
+                                        <?= $isImageOnly ? 'Ajouter une image' : 'Ajouter' ?>
+                                    </a>
+                                    <?php endif; ?>
+                                </div>
+
+                                <?php if (empty($blocks)): ?>
+                                <div class="empty-state">
+                                    <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                        <circle cx="8.5" cy="8.5" r="1.5"/>
+                                        <polyline points="21 15 16 10 5 21"/>
+                                    </svg>
+                                    <h3><?= $isImageOnly ? 'Aucune image' : 'Aucun contenu' ?></h3>
+                                    <p>Cette section ne contient pas encore <?= $isImageOnly ? 'd\'image' : 'de contenu' ?>.</p>
+                                </div>
+                                <?php else: ?>
+                                <div class="content-blocks" id="contentBlocks" data-section="<?= h($currentSection) ?>">
                                 <?php foreach ($blocks as $block): ?>
                                 <div class="content-block-item <?= !$block['is_active'] ? 'inactive' : '' ?>" data-block-id="<?= $block['id'] ?>">
                                     <div class="block-drag-handle" title="Glisser pour réordonner">
@@ -1941,6 +1997,8 @@ if ($editBlockId) {
                                     </div>
                                 </div>
                                 <?php endforeach; ?>
+                                </div>
+                                <?php endif; ?>
                             </div>
                             <?php endif; ?>
                         </div>
