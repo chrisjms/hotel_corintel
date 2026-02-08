@@ -26,6 +26,10 @@ $introOverlay = getSectionOverlayWithTranslations('home_intro');
 
 // Get intro features with translations
 $introFeatures = getSectionFeaturesWithTranslations('home_intro');
+
+// Get dynamic sections for the home page
+$dynamicSections = getDynamicSectionsWithData('home');
+$dynamicSectionsTranslations = !empty($dynamicSections) ? getDynamicSectionsTranslations('home') : [];
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -311,6 +315,17 @@ $introFeatures = getSectionFeaturesWithTranslations('home_intro');
     </script>
     <?php endif; ?>
   </section>
+
+  <?php
+  // Render dynamic sections (if any exist)
+  // These are admin-created sections that appear after the intro
+  if (!empty($dynamicSections)):
+      echo renderDynamicSectionsForPage('home', 'fr');
+  ?>
+  <script>
+    window.dynamicSectionsTranslations = <?= json_encode($dynamicSectionsTranslations, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
+  </script>
+  <?php endif; ?>
 
   <!-- Services Preview Section -->
   <section class="section section-cream">

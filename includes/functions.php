@@ -2319,6 +2319,41 @@ function initContentTables(): void {
             FOREIGN KEY (feature_id) REFERENCES section_features(id) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     ");
+
+    // Add columns for dynamic sections support
+    try {
+        $pdo->exec("ALTER TABLE content_sections ADD COLUMN is_dynamic TINYINT(1) DEFAULT 0");
+    } catch (PDOException $e) { /* Column may already exist */ }
+
+    try {
+        $pdo->exec("ALTER TABLE content_sections ADD COLUMN template_type VARCHAR(50) DEFAULT NULL");
+    } catch (PDOException $e) { /* Column may already exist */ }
+
+    try {
+        $pdo->exec("ALTER TABLE content_sections ADD COLUMN custom_name VARCHAR(100) DEFAULT NULL");
+    } catch (PDOException $e) { /* Column may already exist */ }
+
+    // Section templates table - defines reusable section templates
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS section_templates (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            code VARCHAR(50) UNIQUE NOT NULL,
+            name VARCHAR(100) NOT NULL,
+            description TEXT,
+            image_mode ENUM('required', 'optional', 'forbidden') DEFAULT 'optional',
+            max_blocks INT DEFAULT 1,
+            has_title TINYINT(1) DEFAULT 0,
+            has_description TINYINT(1) DEFAULT 0,
+            has_link TINYINT(1) DEFAULT 0,
+            has_overlay TINYINT(1) DEFAULT 1,
+            has_features TINYINT(1) DEFAULT 1,
+            css_class VARCHAR(100) DEFAULT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    ");
+
+    // Seed default templates
+    seedSectionTemplates();
 }
 
 /**
@@ -2447,6 +2482,646 @@ function seedDefaultIntroFeatures(): void {
 
         $position++;
     }
+}
+
+// =====================================================
+// SECTION TEMPLATES (Reusable Section Definitions)
+// =====================================================
+
+/**
+ * Seed default section templates
+ */
+function seedSectionTemplates(): void {
+    $pdo = getDatabase();
+
+    $templates = [
+        // Intro-style template: overlay texts, single image, feature indicators
+        [
+            'code' => 'intro_style',
+            'name' => 'Section Introduction',
+            'description' => 'Section avec textes, image et indicateurs (style Introduction)',
+            'image_mode' => IMAGE_OPTIONAL,
+            'max_blocks' => 1,
+            'has_title' => 0,
+            'has_description' => 0,
+            'has_link' => 0,
+            'has_overlay' => 1,
+            'has_features' => 1,
+            'css_class' => 'section-intro-style'
+        ],
+        // Image gallery template: multiple images, no text
+        [
+            'code' => 'gallery_style',
+            'name' => 'Galerie d\'images',
+            'description' => 'Section galerie avec plusieurs images',
+            'image_mode' => IMAGE_REQUIRED,
+            'max_blocks' => null,
+            'has_title' => 0,
+            'has_description' => 0,
+            'has_link' => 0,
+            'has_overlay' => 1,
+            'has_features' => 0,
+            'css_class' => 'section-gallery-style'
+        ],
+        // Text-only template: overlay texts, no images
+        [
+            'code' => 'text_style',
+            'name' => 'Section Texte',
+            'description' => 'Section avec textes uniquement',
+            'image_mode' => IMAGE_FORBIDDEN,
+            'max_blocks' => 0,
+            'has_title' => 0,
+            'has_description' => 0,
+            'has_link' => 0,
+            'has_overlay' => 1,
+            'has_features' => 1,
+            'css_class' => 'section-text-style'
+        ]
+    ];
+
+    foreach ($templates as $template) {
+        $stmt = $pdo->prepare('SELECT id FROM section_templates WHERE code = ?');
+        $stmt->execute([$template['code']]);
+        if (!$stmt->fetch()) {
+            $stmt = $pdo->prepare('
+                INSERT INTO section_templates (code, name, description, image_mode, max_blocks, has_title, has_description, has_link, has_overlay, has_features, css_class)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ');
+            $stmt->execute([
+                $template['code'],
+                $template['name'],
+                $template['description'],
+                $template['image_mode'],
+                $template['max_blocks'],
+                $template['has_title'],
+                $template['has_description'],
+                $template['has_link'],
+                $template['has_overlay'],
+                $template['has_features'],
+                $template['css_class']
+            ]);
+        }
+    }
+}
+
+/**
+ * Get all section templates
+ */
+function getSectionTemplates(): array {
+    $pdo = getDatabase();
+    $stmt = $pdo->query('SELECT * FROM section_templates ORDER BY name');
+    return $stmt->fetchAll();
+}
+
+/**
+ * Get a section template by code
+ */
+function getSectionTemplate(string $code): ?array {
+    $pdo = getDatabase();
+    $stmt = $pdo->prepare('SELECT * FROM section_templates WHERE code = ?');
+    $stmt->execute([$code]);
+    return $stmt->fetch() ?: null;
+}
+
+// =====================================================
+// DYNAMIC SECTIONS (Admin-created sections)
+// =====================================================
+
+/**
+ * Get all dynamic sections for a page
+ */
+function getDynamicSections(string $page): array {
+    $pdo = getDatabase();
+    $stmt = $pdo->prepare('
+        SELECT cs.*, st.css_class as template_css_class
+        FROM content_sections cs
+        LEFT JOIN section_templates st ON cs.template_type = st.code
+        WHERE cs.page = ? AND cs.is_dynamic = 1
+        ORDER BY cs.sort_order
+    ');
+    $stmt->execute([$page]);
+    return $stmt->fetchAll();
+}
+
+/**
+ * Get a dynamic section by code with full data
+ */
+function getDynamicSectionWithData(string $sectionCode): ?array {
+    $section = getContentSection($sectionCode);
+
+    // Check if section exists and is a dynamic section
+    if (!$section || !isset($section['is_dynamic']) || (int)$section['is_dynamic'] !== 1) {
+        return null;
+    }
+
+    // Get overlay texts with translations
+    $section['overlay'] = getSectionOverlayWithTranslations($sectionCode);
+
+    // Get features with translations if section supports them
+    if (!empty($section['has_features'])) {
+        $section['features'] = getSectionFeaturesWithTranslations($sectionCode);
+    } else {
+        $section['features'] = [];
+    }
+
+    // Get images/content blocks
+    $section['blocks'] = getContentBlocks($sectionCode);
+
+    // Add template CSS class if not present
+    if (empty($section['template_css_class']) && !empty($section['template_type'])) {
+        $template = getSectionTemplate($section['template_type']);
+        if ($template) {
+            $section['template_css_class'] = $template['css_class'];
+        }
+    }
+
+    return $section;
+}
+
+/**
+ * Get all dynamic sections for a page with full data
+ */
+function getDynamicSectionsWithData(string $page): array {
+    $sections = getDynamicSections($page);
+    $result = [];
+
+    foreach ($sections as $section) {
+        // getDynamicSections already filters by is_dynamic=1, so we can trust these are dynamic
+        // Just augment with overlay, features, and blocks data
+
+        // Get overlay texts with translations
+        $section['overlay'] = getSectionOverlayWithTranslations($section['code']);
+
+        // Get features with translations if section supports them
+        if (!empty($section['has_features'])) {
+            $section['features'] = getSectionFeaturesWithTranslations($section['code']);
+        } else {
+            $section['features'] = [];
+        }
+
+        // Get images/content blocks
+        $section['blocks'] = getContentBlocks($section['code']);
+
+        $result[] = $section;
+    }
+
+    return $result;
+}
+
+/**
+ * Create a dynamic section from a template
+ */
+function createDynamicSection(string $page, string $templateCode, string $customName): ?string {
+    $pdo = getDatabase();
+
+    $template = getSectionTemplate($templateCode);
+    if (!$template) {
+        return null;
+    }
+
+    // Generate unique section code
+    $baseCode = 'dynamic_' . $page . '_' . preg_replace('/[^a-z0-9]/', '', strtolower($customName));
+    $code = $baseCode;
+    $counter = 1;
+
+    // Ensure unique code
+    while (getContentSection($code)) {
+        $code = $baseCode . '_' . $counter;
+        $counter++;
+    }
+
+    // Get next sort order for the page
+    $stmt = $pdo->prepare('SELECT MAX(sort_order) FROM content_sections WHERE page = ?');
+    $stmt->execute([$page]);
+    $maxOrder = $stmt->fetchColumn() ?: 0;
+
+    // Create the section
+    $stmt = $pdo->prepare('
+        INSERT INTO content_sections (
+            code, name, description, page, image_mode, max_blocks,
+            has_title, has_description, has_link, has_overlay, has_features,
+            sort_order, is_dynamic, template_type, custom_name
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
+    ');
+
+    $success = $stmt->execute([
+        $code,
+        $customName,
+        $template['description'],
+        $page,
+        $template['image_mode'],
+        $template['max_blocks'],
+        $template['has_title'],
+        $template['has_description'],
+        $template['has_link'],
+        $template['has_overlay'],
+        $template['has_features'],
+        $maxOrder + 1,
+        $templateCode,
+        $customName
+    ]);
+
+    return $success ? $code : null;
+}
+
+/**
+ * Update a dynamic section's name
+ */
+function updateDynamicSectionName(string $sectionCode, string $newName): bool {
+    $pdo = getDatabase();
+    $stmt = $pdo->prepare('
+        UPDATE content_sections
+        SET name = ?, custom_name = ?
+        WHERE code = ? AND is_dynamic = 1
+    ');
+    return $stmt->execute([$newName, $newName, $sectionCode]);
+}
+
+/**
+ * Delete a dynamic section and all its data
+ * Cascading delete handles: content_blocks, section_features, section_overlay_translations
+ */
+function deleteDynamicSection(string $sectionCode): bool {
+    $pdo = getDatabase();
+
+    // Verify it's a dynamic section
+    $section = getContentSection($sectionCode);
+    if (!$section || !$section['is_dynamic']) {
+        return false;
+    }
+
+    // Delete associated image files first
+    $blocks = getContentBlocks($sectionCode);
+    foreach ($blocks as $block) {
+        if (!empty($block['image_filename']) && strpos($block['image_filename'], 'uploads/') === 0) {
+            $path = __DIR__ . '/../' . $block['image_filename'];
+            if (file_exists($path)) {
+                unlink($path);
+            }
+        }
+    }
+
+    // Delete the section (foreign key cascades handle related tables)
+    $stmt = $pdo->prepare('DELETE FROM content_sections WHERE code = ? AND is_dynamic = 1');
+    return $stmt->execute([$sectionCode]);
+}
+
+/**
+ * Reorder dynamic sections within a page
+ */
+function reorderDynamicSections(string $page, array $sectionCodes): bool {
+    $pdo = getDatabase();
+
+    $position = 100; // Start after static sections
+    foreach ($sectionCodes as $code) {
+        $stmt = $pdo->prepare('
+            UPDATE content_sections
+            SET sort_order = ?
+            WHERE code = ? AND page = ? AND is_dynamic = 1
+        ');
+        $stmt->execute([$position, $code, $page]);
+        $position++;
+    }
+
+    return true;
+}
+
+/**
+ * Check if a page has any dynamic sections
+ */
+function pageHasDynamicSections(string $page): bool {
+    $pdo = getDatabase();
+    $stmt = $pdo->prepare('SELECT COUNT(*) FROM content_sections WHERE page = ? AND is_dynamic = 1');
+    $stmt->execute([$page]);
+    return $stmt->fetchColumn() > 0;
+}
+
+/**
+ * Get count of dynamic sections for a page
+ */
+function countDynamicSections(string $page): int {
+    $pdo = getDatabase();
+    $stmt = $pdo->prepare('SELECT COUNT(*) FROM content_sections WHERE page = ? AND is_dynamic = 1');
+    $stmt->execute([$page]);
+    return (int) $stmt->fetchColumn();
+}
+
+// =====================================================
+// DYNAMIC SECTION RENDERING
+// =====================================================
+
+/**
+ * Render a dynamic section based on its template type
+ * Returns HTML string, or empty string if section has no renderable content
+ *
+ * @param array $section Section data from getDynamicSectionWithData()
+ * @param string $currentLang Current language code (default: 'fr')
+ * @return string HTML output
+ */
+function renderDynamicSection(array $section, string $currentLang = 'fr'): string {
+    $templateType = $section['template_type'] ?? 'intro_style';
+
+    // Get localized overlay texts
+    $overlay = $section['overlay'] ?? [];
+    $subtitle = $overlay['translations'][$currentLang]['subtitle'] ?? $overlay['subtitle'] ?? '';
+    $title = $overlay['translations'][$currentLang]['title'] ?? $overlay['title'] ?? '';
+    $description = $overlay['translations'][$currentLang]['description'] ?? $overlay['description'] ?? '';
+
+    // Check if section has any content to display
+    $hasOverlayContent = !empty($subtitle) || !empty($title) || !empty($description);
+    $hasFeatures = !empty($section['features']);
+    $hasImages = !empty($section['blocks']);
+
+    // If section has no content, use the section's custom name as a fallback title
+    // This ensures newly created sections are visible until content is added
+    if (!$hasOverlayContent && !$hasFeatures && !$hasImages) {
+        // Use custom_name or name as fallback title
+        $fallbackTitle = $section['custom_name'] ?? $section['name'] ?? '';
+        if (!empty($fallbackTitle)) {
+            // Inject fallback title into overlay so render functions can use it
+            if (!isset($section['overlay'])) {
+                $section['overlay'] = [];
+            }
+            $section['overlay']['title'] = $fallbackTitle;
+            // Also set it for the current language
+            if (!isset($section['overlay']['translations'])) {
+                $section['overlay']['translations'] = [];
+            }
+            if (!isset($section['overlay']['translations'][$currentLang])) {
+                $section['overlay']['translations'][$currentLang] = [];
+            }
+            $section['overlay']['translations'][$currentLang]['title'] = $fallbackTitle;
+        } else {
+            // No content and no name - truly empty section
+            return '';
+        }
+    }
+
+    // Get CSS class from template
+    $cssClass = $section['template_css_class'] ?? 'section-intro-style';
+    $sectionCode = $section['code'];
+
+    // Start output buffering
+    ob_start();
+
+    switch ($templateType) {
+        case 'intro_style':
+            renderIntroStyleSection($section, $currentLang, $cssClass);
+            break;
+
+        case 'gallery_style':
+            renderGalleryStyleSection($section, $currentLang, $cssClass);
+            break;
+
+        case 'text_style':
+            renderTextStyleSection($section, $currentLang, $cssClass);
+            break;
+
+        default:
+            // Fallback to intro style
+            renderIntroStyleSection($section, $currentLang, $cssClass);
+    }
+
+    return ob_get_clean();
+}
+
+/**
+ * Render intro-style section (text + image + features)
+ */
+function renderIntroStyleSection(array $section, string $currentLang, string $cssClass): void {
+    $overlay = $section['overlay'] ?? [];
+    $subtitle = $overlay['translations'][$currentLang]['subtitle'] ?? $overlay['subtitle'] ?? '';
+    $title = $overlay['translations'][$currentLang]['title'] ?? $overlay['title'] ?? '';
+    $description = $overlay['translations'][$currentLang]['description'] ?? $overlay['description'] ?? '';
+    $features = $section['features'] ?? [];
+    $blocks = $section['blocks'] ?? [];
+    $sectionCode = $section['code'];
+
+    // Get first image if available
+    $image = !empty($blocks) ? $blocks[0] : null;
+    ?>
+    <section class="section section-cream <?= h($cssClass) ?>" data-section="<?= h($sectionCode) ?>">
+        <div class="container">
+            <div class="intro-grid">
+                <?php if ($image && !empty($image['image_filename'])): ?>
+                <div class="intro-image">
+                    <img src="<?= h($image['image_filename']) ?>" alt="<?= h($image['image_alt'] ?: $title) ?>">
+                </div>
+                <?php endif; ?>
+                <div class="intro-content" <?= (!$image || empty($image['image_filename'])) ? 'style="grid-column: 1 / -1;"' : '' ?>>
+                    <?php if ($subtitle): ?>
+                    <p class="section-subtitle" data-dynamic-text="<?= h($sectionCode) ?>:subtitle"><?= h($subtitle) ?></p>
+                    <?php endif; ?>
+                    <?php if ($title): ?>
+                    <h2 class="section-title" data-dynamic-text="<?= h($sectionCode) ?>:title"><?= h($title) ?></h2>
+                    <?php endif; ?>
+                    <?php if ($description): ?>
+                    <div class="section-description" data-dynamic-text="<?= h($sectionCode) ?>:description">
+                        <?php
+                        $paragraphs = preg_split('/\n\s*\n/', $description);
+                        foreach ($paragraphs as $p):
+                            $p = trim($p);
+                            if ($p):
+                        ?>
+                        <p><?= nl2br(h($p)) ?></p>
+                        <?php
+                            endif;
+                        endforeach;
+                        ?>
+                    </div>
+                    <?php endif; ?>
+
+                    <?php if (!empty($features)): ?>
+                    <div class="intro-features">
+                        <?php foreach ($features as $feature):
+                            $featureLabel = $feature['translations'][$currentLang] ?? $feature['label'];
+                        ?>
+                        <div class="intro-feature">
+                            <?= getIconSvg($feature['icon_code']) ?>
+                            <span data-dynamic-feature="<?= $feature['id'] ?>"><?= h($featureLabel) ?></span>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+    </section>
+    <?php
+}
+
+/**
+ * Render gallery-style section (title + multiple images)
+ */
+function renderGalleryStyleSection(array $section, string $currentLang, string $cssClass): void {
+    $overlay = $section['overlay'] ?? [];
+    $subtitle = $overlay['translations'][$currentLang]['subtitle'] ?? $overlay['subtitle'] ?? '';
+    $title = $overlay['translations'][$currentLang]['title'] ?? $overlay['title'] ?? '';
+    $description = $overlay['translations'][$currentLang]['description'] ?? $overlay['description'] ?? '';
+    $blocks = $section['blocks'] ?? [];
+    $sectionCode = $section['code'];
+
+    if (empty($blocks)) {
+        return;
+    }
+    ?>
+    <section class="section <?= h($cssClass) ?>" data-section="<?= h($sectionCode) ?>">
+        <div class="container">
+            <?php if ($subtitle || $title || $description): ?>
+            <div class="section-header">
+                <?php if ($subtitle): ?>
+                <p class="section-subtitle" data-dynamic-text="<?= h($sectionCode) ?>:subtitle"><?= h($subtitle) ?></p>
+                <?php endif; ?>
+                <?php if ($title): ?>
+                <h2 class="section-title" data-dynamic-text="<?= h($sectionCode) ?>:title"><?= h($title) ?></h2>
+                <?php endif; ?>
+                <?php if ($description): ?>
+                <p class="section-description" data-dynamic-text="<?= h($sectionCode) ?>:description"><?= h($description) ?></p>
+                <?php endif; ?>
+            </div>
+            <?php endif; ?>
+            <div class="gallery-grid">
+                <?php foreach ($blocks as $block): ?>
+                <?php if (!empty($block['image_filename'])): ?>
+                <div class="gallery-item">
+                    <img src="<?= h($block['image_filename']) ?>" alt="<?= h($block['image_alt']) ?>">
+                </div>
+                <?php endif; ?>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    </section>
+    <?php
+}
+
+/**
+ * Render text-style section (text only + optional features)
+ */
+function renderTextStyleSection(array $section, string $currentLang, string $cssClass): void {
+    $overlay = $section['overlay'] ?? [];
+    $subtitle = $overlay['translations'][$currentLang]['subtitle'] ?? $overlay['subtitle'] ?? '';
+    $title = $overlay['translations'][$currentLang]['title'] ?? $overlay['title'] ?? '';
+    $description = $overlay['translations'][$currentLang]['description'] ?? $overlay['description'] ?? '';
+    $features = $section['features'] ?? [];
+    $sectionCode = $section['code'];
+
+    if (empty($subtitle) && empty($title) && empty($description) && empty($features)) {
+        return;
+    }
+    ?>
+    <section class="section section-cream <?= h($cssClass) ?>" data-section="<?= h($sectionCode) ?>">
+        <div class="container">
+            <div class="text-content" style="max-width: 800px; margin: 0 auto; text-align: center;">
+                <?php if ($subtitle): ?>
+                <p class="section-subtitle" data-dynamic-text="<?= h($sectionCode) ?>:subtitle"><?= h($subtitle) ?></p>
+                <?php endif; ?>
+                <?php if ($title): ?>
+                <h2 class="section-title" data-dynamic-text="<?= h($sectionCode) ?>:title"><?= h($title) ?></h2>
+                <?php endif; ?>
+                <?php if ($description): ?>
+                <div class="section-description" data-dynamic-text="<?= h($sectionCode) ?>:description">
+                    <?php
+                    $paragraphs = preg_split('/\n\s*\n/', $description);
+                    foreach ($paragraphs as $p):
+                        $p = trim($p);
+                        if ($p):
+                    ?>
+                    <p><?= nl2br(h($p)) ?></p>
+                    <?php
+                        endif;
+                    endforeach;
+                    ?>
+                </div>
+                <?php endif; ?>
+
+                <?php if (!empty($features)): ?>
+                <div class="intro-features" style="justify-content: center; margin-top: 2rem;">
+                    <?php foreach ($features as $feature):
+                        $featureLabel = $feature['translations'][$currentLang] ?? $feature['label'];
+                    ?>
+                    <div class="intro-feature">
+                        <?= getIconSvg($feature['icon_code']) ?>
+                        <span data-dynamic-feature="<?= $feature['id'] ?>"><?= h($featureLabel) ?></span>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+                <?php endif; ?>
+            </div>
+        </div>
+    </section>
+    <?php
+}
+
+/**
+ * Render all dynamic sections for a page
+ * Returns HTML string, or empty string if no sections
+ *
+ * @param string $page Page code (e.g., 'home')
+ * @param string $currentLang Current language code
+ * @return string HTML output
+ */
+function renderDynamicSectionsForPage(string $page, string $currentLang = 'fr'): string {
+    $sections = getDynamicSectionsWithData($page);
+
+    if (empty($sections)) {
+        return '';
+    }
+
+    $output = '';
+    foreach ($sections as $section) {
+        $output .= renderDynamicSection($section, $currentLang);
+    }
+
+    return $output;
+}
+
+/**
+ * Get dynamic sections translations for JavaScript
+ * Used for client-side language switching
+ *
+ * @param string $page Page code
+ * @return array Translations keyed by section code
+ */
+function getDynamicSectionsTranslations(string $page): array {
+    $sections = getDynamicSectionsWithData($page);
+    $translations = [];
+
+    foreach ($sections as $section) {
+        $sectionCode = $section['code'];
+        $overlay = $section['overlay'] ?? [];
+
+        // Build translations for overlay texts
+        $translations[$sectionCode] = [
+            'fr' => [
+                'subtitle' => $overlay['subtitle'] ?? '',
+                'title' => $overlay['title'] ?? '',
+                'description' => $overlay['description'] ?? ''
+            ]
+        ];
+
+        foreach (['en', 'es', 'it'] as $lang) {
+            $translations[$sectionCode][$lang] = [
+                'subtitle' => $overlay['translations'][$lang]['subtitle'] ?? '',
+                'title' => $overlay['translations'][$lang]['title'] ?? '',
+                'description' => $overlay['translations'][$lang]['description'] ?? ''
+            ];
+        }
+
+        // Build translations for features
+        if (!empty($section['features'])) {
+            $translations[$sectionCode]['features'] = [];
+            foreach ($section['features'] as $feature) {
+                $translations[$sectionCode]['features'][$feature['id']] = [
+                    'fr' => $feature['label'],
+                    'en' => $feature['translations']['en'] ?? $feature['label'],
+                    'es' => $feature['translations']['es'] ?? $feature['label'],
+                    'it' => $feature['translations']['it'] ?? $feature['label']
+                ];
+            }
+        }
+    }
+
+    return $translations;
 }
 
 /**

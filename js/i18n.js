@@ -326,6 +326,44 @@
           }
         });
       }
+
+      // Dynamic sections translations (data-dynamic-text and data-dynamic-feature)
+      if (window.dynamicSectionsTranslations) {
+        // Handle dynamic section texts (data-dynamic-text="sectionCode:field")
+        document.querySelectorAll('[data-dynamic-text]').forEach(el => {
+          const [sectionCode, field] = el.dataset.dynamicText.split(':');
+          const sectionTrans = window.dynamicSectionsTranslations[sectionCode];
+          if (sectionTrans) {
+            const langTrans = sectionTrans[this.currentLang] || sectionTrans['fr'];
+            if (langTrans && langTrans[field]) {
+              if (field === 'description') {
+                // Split description into paragraphs
+                const paragraphs = langTrans[field].split(/\n\s*\n/).filter(p => p.trim());
+                el.innerHTML = paragraphs.map(p => '<p>' + p.replace(/\n/g, '<br>') + '</p>').join('');
+              } else {
+                el.textContent = langTrans[field];
+              }
+            }
+          }
+        });
+
+        // Handle dynamic section features (data-dynamic-feature="featureId")
+        document.querySelectorAll('[data-dynamic-feature]').forEach(el => {
+          const featureId = el.dataset.dynamicFeature;
+          // Find the section this feature belongs to
+          for (const sectionCode in window.dynamicSectionsTranslations) {
+            const section = window.dynamicSectionsTranslations[sectionCode];
+            if (section.features && section.features[featureId]) {
+              const featureTrans = section.features[featureId];
+              const label = featureTrans[this.currentLang] || featureTrans['fr'];
+              if (label) {
+                el.textContent = label;
+              }
+              break;
+            }
+          }
+        });
+      }
     },
 
     /**

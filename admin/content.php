@@ -323,6 +323,74 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     exit;
                 }
                 break;
+
+            case 'create_dynamic_section':
+                $page = $_POST['page'] ?? '';
+                $templateCode = $_POST['template_code'] ?? '';
+                $sectionName = trim($_POST['section_name'] ?? '');
+
+                if (empty($page) || empty($templateCode) || empty($sectionName)) {
+                    $message = 'Veuillez remplir tous les champs.';
+                    $messageType = 'error';
+                    break;
+                }
+
+                $newSectionCode = createDynamicSection($page, $templateCode, $sectionName);
+
+                if ($newSectionCode) {
+                    $message = 'Section créée avec succès.';
+                    $messageType = 'success';
+                    $currentSection = $newSectionCode;
+                } else {
+                    $message = 'Erreur lors de la création de la section.';
+                    $messageType = 'error';
+                }
+                break;
+
+            case 'update_dynamic_section':
+                $sectionCode = $_POST['section_code'] ?? '';
+                $sectionName = trim($_POST['section_name'] ?? '');
+
+                if (empty($sectionCode) || empty($sectionName)) {
+                    $message = 'Veuillez entrer un nom.';
+                    $messageType = 'error';
+                    break;
+                }
+
+                if (updateDynamicSectionName($sectionCode, $sectionName)) {
+                    $message = 'Section mise à jour.';
+                    $messageType = 'success';
+                    $currentSection = $sectionCode;
+                } else {
+                    $message = 'Erreur lors de la mise à jour.';
+                    $messageType = 'error';
+                }
+                break;
+
+            case 'delete_dynamic_section':
+                $sectionCode = $_POST['section_code'] ?? '';
+
+                if (deleteDynamicSection($sectionCode)) {
+                    $message = 'Section supprimée.';
+                    $messageType = 'success';
+                    $currentSection = null;
+                } else {
+                    $message = 'Erreur lors de la suppression.';
+                    $messageType = 'error';
+                }
+                break;
+
+            case 'reorder_dynamic_sections':
+                $page = $_POST['page'] ?? '';
+                $sectionCodes = json_decode($_POST['section_codes'] ?? '[]', true);
+
+                if ($page && is_array($sectionCodes)) {
+                    reorderDynamicSections($page, $sectionCodes);
+                    header('Content-Type: application/json');
+                    echo json_encode(['success' => true]);
+                    exit;
+                }
+                break;
         }
     }
 }
@@ -1213,6 +1281,209 @@ if ($editBlockId) {
             color: var(--admin-text);
         }
 
+        /* Dynamic sections panel */
+        .dynamic-sections-panel {
+            background: linear-gradient(135deg, rgba(139, 90, 43, 0.05) 0%, rgba(92, 124, 94, 0.05) 100%);
+            border: 1px solid var(--admin-border);
+            border-radius: var(--admin-radius);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .dynamic-sections-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--admin-border);
+        }
+        .dynamic-sections-header h4 {
+            margin: 0;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .dynamic-sections-header h4 svg {
+            width: 18px;
+            height: 18px;
+            color: var(--admin-primary);
+        }
+        .dynamic-sections-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        .dynamic-section-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            background: var(--admin-card);
+            border: 1px solid var(--admin-border);
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        .dynamic-section-item:hover {
+            box-shadow: var(--admin-shadow);
+            border-color: var(--admin-primary);
+        }
+        .dynamic-section-item.active {
+            border-color: var(--admin-primary);
+            background: rgba(139, 90, 43, 0.05);
+        }
+        .dynamic-section-drag {
+            cursor: grab;
+            color: var(--admin-text-light);
+            padding: 0.25rem;
+        }
+        .dynamic-section-drag:active {
+            cursor: grabbing;
+        }
+        .dynamic-section-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .dynamic-section-name {
+            font-weight: 500;
+            color: var(--admin-text);
+            margin-bottom: 0.125rem;
+        }
+        .dynamic-section-template {
+            font-size: 0.75rem;
+            color: var(--admin-text-light);
+        }
+        .dynamic-section-actions {
+            display: flex;
+            gap: 0.25rem;
+        }
+        .dynamic-section-actions a,
+        .dynamic-section-actions button {
+            padding: 0.375rem 0.625rem;
+            font-size: 0.8rem;
+        }
+        .dynamic-sections-empty {
+            text-align: center;
+            padding: 1.5rem;
+            color: var(--admin-text-light);
+            font-size: 0.9rem;
+        }
+        .add-dynamic-section-btn {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px dashed var(--admin-border);
+            background: transparent;
+            border-radius: 6px;
+            color: var(--admin-text-light);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+        }
+        .add-dynamic-section-btn:hover {
+            border-color: var(--admin-primary);
+            color: var(--admin-primary);
+        }
+        .add-dynamic-section-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        /* Dynamic section modal */
+        .dynamic-section-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.5);
+        }
+        .dynamic-section-modal.active {
+            display: flex;
+        }
+        .dynamic-section-modal-content {
+            background: var(--admin-card);
+            border-radius: var(--admin-radius);
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+        }
+        .dynamic-section-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--admin-border);
+        }
+        .dynamic-section-modal-header h3 {
+            margin: 0;
+            font-size: 1.125rem;
+        }
+        .dynamic-section-modal-close {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0.5rem;
+            color: var(--admin-text-light);
+        }
+        .dynamic-section-modal-close:hover {
+            color: var(--admin-text);
+        }
+        .dynamic-section-modal-close svg {
+            width: 20px;
+            height: 20px;
+        }
+        .dynamic-section-modal-body {
+            padding: 1.5rem;
+        }
+        .dynamic-section-form-group {
+            margin-bottom: 1.25rem;
+        }
+        .dynamic-section-form-group label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            color: var(--admin-text);
+        }
+        .dynamic-section-form-group input,
+        .dynamic-section-form-group select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--admin-border);
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+        .dynamic-section-form-group input:focus,
+        .dynamic-section-form-group select:focus {
+            outline: none;
+            border-color: var(--admin-primary);
+        }
+        .dynamic-section-form-group small {
+            display: block;
+            margin-top: 0.375rem;
+            font-size: 0.8rem;
+            color: var(--admin-text-light);
+        }
+        .template-option-desc {
+            font-size: 0.8rem;
+            color: var(--admin-text-light);
+            margin-top: 0.25rem;
+        }
+        .dynamic-section-modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.75rem;
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--admin-border);
+        }
+
         @media (max-width: 600px) {
             .feature-trans-grid {
                 grid-template-columns: 1fr;
@@ -1585,10 +1856,15 @@ if ($editBlockId) {
                         <div class="card-body">
                             <?php foreach ($pageNames as $page => $pageName): ?>
                             <?php if (!isset($sectionsByPage[$page])) continue; ?>
+                            <?php $pageDynamicSections = getDynamicSections($page); ?>
                             <div class="page-group">
                                 <div class="page-group-title"><?= h($pageName) ?></div>
                                 <div class="sections-nav">
-                                    <?php foreach ($sectionsByPage[$page] as $section): ?>
+                                    <?php
+                                    // Show static sections first (non-dynamic)
+                                    foreach ($sectionsByPage[$page] as $section):
+                                        if (!empty($section['is_dynamic'])) continue;
+                                    ?>
                                     <a href="?section=<?= h($section['code']) ?>"
                                        class="section-btn <?= $currentSection === $section['code'] ? 'active' : '' ?>">
                                         <?= h($section['name']) ?>
@@ -1603,6 +1879,31 @@ if ($editBlockId) {
                                         </span>
                                     </a>
                                     <?php endforeach; ?>
+
+                                    <?php
+                                    // Show dynamic sections
+                                    foreach ($pageDynamicSections as $dynSection):
+                                    ?>
+                                    <a href="?section=<?= h($dynSection['code']) ?>"
+                                       class="section-btn <?= $currentSection === $dynSection['code'] ? 'active' : '' ?>"
+                                       style="border-style: dashed;">
+                                        <?= h($dynSection['custom_name'] ?: $dynSection['name']) ?>
+                                        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" style="margin-left: 0.5rem; opacity: 0.5;">
+                                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                        </svg>
+                                    </a>
+                                    <?php endforeach; ?>
+
+                                    <?php if ($page === 'home'): // Only enable for home page for now ?>
+                                    <button type="button" class="section-btn add-section-btn" data-page="<?= h($page) ?>" style="border-style: dashed; color: var(--admin-text-light);">
+                                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                                            <line x1="12" y1="5" x2="12" y2="19"/>
+                                            <line x1="5" y1="12" x2="19" y2="12"/>
+                                        </svg>
+                                        Nouvelle section
+                                    </button>
+                                    <?php endif; ?>
                                 </div>
                             </div>
                             <?php endforeach; ?>
@@ -1620,12 +1921,26 @@ if ($editBlockId) {
                     <div class="card">
                         <div class="card-header">
                             <h2><?= h($currentSectionData['name']) ?></h2>
+                            <?php if (!empty($currentSectionData['is_dynamic'])): ?>
+                            <form method="POST" style="display: inline;" onsubmit="return confirm('Supprimer cette section et tout son contenu ?');">
+                                <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
+                                <input type="hidden" name="action" value="delete_dynamic_section">
+                                <input type="hidden" name="section_code" value="<?= h($currentSection) ?>">
+                                <button type="submit" class="btn btn-danger">
+                                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="3 6 5 6 21 6"/>
+                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                    </svg>
+                                    Supprimer la section
+                                </button>
+                            </form>
+                            <?php endif; ?>
                         </div>
                         <div class="card-body">
                             <?php
-                            // Show overlay text panel for sections that support it
+                            // Show overlay text panel for sections that support it (static or dynamic with has_overlay)
                             $sectionsWithOverlay = ['home_hero', 'home_intro'];
-                            $showOverlayPanel = in_array($currentSection, $sectionsWithOverlay);
+                            $showOverlayPanel = in_array($currentSection, $sectionsWithOverlay) || (!empty($currentSectionData['has_overlay']) && !empty($currentSectionData['is_dynamic']));
                             if ($showOverlayPanel):
                                 $overlayData = getSectionOverlayWithTranslations($currentSection);
 
@@ -1646,9 +1961,17 @@ if ($editBlockId) {
                                         'title_hint' => 'Titre de la section',
                                         'description_placeholder' => 'Ex: L\'Hôtel Corintel vous accueille dans un cadre paisible...',
                                         'description_hint' => 'Texte descriptif (utilisez deux lignes vides pour séparer les paragraphes)'
+                                    ],
+                                    '_default' => [
+                                        'subtitle_placeholder' => 'Ex: Sous-titre de la section',
+                                        'subtitle_hint' => 'Petit texte au-dessus du titre',
+                                        'title_placeholder' => 'Ex: Titre de la section',
+                                        'title_hint' => 'Titre principal de la section',
+                                        'description_placeholder' => 'Ex: Description de la section...',
+                                        'description_hint' => 'Texte descriptif (utilisez deux lignes vides pour séparer les paragraphes)'
                                     ]
                                 ];
-                                $config = $overlayConfig[$currentSection] ?? $overlayConfig['home_hero'];
+                                $config = $overlayConfig[$currentSection] ?? $overlayConfig['_default'];
                             ?>
                             <div class="overlay-panel">
                                 <form method="POST">
@@ -2018,9 +2341,59 @@ if ($editBlockId) {
                     <?php endif; ?>
                 <?php endif; ?>
             </div>
+
+            <!-- Dynamic Section Modal -->
+            <?php $templates = getSectionTemplates(); ?>
+            <div class="dynamic-section-modal" id="dynamicSectionModal">
+                <div class="dynamic-section-modal-content">
+                    <div class="dynamic-section-modal-header">
+                        <h3>Nouvelle section</h3>
+                        <button type="button" class="dynamic-section-modal-close" id="dynamicSectionModalClose">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="18" y1="6" x2="6" y2="18"/>
+                                <line x1="6" y1="6" x2="18" y2="18"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <form method="POST" id="dynamicSectionForm">
+                        <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
+                        <input type="hidden" name="action" value="create_dynamic_section">
+                        <input type="hidden" name="page" id="dynamicSectionPage" value="">
+
+                        <div class="dynamic-section-modal-body">
+                            <div class="dynamic-section-form-group">
+                                <label for="sectionName">Nom de la section</label>
+                                <input type="text" id="sectionName" name="section_name" required placeholder="Ex: Nos engagements">
+                                <small>Ce nom sera affiché dans l'admin et peut être utilisé comme titre par défaut</small>
+                            </div>
+
+                            <div class="dynamic-section-form-group">
+                                <label for="templateCode">Type de section</label>
+                                <select id="templateCode" name="template_code" required>
+                                    <?php foreach ($templates as $template): ?>
+                                    <option value="<?= h($template['code']) ?>"><?= h($template['name']) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <div class="template-option-desc" id="templateDescription">
+                                    <?= h($templates[0]['description'] ?? '') ?>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="dynamic-section-modal-footer">
+                            <button type="button" class="btn btn-outline" id="dynamicSectionModalCancel">Annuler</button>
+                            <button type="submit" class="btn btn-primary">Créer la section</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </main>
     </div>
 
+    <script>
+    // Template descriptions for the modal
+    const templateDescriptions = <?= json_encode(array_column($templates, 'description', 'code')) ?>;
+    </script>
     <script>
     // Mobile menu toggle
     const sidebar = document.getElementById('adminSidebar');
@@ -2327,6 +2700,58 @@ if ($editBlockId) {
                 },
                 body: `action=reorder_features&csrf_token=<?= h($csrfToken) ?>&section_code=${encodeURIComponent(sectionCode)}&feature_ids=${encodeURIComponent(JSON.stringify(featureIds))}`
             });
+        }
+    }
+
+    // =====================================================
+    // DYNAMIC SECTIONS FUNCTIONALITY
+    // =====================================================
+
+    const dynamicSectionModal = document.getElementById('dynamicSectionModal');
+    const dynamicSectionForm = document.getElementById('dynamicSectionForm');
+    const dynamicSectionPage = document.getElementById('dynamicSectionPage');
+    const dynamicSectionModalClose = document.getElementById('dynamicSectionModalClose');
+    const dynamicSectionModalCancel = document.getElementById('dynamicSectionModalCancel');
+    const templateCodeSelect = document.getElementById('templateCode');
+    const templateDescription = document.getElementById('templateDescription');
+
+    if (dynamicSectionModal) {
+        // Open modal when clicking "Nouvelle section" buttons
+        document.querySelectorAll('.add-section-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const page = btn.dataset.page;
+                dynamicSectionPage.value = page;
+                document.getElementById('sectionName').value = '';
+                dynamicSectionModal.classList.add('active');
+                document.body.style.overflow = 'hidden';
+            });
+        });
+
+        // Close modal
+        dynamicSectionModalClose?.addEventListener('click', closeDynamicSectionModal);
+        dynamicSectionModalCancel?.addEventListener('click', closeDynamicSectionModal);
+        dynamicSectionModal.addEventListener('click', (e) => {
+            if (e.target === dynamicSectionModal) closeDynamicSectionModal();
+        });
+
+        // Close on escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && dynamicSectionModal.classList.contains('active')) {
+                closeDynamicSectionModal();
+            }
+        });
+
+        // Update template description when selection changes
+        templateCodeSelect?.addEventListener('change', () => {
+            const code = templateCodeSelect.value;
+            if (templateDescriptions && templateDescriptions[code]) {
+                templateDescription.textContent = templateDescriptions[code];
+            }
+        });
+
+        function closeDynamicSectionModal() {
+            dynamicSectionModal.classList.remove('active');
+            document.body.style.overflow = '';
         }
     }
     </script>
