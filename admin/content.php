@@ -324,6 +324,109 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 }
                 break;
 
+            // Service CRUD operations
+            case 'create_service':
+                $sectionCode = $_POST['section_code'] ?? '';
+                $iconCode = $_POST['icon_code'] ?? '';
+                $label = trim($_POST['service_label'] ?? '');
+                $description = trim($_POST['service_description'] ?? '');
+
+                if (empty($iconCode) || empty($label)) {
+                    $message = 'Veuillez sélectionner une icône et entrer un libellé.';
+                    $messageType = 'error';
+                    break;
+                }
+
+                $serviceId = createSectionService($sectionCode, $iconCode, $label, $description);
+
+                if ($serviceId) {
+                    // Save translations
+                    $translations = [];
+                    foreach (['en', 'es', 'it'] as $lang) {
+                        $transLabel = trim($_POST["service_label_$lang"] ?? '');
+                        $transDesc = trim($_POST["service_description_$lang"] ?? '');
+                        if (!empty($transLabel)) {
+                            $translations[$lang] = [
+                                'label' => $transLabel,
+                                'description' => $transDesc
+                            ];
+                        }
+                    }
+                    if (!empty($translations)) {
+                        saveSectionServiceTranslations($serviceId, $translations);
+                    }
+
+                    $message = 'Service ajouté avec succès.';
+                    $messageType = 'success';
+                    $currentSection = $sectionCode;
+                } else {
+                    $message = 'Erreur lors de la création.';
+                    $messageType = 'error';
+                }
+                break;
+
+            case 'update_service':
+                $serviceId = (int)($_POST['service_id'] ?? 0);
+                $iconCode = $_POST['icon_code'] ?? '';
+                $label = trim($_POST['service_label'] ?? '');
+                $description = trim($_POST['service_description'] ?? '');
+                $isActive = isset($_POST['service_active']);
+
+                if (empty($iconCode) || empty($label)) {
+                    $message = 'Veuillez sélectionner une icône et entrer un libellé.';
+                    $messageType = 'error';
+                    break;
+                }
+
+                $service = getSectionService($serviceId);
+                if ($service && updateSectionService($serviceId, $iconCode, $label, $description, $isActive)) {
+                    // Save translations
+                    $translations = [];
+                    foreach (['en', 'es', 'it'] as $lang) {
+                        $transLabel = trim($_POST["service_label_$lang"] ?? '');
+                        $transDesc = trim($_POST["service_description_$lang"] ?? '');
+                        $translations[$lang] = [
+                            'label' => $transLabel,
+                            'description' => $transDesc
+                        ];
+                    }
+                    saveSectionServiceTranslations($serviceId, $translations);
+
+                    $message = 'Service mis à jour.';
+                    $messageType = 'success';
+                    $currentSection = $service['section_code'];
+                } else {
+                    $message = 'Erreur lors de la mise à jour.';
+                    $messageType = 'error';
+                }
+                break;
+
+            case 'delete_service':
+                $serviceId = (int)($_POST['service_id'] ?? 0);
+                $service = getSectionService($serviceId);
+
+                if ($service && deleteSectionService($serviceId)) {
+                    $message = 'Service supprimé.';
+                    $messageType = 'success';
+                    $currentSection = $service['section_code'];
+                } else {
+                    $message = 'Erreur lors de la suppression.';
+                    $messageType = 'error';
+                }
+                break;
+
+            case 'reorder_services':
+                $sectionCode = $_POST['section_code'] ?? '';
+                $serviceIds = json_decode($_POST['service_ids'] ?? '[]', true);
+
+                if ($sectionCode && is_array($serviceIds)) {
+                    reorderSectionServices($sectionCode, $serviceIds);
+                    header('Content-Type: application/json');
+                    echo json_encode(['success' => true]);
+                    exit;
+                }
+                break;
+
             case 'create_dynamic_section':
                 $page = $_POST['page'] ?? '';
                 $templateCode = $_POST['template_code'] ?? '';
@@ -1281,6 +1384,244 @@ if ($editBlockId) {
             color: var(--admin-text);
         }
 
+        /* Services panel (reuses feature panel styles with service- prefix) */
+        .services-panel {
+            background: var(--admin-bg);
+            border: 1px solid var(--admin-border);
+            border-radius: var(--admin-radius);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .services-panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--admin-border);
+        }
+        .services-panel-header h4 {
+            margin: 0;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .services-panel-header h4 svg {
+            width: 18px;
+            height: 18px;
+            color: var(--admin-primary);
+        }
+        .services-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        .service-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            background: var(--admin-card);
+            border: 1px solid var(--admin-border);
+            border-radius: 6px;
+            transition: box-shadow 0.2s;
+        }
+        .service-item:hover {
+            box-shadow: var(--admin-shadow);
+        }
+        .service-item.inactive {
+            opacity: 0.5;
+        }
+        .service-drag-handle {
+            cursor: grab;
+            color: var(--admin-text-light);
+            padding: 0.25rem;
+            display: flex;
+            align-items: center;
+        }
+        .service-drag-handle:active {
+            cursor: grabbing;
+        }
+        .service-icon {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(139, 90, 43, 0.1);
+            border-radius: 6px;
+            color: var(--admin-primary);
+            flex-shrink: 0;
+        }
+        .service-icon svg {
+            width: 18px;
+            height: 18px;
+        }
+        .service-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .service-label {
+            font-weight: 500;
+            color: var(--admin-text);
+        }
+        .service-description {
+            font-size: 0.85rem;
+            color: var(--admin-text-light);
+            margin-top: 0.125rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .service-actions {
+            display: flex;
+            gap: 0.25rem;
+        }
+        .service-actions button {
+            padding: 0.375rem;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            color: var(--admin-text-light);
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+        .service-actions button:hover {
+            background: var(--admin-bg);
+            color: var(--admin-primary);
+        }
+        .service-actions button.delete-btn:hover {
+            color: #C53030;
+        }
+        .service-actions button svg {
+            width: 16px;
+            height: 16px;
+        }
+        .services-empty {
+            text-align: center;
+            padding: 1.5rem;
+            color: var(--admin-text-light);
+            font-size: 0.9rem;
+        }
+        .add-service-btn {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px dashed var(--admin-border);
+            background: transparent;
+            border-radius: 6px;
+            color: var(--admin-text-light);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+        }
+        .add-service-btn:hover {
+            border-color: var(--admin-primary);
+            color: var(--admin-primary);
+        }
+        .add-service-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        /* Service modal (reuses feature modal structure) */
+        .service-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.5);
+        }
+        .service-modal.active {
+            display: flex;
+        }
+        .service-modal-content {
+            background: var(--admin-card);
+            border-radius: var(--admin-radius);
+            width: 100%;
+            max-width: 500px;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        .service-form-group {
+            margin-bottom: 1rem;
+        }
+        .service-form-group label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 0.375rem;
+            color: var(--admin-text);
+            font-size: 0.9rem;
+        }
+        .service-form-group input,
+        .service-form-group textarea {
+            width: 100%;
+            padding: 0.625rem;
+            border: 1px solid var(--admin-border);
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+        .service-form-group input:focus,
+        .service-form-group textarea:focus {
+            outline: none;
+            border-color: var(--admin-primary);
+        }
+        .service-form-group textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+        .service-translations {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--admin-border);
+        }
+        .service-trans-grid {
+            display: grid;
+            gap: 0.75rem;
+        }
+        .service-trans-lang {
+            background: var(--admin-bg);
+            padding: 0.75rem;
+            border-radius: 6px;
+        }
+        .service-trans-lang-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            font-size: 0.85rem;
+        }
+        .service-trans-lang-header .flag {
+            font-size: 1rem;
+        }
+        .service-trans-lang .form-row {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 0.5rem;
+        }
+        .service-trans-lang input,
+        .service-trans-lang textarea {
+            padding: 0.5rem;
+            border: 1px solid var(--admin-border);
+            border-radius: 4px;
+            font-size: 0.85rem;
+        }
+        .service-trans-lang textarea {
+            resize: vertical;
+            min-height: 40px;
+        }
+
         /* Dynamic sections panel */
         .dynamic-sections-panel {
             background: linear-gradient(135deg, rgba(139, 90, 43, 0.05) 0%, rgba(92, 124, 94, 0.05) 100%);
@@ -2069,18 +2410,27 @@ if ($editBlockId) {
                             <?php
                             // Show features panel for sections that support it
                             $showFeaturesPanel = $currentSectionData && sectionHasFeatures($currentSection);
+                            // Check if this is a detail_style section (simplified checklist - no icon selector)
+                            $isDetailStyle = $currentSectionData && ($currentSectionData['template_type'] ?? '') === 'detail_style';
                             if ($showFeaturesPanel):
                                 $sectionFeatures = getSectionFeaturesWithTranslations($currentSection, false);
                                 $availableIcons = getAvailableIcons();
                                 $iconCategories = getIconCategories();
                             ?>
-                            <div class="features-panel">
+                            <div class="features-panel" data-detail-style="<?= $isDetailStyle ? '1' : '0' ?>">
                                 <div class="features-panel-header">
                                     <h4>
+                                        <?php if ($isDetailStyle): ?>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <polyline points="20 6 9 17 4 12"/>
+                                        </svg>
+                                        Liste à puces
+                                        <?php else: ?>
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                             <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
                                         </svg>
                                         Indicateurs
+                                        <?php endif; ?>
                                     </h4>
                                 </div>
 
@@ -2096,7 +2446,11 @@ if ($editBlockId) {
                                             </svg>
                                         </div>
                                         <div class="feature-icon">
+                                            <?php if ($isDetailStyle): ?>
+                                            <?= getIconSvg('check') ?>
+                                            <?php else: ?>
                                             <?= getIconSvg($feature['icon_code']) ?>
+                                            <?php endif; ?>
                                         </div>
                                         <span class="feature-label"><?= h($feature['label']) ?></span>
                                         <div class="feature-actions">
@@ -2129,7 +2483,7 @@ if ($editBlockId) {
                                 </div>
                                 <?php else: ?>
                                 <div class="features-empty">
-                                    Aucun indicateur configuré
+                                    <?= $isDetailStyle ? 'Aucun élément configuré' : 'Aucun indicateur configuré' ?>
                                 </div>
                                 <?php endif; ?>
 
@@ -2138,15 +2492,15 @@ if ($editBlockId) {
                                         <line x1="12" y1="5" x2="12" y2="19"/>
                                         <line x1="5" y1="12" x2="19" y2="12"/>
                                     </svg>
-                                    Ajouter un indicateur
+                                    <?= $isDetailStyle ? 'Ajouter un élément' : 'Ajouter un indicateur' ?>
                                 </button>
                             </div>
 
                             <!-- Feature Modal (Add/Edit) -->
-                            <div class="feature-modal" id="featureModal">
+                            <div class="feature-modal" id="featureModal" data-detail-style="<?= $isDetailStyle ? '1' : '0' ?>">
                                 <div class="feature-modal-content">
                                     <div class="feature-modal-header">
-                                        <h3 id="featureModalTitle">Ajouter un indicateur</h3>
+                                        <h3 id="featureModalTitle"><?= $isDetailStyle ? 'Ajouter un élément' : 'Ajouter un indicateur' ?></h3>
                                         <button type="button" class="feature-modal-close" id="featureModalClose">
                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                                 <line x1="18" y1="6" x2="6" y2="18"/>
@@ -2159,10 +2513,10 @@ if ($editBlockId) {
                                         <input type="hidden" name="action" id="featureAction" value="create_feature">
                                         <input type="hidden" name="section_code" value="<?= h($currentSection) ?>">
                                         <input type="hidden" name="feature_id" id="featureId" value="">
-                                        <input type="hidden" name="icon_code" id="selectedIconCode" value="">
+                                        <input type="hidden" name="icon_code" id="selectedIconCode" value="<?= $isDetailStyle ? 'check' : '' ?>">
 
                                         <div class="feature-modal-body">
-                                            <div class="icon-selector">
+                                            <div class="icon-selector" <?= $isDetailStyle ? 'style="display: none;"' : '' ?>>
                                                 <label class="icon-selector-label">Icône</label>
                                                 <?php foreach ($iconCategories as $catCode => $catName): ?>
                                                 <div class="icon-category">
@@ -2218,6 +2572,193 @@ if ($editBlockId) {
                                         <div class="feature-modal-footer">
                                             <button type="button" class="btn btn-outline" id="featureModalCancel">Annuler</button>
                                             <button type="submit" class="btn btn-primary" id="featureSubmitBtn">Ajouter</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                            <?php endif; ?>
+
+                            <?php
+                            // Show services panel for sections that support services
+                            $showServicesPanel = $currentSectionData && !empty($currentSectionData['has_services']);
+                            if ($showServicesPanel):
+                                $sectionServices = getSectionServicesWithTranslations($currentSection, false);
+                                if (!isset($availableIcons)) $availableIcons = getAvailableIcons();
+                                if (!isset($iconCategories)) $iconCategories = getIconCategories();
+                            ?>
+                            <div class="services-panel">
+                                <div class="services-panel-header">
+                                    <h4>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <rect x="3" y="3" width="7" height="7"/>
+                                            <rect x="14" y="3" width="7" height="7"/>
+                                            <rect x="14" y="14" width="7" height="7"/>
+                                            <rect x="3" y="14" width="7" height="7"/>
+                                        </svg>
+                                        Services
+                                    </h4>
+                                </div>
+
+                                <?php if (!empty($sectionServices)): ?>
+                                <div class="services-list" id="servicesList" data-section="<?= h($currentSection) ?>">
+                                    <?php foreach ($sectionServices as $service): ?>
+                                    <div class="service-item <?= !$service['is_active'] ? 'inactive' : '' ?>" data-service-id="<?= $service['id'] ?>">
+                                        <div class="service-drag-handle" title="Glisser pour réordonner">
+                                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                                <line x1="8" y1="6" x2="16" y2="6"/>
+                                                <line x1="8" y1="12" x2="16" y2="12"/>
+                                                <line x1="8" y1="18" x2="16" y2="18"/>
+                                            </svg>
+                                        </div>
+                                        <div class="service-icon">
+                                            <?= getIconSvg($service['icon_code']) ?>
+                                        </div>
+                                        <div class="service-info">
+                                            <span class="service-label"><?= h($service['label']) ?></span>
+                                            <?php if (!empty($service['description'])): ?>
+                                            <span class="service-description"><?= h($service['description']) ?></span>
+                                            <?php endif; ?>
+                                        </div>
+                                        <div class="service-actions">
+                                            <button type="button" class="edit-service-btn" data-service='<?= h(json_encode([
+                                                'id' => $service['id'],
+                                                'icon_code' => $service['icon_code'],
+                                                'label' => $service['label'],
+                                                'description' => $service['description'] ?? '',
+                                                'is_active' => $service['is_active'],
+                                                'translations' => $service['translations'] ?? []
+                                            ])) ?>' title="Modifier">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                                </svg>
+                                            </button>
+                                            <form method="POST" style="display: inline;" onsubmit="return confirm('Supprimer ce service ?');">
+                                                <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
+                                                <input type="hidden" name="action" value="delete_service">
+                                                <input type="hidden" name="service_id" value="<?= $service['id'] ?>">
+                                                <button type="submit" class="delete-btn" title="Supprimer">
+                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                        <polyline points="3 6 5 6 21 6"/>
+                                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                                    </svg>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                    <?php endforeach; ?>
+                                </div>
+                                <?php else: ?>
+                                <div class="services-empty">
+                                    Aucun service configuré
+                                </div>
+                                <?php endif; ?>
+
+                                <button type="button" class="add-service-btn" id="addServiceBtn">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <line x1="12" y1="5" x2="12" y2="19"/>
+                                        <line x1="5" y1="12" x2="19" y2="12"/>
+                                    </svg>
+                                    Ajouter un service
+                                </button>
+                            </div>
+
+                            <!-- Service Modal -->
+                            <div class="service-modal" id="serviceModal">
+                                <div class="service-modal-content">
+                                    <div class="feature-modal-header">
+                                        <h3 id="serviceModalTitle">Ajouter un service</h3>
+                                        <button type="button" class="feature-modal-close" id="serviceModalClose">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <line x1="18" y1="6" x2="6" y2="18"/>
+                                                <line x1="6" y1="6" x2="18" y2="18"/>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                    <form method="POST" id="serviceForm">
+                                        <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
+                                        <input type="hidden" name="action" id="serviceAction" value="create_service">
+                                        <input type="hidden" name="section_code" value="<?= h($currentSection) ?>">
+                                        <input type="hidden" name="service_id" id="serviceId" value="">
+                                        <input type="hidden" name="icon_code" id="serviceSelectedIconCode" value="">
+
+                                        <div class="feature-modal-body">
+                                            <div class="icon-selector">
+                                                <label class="icon-selector-label">Icône</label>
+                                                <?php foreach ($iconCategories as $catCode => $catName): ?>
+                                                <div class="icon-category">
+                                                    <div class="icon-category-name"><?= h($catName) ?></div>
+                                                    <div class="icon-grid" id="serviceIconGrid_<?= h($catCode) ?>">
+                                                        <?php foreach ($availableIcons as $iconCode => $icon): ?>
+                                                        <?php if ($icon['category'] === $catCode): ?>
+                                                        <div class="icon-option service-icon-option" data-icon="<?= h($iconCode) ?>" title="<?= h($icon['name']) ?>">
+                                                            <?= $icon['svg'] ?>
+                                                            <span class="icon-option-name"><?= h($icon['name']) ?></span>
+                                                        </div>
+                                                        <?php endif; ?>
+                                                        <?php endforeach; ?>
+                                                    </div>
+                                                </div>
+                                                <?php endforeach; ?>
+                                            </div>
+
+                                            <div class="service-form-group">
+                                                <label for="serviceLabel">Titre (Français)</label>
+                                                <input type="text" id="serviceLabel" name="service_label" required placeholder="Ex: Table d'hôtes">
+                                            </div>
+
+                                            <div class="service-form-group">
+                                                <label for="serviceDescription">Description (Français)</label>
+                                                <textarea id="serviceDescription" name="service_description" placeholder="Description courte du service..."></textarea>
+                                            </div>
+
+                                            <div class="service-translations">
+                                                <div class="feature-translations-header" id="serviceTransToggle">
+                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                        <polyline points="6 9 12 15 18 9"/>
+                                                    </svg>
+                                                    <h5>Traductions (optionnel)</h5>
+                                                </div>
+                                                <div class="service-trans-grid" id="serviceTransContent">
+                                                    <div class="service-trans-lang">
+                                                        <div class="service-trans-lang-header">
+                                                            <span class="flag">🇬🇧</span> English
+                                                        </div>
+                                                        <div class="form-row">
+                                                            <input type="text" name="service_label_en" id="serviceLabelEn" placeholder="Title">
+                                                            <textarea name="service_description_en" id="serviceDescriptionEn" placeholder="Description"></textarea>
+                                                        </div>
+                                                    </div>
+                                                    <div class="service-trans-lang">
+                                                        <div class="service-trans-lang-header">
+                                                            <span class="flag">🇪🇸</span> Español
+                                                        </div>
+                                                        <div class="form-row">
+                                                            <input type="text" name="service_label_es" id="serviceLabelEs" placeholder="Título">
+                                                            <textarea name="service_description_es" id="serviceDescriptionEs" placeholder="Descripción"></textarea>
+                                                        </div>
+                                                    </div>
+                                                    <div class="service-trans-lang">
+                                                        <div class="service-trans-lang-header">
+                                                            <span class="flag">🇮🇹</span> Italiano
+                                                        </div>
+                                                        <div class="form-row">
+                                                            <input type="text" name="service_label_it" id="serviceLabelIt" placeholder="Titolo">
+                                                            <textarea name="service_description_it" id="serviceDescriptionIt" placeholder="Descrizione"></textarea>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="feature-active-toggle" id="serviceActiveToggle" style="display: none;">
+                                                <input type="checkbox" name="service_active" id="serviceIsActive" value="1" checked>
+                                                <span>Actif (visible sur le site)</span>
+                                            </div>
+                                        </div>
+
+                                        <div class="feature-modal-footer">
+                                            <button type="button" class="btn btn-outline" id="serviceModalCancel">Annuler</button>
+                                            <button type="submit" class="btn btn-primary" id="serviceSubmitBtn">Ajouter</button>
                                         </div>
                                     </form>
                                 </div>
@@ -2589,7 +3130,9 @@ if ($editBlockId) {
 
         // Form validation
         featureForm?.addEventListener('submit', (e) => {
-            if (!selectedIconCode.value) {
+            const isDetailStyle = featureModal.dataset.detailStyle === '1';
+            // Only validate icon selection for non-detail_style sections
+            if (!isDetailStyle && !selectedIconCode.value) {
                 e.preventDefault();
                 alert('Veuillez sélectionner une icône.');
                 return false;
@@ -2602,23 +3145,35 @@ if ($editBlockId) {
         });
 
         function openFeatureModal(mode, data = null) {
+            // Check if this is a detail_style section (checklist mode)
+            const isDetailStyle = featureModal.dataset.detailStyle === '1';
+            const itemLabel = isDetailStyle ? 'élément' : 'indicateur';
+
             // Reset form
             featureForm.reset();
             document.querySelectorAll('.icon-option').forEach(o => o.classList.remove('selected'));
-            selectedIconCode.value = '';
+
+            // For detail_style, always use 'check' icon
+            if (isDetailStyle) {
+                selectedIconCode.value = 'check';
+            } else {
+                selectedIconCode.value = '';
+            }
 
             if (mode === 'edit' && data) {
-                featureModalTitle.textContent = 'Modifier l\'indicateur';
+                featureModalTitle.textContent = isDetailStyle ? 'Modifier l\'élément' : 'Modifier l\'indicateur';
                 featureAction.value = 'update_feature';
                 featureId.value = data.id;
                 featureSubmitBtn.textContent = 'Enregistrer';
                 featureActiveToggle.style.display = 'flex';
 
-                // Select icon
-                const iconOption = document.querySelector(`.icon-option[data-icon="${data.icon_code}"]`);
-                if (iconOption) {
-                    iconOption.classList.add('selected');
-                    selectedIconCode.value = data.icon_code;
+                // Select icon (only for non-detail_style)
+                if (!isDetailStyle) {
+                    const iconOption = document.querySelector(`.icon-option[data-icon="${data.icon_code}"]`);
+                    if (iconOption) {
+                        iconOption.classList.add('selected');
+                        selectedIconCode.value = data.icon_code;
+                    }
                 }
 
                 // Fill label
@@ -2632,7 +3187,7 @@ if ($editBlockId) {
                     featureLabelIt.value = data.translations.it || '';
                 }
             } else {
-                featureModalTitle.textContent = 'Ajouter un indicateur';
+                featureModalTitle.textContent = isDetailStyle ? 'Ajouter un élément' : 'Ajouter un indicateur';
                 featureAction.value = 'create_feature';
                 featureId.value = '';
                 featureSubmitBtn.textContent = 'Ajouter';
@@ -2699,6 +3254,173 @@ if ($editBlockId) {
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },
                 body: `action=reorder_features&csrf_token=<?= h($csrfToken) ?>&section_code=${encodeURIComponent(sectionCode)}&feature_ids=${encodeURIComponent(JSON.stringify(featureIds))}`
+            });
+        }
+    }
+
+    // =====================================================
+    // SERVICES MODAL FUNCTIONALITY
+    // =====================================================
+
+    const serviceModal = document.getElementById('serviceModal');
+    const addServiceBtn = document.getElementById('addServiceBtn');
+    const serviceModalClose = document.getElementById('serviceModalClose');
+    const serviceModalCancel = document.getElementById('serviceModalCancel');
+    const serviceForm = document.getElementById('serviceForm');
+    const serviceModalTitle = document.getElementById('serviceModalTitle');
+    const serviceAction = document.getElementById('serviceAction');
+    const serviceId = document.getElementById('serviceId');
+    const serviceLabel = document.getElementById('serviceLabel');
+    const serviceDescription = document.getElementById('serviceDescription');
+    const serviceSelectedIconCode = document.getElementById('serviceSelectedIconCode');
+    const serviceSubmitBtn = document.getElementById('serviceSubmitBtn');
+    const serviceActiveToggle = document.getElementById('serviceActiveToggle');
+    const serviceIsActive = document.getElementById('serviceIsActive');
+    const serviceLabelEn = document.getElementById('serviceLabelEn');
+    const serviceLabelEs = document.getElementById('serviceLabelEs');
+    const serviceLabelIt = document.getElementById('serviceLabelIt');
+    const serviceDescriptionEn = document.getElementById('serviceDescriptionEn');
+    const serviceDescriptionEs = document.getElementById('serviceDescriptionEs');
+    const serviceDescriptionIt = document.getElementById('serviceDescriptionIt');
+    const serviceTransToggle = document.getElementById('serviceTransToggle');
+    const serviceTransContent = document.getElementById('serviceTransContent');
+
+    if (serviceModal) {
+        // Icon selection for services
+        document.querySelectorAll('.service-icon-option').forEach(option => {
+            option.addEventListener('click', () => {
+                document.querySelectorAll('.service-icon-option.selected').forEach(el => el.classList.remove('selected'));
+                option.classList.add('selected');
+                serviceSelectedIconCode.value = option.dataset.icon;
+            });
+        });
+
+        // Open modal for new service
+        addServiceBtn?.addEventListener('click', () => openServiceModal());
+
+        // Edit service buttons
+        document.querySelectorAll('.edit-service-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const data = JSON.parse(btn.dataset.service);
+                openServiceModal(data);
+            });
+        });
+
+        // Close modal
+        serviceModalClose?.addEventListener('click', closeServiceModal);
+        serviceModalCancel?.addEventListener('click', closeServiceModal);
+        serviceModal.addEventListener('click', (e) => {
+            if (e.target === serviceModal) closeServiceModal();
+        });
+
+        // Translations toggle
+        serviceTransToggle?.addEventListener('click', () => {
+            serviceTransToggle.classList.toggle('collapsed');
+            serviceTransContent.classList.toggle('hidden');
+        });
+
+        function openServiceModal(data = null) {
+            // Reset form
+            serviceForm.reset();
+            document.querySelectorAll('.service-icon-option.selected').forEach(el => el.classList.remove('selected'));
+            serviceSelectedIconCode.value = '';
+
+            if (data) {
+                serviceModalTitle.textContent = 'Modifier le service';
+                serviceAction.value = 'update_service';
+                serviceId.value = data.id;
+                serviceSubmitBtn.textContent = 'Enregistrer';
+                serviceActiveToggle.style.display = 'flex';
+
+                // Fill form
+                serviceLabel.value = data.label;
+                serviceDescription.value = data.description || '';
+                serviceIsActive.checked = data.is_active == 1;
+
+                // Select icon
+                const iconOption = document.querySelector(`.service-icon-option[data-icon="${data.icon_code}"]`);
+                if (iconOption) {
+                    iconOption.classList.add('selected');
+                    serviceSelectedIconCode.value = data.icon_code;
+                }
+
+                // Fill translations
+                if (data.translations) {
+                    serviceLabelEn.value = data.translations.en?.label || '';
+                    serviceDescriptionEn.value = data.translations.en?.description || '';
+                    serviceLabelEs.value = data.translations.es?.label || '';
+                    serviceDescriptionEs.value = data.translations.es?.description || '';
+                    serviceLabelIt.value = data.translations.it?.label || '';
+                    serviceDescriptionIt.value = data.translations.it?.description || '';
+                }
+            } else {
+                serviceModalTitle.textContent = 'Ajouter un service';
+                serviceAction.value = 'create_service';
+                serviceId.value = '';
+                serviceSubmitBtn.textContent = 'Ajouter';
+                serviceActiveToggle.style.display = 'none';
+            }
+
+            serviceModal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeServiceModal() {
+            serviceModal.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+    }
+
+    // Services drag and drop reordering
+    const servicesList = document.getElementById('servicesList');
+    if (servicesList) {
+        let draggedService = null;
+
+        servicesList.querySelectorAll('.service-item').forEach(item => {
+            const handle = item.querySelector('.service-drag-handle');
+
+            handle.addEventListener('mousedown', () => {
+                item.draggable = true;
+            });
+
+            item.addEventListener('dragstart', () => {
+                draggedService = item;
+                item.style.opacity = '0.5';
+            });
+
+            item.addEventListener('dragend', () => {
+                item.draggable = false;
+                item.style.opacity = '';
+                draggedService = null;
+                saveServicesOrder();
+            });
+
+            item.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                if (draggedService && draggedService !== item) {
+                    const rect = item.getBoundingClientRect();
+                    const midpoint = rect.top + rect.height / 2;
+                    if (e.clientY < midpoint) {
+                        servicesList.insertBefore(draggedService, item);
+                    } else {
+                        servicesList.insertBefore(draggedService, item.nextSibling);
+                    }
+                }
+            });
+        });
+
+        function saveServicesOrder() {
+            const serviceIds = Array.from(servicesList.querySelectorAll('.service-item'))
+                .map(item => item.dataset.serviceId);
+
+            const sectionCode = servicesList.dataset.section;
+
+            fetch('content.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `action=reorder_services&csrf_token=<?= h($csrfToken) ?>&section_code=${encodeURIComponent(sectionCode)}&service_ids=${encodeURIComponent(JSON.stringify(serviceIds))}`
             });
         }
     }

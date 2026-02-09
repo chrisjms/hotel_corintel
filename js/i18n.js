@@ -363,6 +363,23 @@
             }
           }
         });
+
+        // Handle dynamic section services (data-dynamic-service="serviceId:field")
+        document.querySelectorAll('[data-dynamic-service]').forEach(el => {
+          const [serviceId, field] = el.dataset.dynamicService.split(':');
+          // Find the section this service belongs to
+          for (const sectionCode in window.dynamicSectionsTranslations) {
+            const section = window.dynamicSectionsTranslations[sectionCode];
+            if (section.services && section.services[serviceId]) {
+              const serviceTrans = section.services[serviceId];
+              const langData = serviceTrans[this.currentLang] || serviceTrans['fr'];
+              if (langData && langData[field]) {
+                el.textContent = langData[field];
+              }
+              break;
+            }
+          }
+        });
       }
     },
 

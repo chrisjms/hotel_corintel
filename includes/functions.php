@@ -2333,6 +2333,40 @@ function initContentTables(): void {
         $pdo->exec("ALTER TABLE content_sections ADD COLUMN custom_name VARCHAR(100) DEFAULT NULL");
     } catch (PDOException $e) { /* Column may already exist */ }
 
+    try {
+        $pdo->exec("ALTER TABLE content_sections ADD COLUMN has_services TINYINT(1) DEFAULT 0");
+    } catch (PDOException $e) { /* Column may already exist */ }
+
+    // Section services table (reusable service cards for any section)
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS section_services (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            section_code VARCHAR(50) NOT NULL,
+            icon_code VARCHAR(50) NOT NULL,
+            label VARCHAR(100) NOT NULL,
+            description TEXT,
+            position INT DEFAULT 0,
+            is_active TINYINT(1) DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_section (section_code),
+            INDEX idx_position (position),
+            FOREIGN KEY (section_code) REFERENCES content_sections(code) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    ");
+
+    // Section service translations table
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS section_service_translations (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            service_id INT NOT NULL,
+            language_code VARCHAR(5) NOT NULL,
+            label VARCHAR(100) NOT NULL,
+            description TEXT,
+            UNIQUE KEY unique_service_lang (service_id, language_code),
+            FOREIGN KEY (service_id) REFERENCES section_services(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    ");
+
     // Section templates table - defines reusable section templates
     $pdo->exec("
         CREATE TABLE IF NOT EXISTS section_templates (
@@ -2347,10 +2381,16 @@ function initContentTables(): void {
             has_link TINYINT(1) DEFAULT 0,
             has_overlay TINYINT(1) DEFAULT 1,
             has_features TINYINT(1) DEFAULT 1,
+            has_services TINYINT(1) DEFAULT 0,
             css_class VARCHAR(100) DEFAULT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     ");
+
+    // Add has_services column to section_templates if not exists
+    try {
+        $pdo->exec("ALTER TABLE section_templates ADD COLUMN has_services TINYINT(1) DEFAULT 0");
+    } catch (PDOException $e) { /* Column may already exist */ }
 
     // Seed default templates
     seedSectionTemplates();
@@ -2507,12 +2547,13 @@ function seedSectionTemplates(): void {
             'has_link' => 0,
             'has_overlay' => 1,
             'has_features' => 1,
+            'has_services' => 0,
             'css_class' => 'section-intro-style'
         ],
         // Image gallery template: multiple images, no text
         [
             'code' => 'gallery_style',
-            'name' => 'Galerie d\'images',
+            'name' => 'Galerie d\'imagesssss',
             'description' => 'Section galerie avec plusieurs images',
             'image_mode' => IMAGE_REQUIRED,
             'max_blocks' => null,
@@ -2521,6 +2562,7 @@ function seedSectionTemplates(): void {
             'has_link' => 0,
             'has_overlay' => 1,
             'has_features' => 0,
+            'has_services' => 0,
             'css_class' => 'section-gallery-style'
         ],
         // Text-only template: overlay texts, no images
@@ -2535,7 +2577,38 @@ function seedSectionTemplates(): void {
             'has_link' => 0,
             'has_overlay' => 1,
             'has_features' => 1,
+            'has_services' => 0,
             'css_class' => 'section-text-style'
+        ],
+        // Services-style template: overlay texts + service cards grid
+        [
+            'code' => 'services_style',
+            'name' => 'Section Services',
+            'description' => 'Section avec textes et grille de services (icône + texte)',
+            'image_mode' => IMAGE_FORBIDDEN,
+            'max_blocks' => 0,
+            'has_title' => 0,
+            'has_description' => 0,
+            'has_link' => 0,
+            'has_overlay' => 1,
+            'has_features' => 0,
+            'has_services' => 1,
+            'css_class' => 'section-services-style'
+        ],
+        // Detail-style template: overlay texts, optional image, checklist items
+        [
+            'code' => 'detail_style',
+            'name' => 'Section Détailsssss',
+            'description' => 'Section avec textes, image optionnelle et liste à puces (style Service)',
+            'image_mode' => IMAGE_OPTIONAL,
+            'max_blocks' => 1,
+            'has_title' => 0,
+            'has_description' => 0,
+            'has_link' => 0,
+            'has_overlay' => 1,
+            'has_features' => 1,  // Reuses features but renders as checklist
+            'has_services' => 0,
+            'css_class' => 'section-detail-style'
         ]
     ];
 
@@ -2544,8 +2617,8 @@ function seedSectionTemplates(): void {
         $stmt->execute([$template['code']]);
         if (!$stmt->fetch()) {
             $stmt = $pdo->prepare('
-                INSERT INTO section_templates (code, name, description, image_mode, max_blocks, has_title, has_description, has_link, has_overlay, has_features, css_class)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO section_templates (code, name, description, image_mode, max_blocks, has_title, has_description, has_link, has_overlay, has_features, has_services, css_class)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ');
             $stmt->execute([
                 $template['code'],
@@ -2558,6 +2631,7 @@ function seedSectionTemplates(): void {
                 $template['has_link'],
                 $template['has_overlay'],
                 $template['has_features'],
+                $template['has_services'],
                 $template['css_class']
             ]);
         }
@@ -2593,14 +2667,24 @@ function getSectionTemplate(string $code): ?array {
 function getDynamicSections(string $page): array {
     $pdo = getDatabase();
     $stmt = $pdo->prepare('
-        SELECT cs.*, st.css_class as template_css_class
+        SELECT cs.*, st.css_class as template_css_class, st.has_services as template_has_services
         FROM content_sections cs
         LEFT JOIN section_templates st ON cs.template_type = st.code
         WHERE cs.page = ? AND cs.is_dynamic = 1
         ORDER BY cs.sort_order
     ');
     $stmt->execute([$page]);
-    return $stmt->fetchAll();
+    $sections = $stmt->fetchAll();
+
+    // Merge template flags into section data
+    foreach ($sections as &$section) {
+        // Use template has_services if section doesn't have it set
+        if (!isset($section['has_services']) && isset($section['template_has_services'])) {
+            $section['has_services'] = $section['template_has_services'];
+        }
+    }
+
+    return $sections;
 }
 
 /**
@@ -2647,7 +2731,7 @@ function getDynamicSectionsWithData(string $page): array {
 
     foreach ($sections as $section) {
         // getDynamicSections already filters by is_dynamic=1, so we can trust these are dynamic
-        // Just augment with overlay, features, and blocks data
+        // Just augment with overlay, features, services, and blocks data
 
         // Get overlay texts with translations
         $section['overlay'] = getSectionOverlayWithTranslations($section['code']);
@@ -2657,6 +2741,13 @@ function getDynamicSectionsWithData(string $page): array {
             $section['features'] = getSectionFeaturesWithTranslations($section['code']);
         } else {
             $section['features'] = [];
+        }
+
+        // Get services with translations if section supports them
+        if (!empty($section['has_services'])) {
+            $section['services'] = getSectionServicesWithTranslations($section['code']);
+        } else {
+            $section['services'] = [];
         }
 
         // Get images/content blocks
@@ -2699,9 +2790,9 @@ function createDynamicSection(string $page, string $templateCode, string $custom
     $stmt = $pdo->prepare('
         INSERT INTO content_sections (
             code, name, description, page, image_mode, max_blocks,
-            has_title, has_description, has_link, has_overlay, has_features,
+            has_title, has_description, has_link, has_overlay, has_features, has_services,
             sort_order, is_dynamic, template_type, custom_name
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
     ');
 
     $success = $stmt->execute([
@@ -2716,6 +2807,7 @@ function createDynamicSection(string $page, string $templateCode, string $custom
         $template['has_link'],
         $template['has_overlay'],
         $template['has_features'],
+        $template['has_services'] ?? 0,
         $maxOrder + 1,
         $templateCode,
         $customName
@@ -2830,11 +2922,12 @@ function renderDynamicSection(array $section, string $currentLang = 'fr'): strin
     // Check if section has any content to display
     $hasOverlayContent = !empty($subtitle) || !empty($title) || !empty($description);
     $hasFeatures = !empty($section['features']);
+    $hasServices = !empty($section['services']);
     $hasImages = !empty($section['blocks']);
 
     // If section has no content, use the section's custom name as a fallback title
     // This ensures newly created sections are visible until content is added
-    if (!$hasOverlayContent && !$hasFeatures && !$hasImages) {
+    if (!$hasOverlayContent && !$hasFeatures && !$hasServices && !$hasImages) {
         // Use custom_name or name as fallback title
         $fallbackTitle = $section['custom_name'] ?? $section['name'] ?? '';
         if (!empty($fallbackTitle)) {
@@ -2875,6 +2968,14 @@ function renderDynamicSection(array $section, string $currentLang = 'fr'): strin
 
         case 'text_style':
             renderTextStyleSection($section, $currentLang, $cssClass);
+            break;
+
+        case 'services_style':
+            renderServicesStyleSection($section, $currentLang, $cssClass);
+            break;
+
+        case 'detail_style':
+            renderDetailStyleSection($section, $currentLang, $cssClass);
             break;
 
         default:
@@ -3053,6 +3154,128 @@ function renderTextStyleSection(array $section, string $currentLang, string $css
 }
 
 /**
+ * Render services-style section (title + services grid)
+ */
+function renderServicesStyleSection(array $section, string $currentLang, string $cssClass): void {
+    $overlay = $section['overlay'] ?? [];
+    $subtitle = $overlay['translations'][$currentLang]['subtitle'] ?? $overlay['subtitle'] ?? '';
+    $title = $overlay['translations'][$currentLang]['title'] ?? $overlay['title'] ?? '';
+    $description = $overlay['translations'][$currentLang]['description'] ?? $overlay['description'] ?? '';
+    $services = $section['services'] ?? [];
+    $sectionCode = $section['code'];
+
+    // If no overlay content and no services, don't render
+    if (empty($subtitle) && empty($title) && empty($description) && empty($services)) {
+        return;
+    }
+    ?>
+    <section class="section section-cream <?= h($cssClass) ?>" data-section="<?= h($sectionCode) ?>">
+        <div class="container">
+            <?php if ($subtitle || $title || $description): ?>
+            <div class="section-header">
+                <?php if ($subtitle): ?>
+                <p class="section-subtitle" data-dynamic-text="<?= h($sectionCode) ?>:subtitle"><?= h($subtitle) ?></p>
+                <?php endif; ?>
+                <?php if ($title): ?>
+                <h2 class="section-title" data-dynamic-text="<?= h($sectionCode) ?>:title"><?= h($title) ?></h2>
+                <?php endif; ?>
+                <?php if ($description): ?>
+                <p class="section-description" data-dynamic-text="<?= h($sectionCode) ?>:description"><?= h($description) ?></p>
+                <?php endif; ?>
+            </div>
+            <?php endif; ?>
+
+            <?php if (!empty($services)): ?>
+            <div class="services-grid">
+                <?php foreach ($services as $service):
+                    $serviceLabel = getServiceLabelForLanguage($service, $currentLang);
+                    $serviceDescription = getServiceDescriptionForLanguage($service, $currentLang);
+                ?>
+                <div class="service-card">
+                    <div class="service-icon">
+                        <?= getIconSvg($service['icon_code']) ?>
+                    </div>
+                    <h3 data-dynamic-service="<?= $service['id'] ?>:label"><?= h($serviceLabel) ?></h3>
+                    <?php if (!empty($serviceDescription)): ?>
+                    <p data-dynamic-service="<?= $service['id'] ?>:description"><?= h($serviceDescription) ?></p>
+                    <?php endif; ?>
+                </div>
+                <?php endforeach; ?>
+            </div>
+            <?php endif; ?>
+        </div>
+    </section>
+    <?php
+}
+
+/**
+ * Render detail-style section (text + optional image + checklist items)
+ * Similar to service-detail layout with checkmark feature tags
+ */
+function renderDetailStyleSection(array $section, string $currentLang, string $cssClass): void {
+    $overlay = $section['overlay'] ?? [];
+    $subtitle = $overlay['translations'][$currentLang]['subtitle'] ?? $overlay['subtitle'] ?? '';
+    $title = $overlay['translations'][$currentLang]['title'] ?? $overlay['title'] ?? '';
+    $description = $overlay['translations'][$currentLang]['description'] ?? $overlay['description'] ?? '';
+    $features = $section['features'] ?? [];
+    $blocks = $section['blocks'] ?? [];
+    $sectionCode = $section['code'];
+
+    // Get first image if available
+    $image = !empty($blocks) ? $blocks[0] : null;
+    $hasImage = $image && !empty($image['image_filename']);
+    ?>
+    <section class="section section-cream <?= h($cssClass) ?>" data-section="<?= h($sectionCode) ?>">
+        <div class="container">
+            <div class="service-detail">
+                <?php if ($hasImage): ?>
+                <div class="service-detail-image">
+                    <img src="<?= h($image['image_filename']) ?>" alt="<?= h($image['image_alt'] ?: $title) ?>">
+                </div>
+                <?php endif; ?>
+                <div class="service-detail-content" <?= !$hasImage ? 'style="grid-column: 1 / -1;"' : '' ?>>
+                    <?php if ($subtitle): ?>
+                    <p class="section-subtitle" data-dynamic-text="<?= h($sectionCode) ?>:subtitle"><?= h($subtitle) ?></p>
+                    <?php endif; ?>
+                    <?php if ($title): ?>
+                    <h3 data-dynamic-text="<?= h($sectionCode) ?>:title"><?= h($title) ?></h3>
+                    <?php endif; ?>
+                    <?php if ($description): ?>
+                    <div data-dynamic-text="<?= h($sectionCode) ?>:description">
+                        <?php
+                        $paragraphs = preg_split('/\n\s*\n/', $description);
+                        foreach ($paragraphs as $p):
+                            $p = trim($p);
+                            if ($p):
+                        ?>
+                        <p><?= nl2br(h($p)) ?></p>
+                        <?php
+                            endif;
+                        endforeach;
+                        ?>
+                    </div>
+                    <?php endif; ?>
+
+                    <?php if (!empty($features)): ?>
+                    <div class="service-features">
+                        <?php foreach ($features as $feature):
+                            $featureLabel = $feature['translations'][$currentLang] ?? $feature['label'];
+                        ?>
+                        <span class="service-feature-tag" data-dynamic-feature="<?= $feature['id'] ?>">
+                            <?= getIconSvg('check') ?>
+                            <?= h($featureLabel) ?>
+                        </span>
+                        <?php endforeach; ?>
+                    </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+    </section>
+    <?php
+}
+
+/**
  * Render all dynamic sections for a page
  * Returns HTML string, or empty string if no sections
  *
@@ -3116,6 +3339,31 @@ function getDynamicSectionsTranslations(string $page): array {
                     'en' => $feature['translations']['en'] ?? $feature['label'],
                     'es' => $feature['translations']['es'] ?? $feature['label'],
                     'it' => $feature['translations']['it'] ?? $feature['label']
+                ];
+            }
+        }
+
+        // Build translations for services
+        if (!empty($section['services'])) {
+            $translations[$sectionCode]['services'] = [];
+            foreach ($section['services'] as $service) {
+                $translations[$sectionCode]['services'][$service['id']] = [
+                    'fr' => [
+                        'label' => $service['label'],
+                        'description' => $service['description'] ?? ''
+                    ],
+                    'en' => [
+                        'label' => $service['translations']['en']['label'] ?? $service['label'],
+                        'description' => $service['translations']['en']['description'] ?? ($service['description'] ?? '')
+                    ],
+                    'es' => [
+                        'label' => $service['translations']['es']['label'] ?? $service['label'],
+                        'description' => $service['translations']['es']['description'] ?? ($service['description'] ?? '')
+                    ],
+                    'it' => [
+                        'label' => $service['translations']['it']['label'] ?? $service['label'],
+                        'description' => $service['translations']['it']['description'] ?? ($service['description'] ?? '')
+                    ]
                 ];
             }
         }
@@ -3880,6 +4128,17 @@ function sectionHasFeatures(string $sectionCode): bool {
 }
 
 /**
+ * Check if a section supports services
+ */
+function sectionHasServices(string $sectionCode): bool {
+    $pdo = getDatabase();
+    $stmt = $pdo->prepare('SELECT has_services FROM content_sections WHERE code = ?');
+    $stmt->execute([$sectionCode]);
+    $result = $stmt->fetchColumn();
+    return $result == 1;
+}
+
+/**
  * Enable features for a section
  */
 function enableSectionFeatures(string $sectionCode): bool {
@@ -4076,4 +4335,197 @@ function seedSectionFeatures(string $sectionCode, array $defaultFeatures): void 
             saveSectionFeatureTranslations($featureId, $feature['translations']);
         }
     }
+}
+
+// =====================================================
+// SECTION SERVICES FUNCTIONS
+// Reusable service cards with icon + label + description
+// =====================================================
+
+/**
+ * Get all services for a section
+ */
+function getSectionServices(string $sectionCode, bool $activeOnly = true): array {
+    $pdo = getDatabase();
+    $sql = 'SELECT * FROM section_services WHERE section_code = ?';
+    if ($activeOnly) {
+        $sql .= ' AND is_active = 1';
+    }
+    $sql .= ' ORDER BY position ASC, id ASC';
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([$sectionCode]);
+    return $stmt->fetchAll();
+}
+
+/**
+ * Get services with all translations
+ */
+function getSectionServicesWithTranslations(string $sectionCode, bool $activeOnly = true): array {
+    $services = getSectionServices($sectionCode, $activeOnly);
+    $pdo = getDatabase();
+
+    foreach ($services as &$service) {
+        $stmt = $pdo->prepare('SELECT language_code, label, description FROM section_service_translations WHERE service_id = ?');
+        $stmt->execute([$service['id']]);
+        $translations = $stmt->fetchAll();
+
+        $service['translations'] = [];
+        foreach ($translations as $trans) {
+            $service['translations'][$trans['language_code']] = [
+                'label' => $trans['label'],
+                'description' => $trans['description']
+            ];
+        }
+
+        // Add icon data
+        $icon = getIcon($service['icon_code']);
+        $service['icon_svg'] = $icon['svg'] ?? '';
+        $service['icon_name'] = $icon['name'] ?? $service['icon_code'];
+    }
+
+    return $services;
+}
+
+/**
+ * Get a single service by ID
+ */
+function getSectionService(int $id): ?array {
+    $pdo = getDatabase();
+    $stmt = $pdo->prepare('SELECT * FROM section_services WHERE id = ?');
+    $stmt->execute([$id]);
+    $service = $stmt->fetch();
+
+    if ($service) {
+        // Get translations
+        $stmt = $pdo->prepare('SELECT language_code, label, description FROM section_service_translations WHERE service_id = ?');
+        $stmt->execute([$id]);
+        $translations = $stmt->fetchAll();
+
+        $service['translations'] = [];
+        foreach ($translations as $trans) {
+            $service['translations'][$trans['language_code']] = [
+                'label' => $trans['label'],
+                'description' => $trans['description']
+            ];
+        }
+    }
+
+    return $service ?: null;
+}
+
+/**
+ * Create a new service
+ */
+function createSectionService(string $sectionCode, string $iconCode, string $label, string $description = ''): ?int {
+    $pdo = getDatabase();
+
+    // Get next position
+    $stmt = $pdo->prepare('SELECT COALESCE(MAX(position), 0) + 1 FROM section_services WHERE section_code = ?');
+    $stmt->execute([$sectionCode]);
+    $nextPosition = $stmt->fetchColumn();
+
+    $stmt = $pdo->prepare('
+        INSERT INTO section_services (section_code, icon_code, label, description, position)
+        VALUES (?, ?, ?, ?, ?)
+    ');
+
+    $success = $stmt->execute([$sectionCode, $iconCode, trim($label), trim($description), $nextPosition]);
+    return $success ? (int)$pdo->lastInsertId() : null;
+}
+
+/**
+ * Update a service
+ */
+function updateSectionService(int $id, string $iconCode, string $label, string $description = '', bool $isActive = true): bool {
+    $pdo = getDatabase();
+    $stmt = $pdo->prepare('
+        UPDATE section_services
+        SET icon_code = ?, label = ?, description = ?, is_active = ?
+        WHERE id = ?
+    ');
+    return $stmt->execute([$iconCode, trim($label), trim($description), $isActive ? 1 : 0, $id]);
+}
+
+/**
+ * Delete a service
+ */
+function deleteSectionService(int $id): bool {
+    $pdo = getDatabase();
+    $stmt = $pdo->prepare('DELETE FROM section_services WHERE id = ?');
+    return $stmt->execute([$id]);
+}
+
+/**
+ * Reorder services
+ */
+function reorderSectionServices(string $sectionCode, array $serviceIds): bool {
+    $pdo = getDatabase();
+    $stmt = $pdo->prepare('UPDATE section_services SET position = ? WHERE id = ? AND section_code = ?');
+
+    $position = 1;
+    foreach ($serviceIds as $id) {
+        $stmt->execute([$position, $id, $sectionCode]);
+        $position++;
+    }
+
+    return true;
+}
+
+/**
+ * Save service translations
+ */
+function saveSectionServiceTranslations(int $serviceId, array $translations): bool {
+    $pdo = getDatabase();
+    $success = true;
+
+    foreach ($translations as $langCode => $data) {
+        if (!in_array($langCode, getSupportedLanguages()) || $langCode === 'fr') {
+            continue;
+        }
+
+        $label = is_array($data) ? trim($data['label'] ?? '') : trim($data);
+        $description = is_array($data) ? trim($data['description'] ?? '') : '';
+
+        if (empty($label)) {
+            // Delete translation if empty
+            $stmt = $pdo->prepare('DELETE FROM section_service_translations WHERE service_id = ? AND language_code = ?');
+            $stmt->execute([$serviceId, $langCode]);
+            continue;
+        }
+
+        try {
+            $stmt = $pdo->prepare('
+                INSERT INTO section_service_translations (service_id, language_code, label, description)
+                VALUES (?, ?, ?, ?)
+                ON DUPLICATE KEY UPDATE label = VALUES(label), description = VALUES(description)
+            ');
+            $success = $stmt->execute([$serviceId, $langCode, $label, $description]) && $success;
+        } catch (PDOException $e) {
+            $success = false;
+        }
+    }
+
+    return $success;
+}
+
+/**
+ * Get service label for a specific language
+ */
+function getServiceLabelForLanguage(array $service, string $langCode = 'fr'): string {
+    if ($langCode === 'fr') {
+        return $service['label'];
+    }
+
+    return $service['translations'][$langCode]['label'] ?? $service['label'];
+}
+
+/**
+ * Get service description for a specific language
+ */
+function getServiceDescriptionForLanguage(array $service, string $langCode = 'fr'): string {
+    if ($langCode === 'fr') {
+        return $service['description'] ?? '';
+    }
+
+    return $service['translations'][$langCode]['description'] ?? ($service['description'] ?? '');
 }
