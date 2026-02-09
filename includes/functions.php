@@ -2337,6 +2337,10 @@ function initContentTables(): void {
         $pdo->exec("ALTER TABLE content_sections ADD COLUMN has_services TINYINT(1) DEFAULT 0");
     } catch (PDOException $e) { /* Column may already exist */ }
 
+    try {
+        $pdo->exec("ALTER TABLE content_sections ADD COLUMN has_gallery TINYINT(1) DEFAULT 0");
+    } catch (PDOException $e) { /* Column may already exist */ }
+
     // Section services table (reusable service cards for any section)
     $pdo->exec("
         CREATE TABLE IF NOT EXISTS section_services (
@@ -2367,6 +2371,37 @@ function initContentTables(): void {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     ");
 
+    // Section gallery items table (for image gallery sections)
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS section_gallery_items (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            section_code VARCHAR(50) NOT NULL,
+            image_filename VARCHAR(255) NOT NULL,
+            image_alt VARCHAR(255),
+            title VARCHAR(100) NOT NULL,
+            description TEXT,
+            position INT DEFAULT 0,
+            is_active TINYINT(1) DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_section (section_code),
+            INDEX idx_position (position),
+            FOREIGN KEY (section_code) REFERENCES content_sections(code) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    ");
+
+    // Section gallery item translations table
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS section_gallery_item_translations (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            item_id INT NOT NULL,
+            language_code VARCHAR(5) NOT NULL,
+            title VARCHAR(100) NOT NULL,
+            description TEXT,
+            UNIQUE KEY unique_item_lang (item_id, language_code),
+            FOREIGN KEY (item_id) REFERENCES section_gallery_items(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    ");
+
     // Section templates table - defines reusable section templates
     $pdo->exec("
         CREATE TABLE IF NOT EXISTS section_templates (
@@ -2390,6 +2425,11 @@ function initContentTables(): void {
     // Add has_services column to section_templates if not exists
     try {
         $pdo->exec("ALTER TABLE section_templates ADD COLUMN has_services TINYINT(1) DEFAULT 0");
+    } catch (PDOException $e) { /* Column may already exist */ }
+
+    // Add has_gallery column to section_templates if not exists
+    try {
+        $pdo->exec("ALTER TABLE section_templates ADD COLUMN has_gallery TINYINT(1) DEFAULT 0");
     } catch (PDOException $e) { /* Column may already exist */ }
 
     // Seed default templates
@@ -2551,6 +2591,7 @@ function seedSectionTemplates(): void {
             'has_overlay' => 1,
             'has_features' => 1,
             'has_services' => 0,
+            'has_gallery' => 0,
             'css_class' => 'section-services-indicators'
         ],
         // Text-only template: overlay texts, no images
@@ -2566,6 +2607,7 @@ function seedSectionTemplates(): void {
             'has_overlay' => 1,
             'has_features' => 1,
             'has_services' => 0,
+            'has_gallery' => 0,
             'css_class' => 'section-text-style'
         ],
         // Services-style template: overlay texts + service cards grid
@@ -2581,6 +2623,7 @@ function seedSectionTemplates(): void {
             'has_overlay' => 1,
             'has_features' => 0,
             'has_services' => 1,
+            'has_gallery' => 0,
             'css_class' => 'section-services-style'
         ],
         // Services section with checklist (checkmarks + labels)
@@ -2596,7 +2639,24 @@ function seedSectionTemplates(): void {
             'has_overlay' => 1,
             'has_features' => 1,
             'has_services' => 0,
+            'has_gallery' => 0,
             'css_class' => 'section-services-checklist'
+        ],
+        // Image gallery section (grid of image cards with title + description)
+        [
+            'code' => 'gallery_style',
+            'name' => 'Galerie d\'images',
+            'description' => 'Section avec textes et grille d\'images (image + titre + description)',
+            'image_mode' => IMAGE_FORBIDDEN,
+            'max_blocks' => 0,
+            'has_title' => 0,
+            'has_description' => 0,
+            'has_link' => 0,
+            'has_overlay' => 1,
+            'has_features' => 0,
+            'has_services' => 0,
+            'has_gallery' => 1,
+            'css_class' => 'section-gallery-style'
         ]
     ];
 
@@ -2605,8 +2665,8 @@ function seedSectionTemplates(): void {
         $stmt->execute([$template['code']]);
         if (!$stmt->fetch()) {
             $stmt = $pdo->prepare('
-                INSERT INTO section_templates (code, name, description, image_mode, max_blocks, has_title, has_description, has_link, has_overlay, has_features, has_services, css_class)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO section_templates (code, name, description, image_mode, max_blocks, has_title, has_description, has_link, has_overlay, has_features, has_services, has_gallery, css_class)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ');
             $stmt->execute([
                 $template['code'],
@@ -2620,6 +2680,7 @@ function seedSectionTemplates(): void {
                 $template['has_overlay'],
                 $template['has_features'],
                 $template['has_services'],
+                $template['has_gallery'] ?? 0,
                 $template['css_class']
             ]);
         }
@@ -2647,17 +2708,11 @@ function migrateSectionTemplates(): void {
 
     // Delete old templates from section_templates table
     $oldCodes = array_keys($migrations);
-    $oldCodes[] = 'gallery_style'; // Also remove gallery_style
 
     foreach ($oldCodes as $oldCode) {
         $stmt = $pdo->prepare('DELETE FROM section_templates WHERE code = ?');
         $stmt->execute([$oldCode]);
     }
-
-    // Delete any content_sections using gallery_style (can't migrate - different functionality)
-    // Note: This will cascade delete related content_blocks, overlay_texts, etc.
-    $stmt = $pdo->prepare('DELETE FROM content_sections WHERE template_type = ?');
-    $stmt->execute(['gallery_style']);
 }
 
 /**
@@ -2689,7 +2744,7 @@ function getSectionTemplate(string $code): ?array {
 function getDynamicSections(string $page): array {
     $pdo = getDatabase();
     $stmt = $pdo->prepare('
-        SELECT cs.*, st.css_class as template_css_class, st.has_services as template_has_services
+        SELECT cs.*, st.css_class as template_css_class, st.has_services as template_has_services, st.has_gallery as template_has_gallery
         FROM content_sections cs
         LEFT JOIN section_templates st ON cs.template_type = st.code
         WHERE cs.page = ? AND cs.is_dynamic = 1
@@ -2703,6 +2758,10 @@ function getDynamicSections(string $page): array {
         // Use template has_services if section doesn't have it set
         if (!isset($section['has_services']) && isset($section['template_has_services'])) {
             $section['has_services'] = $section['template_has_services'];
+        }
+        // Use template has_gallery if section doesn't have it set
+        if (!isset($section['has_gallery']) && isset($section['template_has_gallery'])) {
+            $section['has_gallery'] = $section['template_has_gallery'];
         }
     }
 
@@ -2772,6 +2831,13 @@ function getDynamicSectionsWithData(string $page): array {
             $section['services'] = [];
         }
 
+        // Get gallery items with translations if section supports them
+        if (!empty($section['has_gallery'])) {
+            $section['gallery_items'] = getSectionGalleryItemsWithTranslations($section['code']);
+        } else {
+            $section['gallery_items'] = [];
+        }
+
         // Get images/content blocks
         $section['blocks'] = getContentBlocks($section['code']);
 
@@ -2812,9 +2878,9 @@ function createDynamicSection(string $page, string $templateCode, string $custom
     $stmt = $pdo->prepare('
         INSERT INTO content_sections (
             code, name, description, page, image_mode, max_blocks,
-            has_title, has_description, has_link, has_overlay, has_features, has_services,
+            has_title, has_description, has_link, has_overlay, has_features, has_services, has_gallery,
             sort_order, is_dynamic, template_type, custom_name
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
     ');
 
     $success = $stmt->execute([
@@ -2830,6 +2896,7 @@ function createDynamicSection(string $page, string $templateCode, string $custom
         $template['has_overlay'],
         $template['has_features'],
         $template['has_services'] ?? 0,
+        $template['has_gallery'] ?? 0,
         $maxOrder + 1,
         $templateCode,
         $customName
@@ -2996,6 +3063,10 @@ function renderDynamicSection(array $section, string $currentLang = 'fr'): strin
         case 'services_checklist':
         case 'detail_style': // Legacy support
             renderServicesChecklistSection($section, $currentLang, $cssClass);
+            break;
+
+        case 'gallery_style':
+            renderGalleryStyleSection($section, $currentLang, $cssClass);
             break;
 
         default:
@@ -3185,6 +3256,61 @@ function renderServicesStyleSection(array $section, string $currentLang, string 
 }
 
 /**
+ * Render gallery-style section (image cards grid like Wine Tourism)
+ */
+function renderGalleryStyleSection(array $section, string $currentLang, string $cssClass): void {
+    $overlay = $section['overlay'] ?? [];
+    $subtitle = $overlay['translations'][$currentLang]['subtitle'] ?? $overlay['subtitle'] ?? '';
+    $title = $overlay['translations'][$currentLang]['title'] ?? $overlay['title'] ?? '';
+    $description = $overlay['translations'][$currentLang]['description'] ?? $overlay['description'] ?? '';
+    $galleryItems = $section['gallery_items'] ?? [];
+    $sectionCode = $section['code'];
+
+    // If no overlay content and no gallery items, don't render
+    if (empty($subtitle) && empty($title) && empty($description) && empty($galleryItems)) {
+        return;
+    }
+    ?>
+    <section class="section section-cream <?= h($cssClass) ?>" data-section="<?= h($sectionCode) ?>">
+        <div class="container">
+            <?php if ($subtitle || $title || $description): ?>
+            <div class="section-header">
+                <?php if ($subtitle): ?>
+                <p class="section-subtitle" data-dynamic-text="<?= h($sectionCode) ?>:subtitle"><?= h($subtitle) ?></p>
+                <?php endif; ?>
+                <?php if ($title): ?>
+                <h2 class="section-title" data-dynamic-text="<?= h($sectionCode) ?>:title"><?= h($title) ?></h2>
+                <?php endif; ?>
+                <?php if ($description): ?>
+                <p class="section-description" data-dynamic-text="<?= h($sectionCode) ?>:description"><?= h($description) ?></p>
+                <?php endif; ?>
+            </div>
+            <?php endif; ?>
+
+            <?php if (!empty($galleryItems)): ?>
+            <div class="activities-grid">
+                <?php foreach ($galleryItems as $item):
+                    $itemTitle = getGalleryItemTitleForLanguage($item, $currentLang);
+                    $itemDescription = getGalleryItemDescriptionForLanguage($item, $currentLang);
+                ?>
+                <div class="activity-card">
+                    <img src="<?= h($item['image_filename']) ?>" alt="<?= h($item['image_alt'] ?: $itemTitle) ?>">
+                    <div class="activity-card-content">
+                        <h3 data-dynamic-gallery="<?= $item['id'] ?>:title"><?= h($itemTitle) ?></h3>
+                        <?php if (!empty($itemDescription)): ?>
+                        <p data-dynamic-gallery="<?= $item['id'] ?>:description"><?= h($itemDescription) ?></p>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                <?php endforeach; ?>
+            </div>
+            <?php endif; ?>
+        </div>
+    </section>
+    <?php
+}
+
+/**
  * Render services section with checklist (checkmarks + labels)
  * Uses service-detail layout with checkmark feature tags
  */
@@ -3339,6 +3465,31 @@ function getDynamicSectionsTranslations(string $page): array {
                     'it' => [
                         'label' => $service['translations']['it']['label'] ?? $service['label'],
                         'description' => $service['translations']['it']['description'] ?? ($service['description'] ?? '')
+                    ]
+                ];
+            }
+        }
+
+        // Build translations for gallery items
+        if (!empty($section['gallery_items'])) {
+            $translations[$sectionCode]['gallery'] = [];
+            foreach ($section['gallery_items'] as $item) {
+                $translations[$sectionCode]['gallery'][$item['id']] = [
+                    'fr' => [
+                        'title' => $item['title'],
+                        'description' => $item['description'] ?? ''
+                    ],
+                    'en' => [
+                        'title' => $item['translations']['en']['title'] ?? $item['title'],
+                        'description' => $item['translations']['en']['description'] ?? ($item['description'] ?? '')
+                    ],
+                    'es' => [
+                        'title' => $item['translations']['es']['title'] ?? $item['title'],
+                        'description' => $item['translations']['es']['description'] ?? ($item['description'] ?? '')
+                    ],
+                    'it' => [
+                        'title' => $item['translations']['it']['title'] ?? $item['title'],
+                        'description' => $item['translations']['it']['description'] ?? ($item['description'] ?? '')
                     ]
                 ];
             }
@@ -4504,4 +4655,211 @@ function getServiceDescriptionForLanguage(array $service, string $langCode = 'fr
     }
 
     return $service['translations'][$langCode]['description'] ?? ($service['description'] ?? '');
+}
+
+// =====================================================
+// SECTION GALLERY ITEMS (for image gallery sections)
+// =====================================================
+
+/**
+ * Get gallery items for a section
+ */
+function getSectionGalleryItems(string $sectionCode, bool $activeOnly = true): array {
+    $pdo = getDatabase();
+    $sql = 'SELECT * FROM section_gallery_items WHERE section_code = ?';
+    if ($activeOnly) {
+        $sql .= ' AND is_active = 1';
+    }
+    $sql .= ' ORDER BY position ASC, id ASC';
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([$sectionCode]);
+    return $stmt->fetchAll();
+}
+
+/**
+ * Get gallery items with all translations
+ */
+function getSectionGalleryItemsWithTranslations(string $sectionCode, bool $activeOnly = true): array {
+    $items = getSectionGalleryItems($sectionCode, $activeOnly);
+    $pdo = getDatabase();
+
+    foreach ($items as &$item) {
+        $stmt = $pdo->prepare('SELECT language_code, title, description FROM section_gallery_item_translations WHERE item_id = ?');
+        $stmt->execute([$item['id']]);
+        $translations = $stmt->fetchAll();
+
+        $item['translations'] = [];
+        foreach ($translations as $trans) {
+            $item['translations'][$trans['language_code']] = [
+                'title' => $trans['title'],
+                'description' => $trans['description']
+            ];
+        }
+    }
+
+    return $items;
+}
+
+/**
+ * Get a single gallery item
+ */
+function getSectionGalleryItem(int $id): ?array {
+    $pdo = getDatabase();
+    $stmt = $pdo->prepare('SELECT * FROM section_gallery_items WHERE id = ?');
+    $stmt->execute([$id]);
+    $item = $stmt->fetch();
+
+    if ($item) {
+        // Get translations
+        $stmt = $pdo->prepare('SELECT language_code, title, description FROM section_gallery_item_translations WHERE item_id = ?');
+        $stmt->execute([$id]);
+        $translations = $stmt->fetchAll();
+
+        $item['translations'] = [];
+        foreach ($translations as $trans) {
+            $item['translations'][$trans['language_code']] = [
+                'title' => $trans['title'],
+                'description' => $trans['description']
+            ];
+        }
+    }
+
+    return $item ?: null;
+}
+
+/**
+ * Create a gallery item
+ */
+function createSectionGalleryItem(string $sectionCode, string $imageFilename, string $title, string $description = '', string $imageAlt = ''): ?int {
+    $pdo = getDatabase();
+
+    // Get next position
+    $stmt = $pdo->prepare('SELECT COALESCE(MAX(position), 0) + 1 FROM section_gallery_items WHERE section_code = ?');
+    $stmt->execute([$sectionCode]);
+    $nextPosition = $stmt->fetchColumn();
+
+    $stmt = $pdo->prepare('
+        INSERT INTO section_gallery_items (section_code, image_filename, image_alt, title, description, position)
+        VALUES (?, ?, ?, ?, ?, ?)
+    ');
+
+    $success = $stmt->execute([$sectionCode, $imageFilename, $imageAlt, trim($title), trim($description), $nextPosition]);
+    return $success ? (int)$pdo->lastInsertId() : null;
+}
+
+/**
+ * Update a gallery item
+ */
+function updateSectionGalleryItem(int $id, string $title, string $description = '', string $imageAlt = '', bool $isActive = true, ?string $imageFilename = null): bool {
+    $pdo = getDatabase();
+
+    if ($imageFilename !== null) {
+        $stmt = $pdo->prepare('
+            UPDATE section_gallery_items
+            SET title = ?, description = ?, image_alt = ?, is_active = ?, image_filename = ?
+            WHERE id = ?
+        ');
+        return $stmt->execute([trim($title), trim($description), trim($imageAlt), $isActive ? 1 : 0, $imageFilename, $id]);
+    } else {
+        $stmt = $pdo->prepare('
+            UPDATE section_gallery_items
+            SET title = ?, description = ?, image_alt = ?, is_active = ?
+            WHERE id = ?
+        ');
+        return $stmt->execute([trim($title), trim($description), trim($imageAlt), $isActive ? 1 : 0, $id]);
+    }
+}
+
+/**
+ * Delete a gallery item
+ */
+function deleteSectionGalleryItem(int $id): bool {
+    $pdo = getDatabase();
+
+    // Get item to delete image file
+    $stmt = $pdo->prepare('SELECT image_filename FROM section_gallery_items WHERE id = ?');
+    $stmt->execute([$id]);
+    $item = $stmt->fetch();
+
+    if ($item && !empty($item['image_filename']) && file_exists($item['image_filename'])) {
+        @unlink($item['image_filename']);
+    }
+
+    $stmt = $pdo->prepare('DELETE FROM section_gallery_items WHERE id = ?');
+    return $stmt->execute([$id]);
+}
+
+/**
+ * Reorder gallery items
+ */
+function reorderSectionGalleryItems(string $sectionCode, array $itemIds): bool {
+    $pdo = getDatabase();
+    $stmt = $pdo->prepare('UPDATE section_gallery_items SET position = ? WHERE id = ? AND section_code = ?');
+
+    $position = 1;
+    foreach ($itemIds as $id) {
+        $stmt->execute([$position, $id, $sectionCode]);
+        $position++;
+    }
+
+    return true;
+}
+
+/**
+ * Save gallery item translations
+ */
+function saveSectionGalleryItemTranslations(int $itemId, array $translations): bool {
+    $pdo = getDatabase();
+    $success = true;
+
+    foreach ($translations as $langCode => $data) {
+        if (!in_array($langCode, getSupportedLanguages()) || $langCode === 'fr') {
+            continue;
+        }
+
+        $title = is_array($data) ? trim($data['title'] ?? '') : trim($data);
+        $description = is_array($data) ? trim($data['description'] ?? '') : '';
+
+        if (empty($title)) {
+            // Delete translation if empty
+            $stmt = $pdo->prepare('DELETE FROM section_gallery_item_translations WHERE item_id = ? AND language_code = ?');
+            $stmt->execute([$itemId, $langCode]);
+            continue;
+        }
+
+        try {
+            $stmt = $pdo->prepare('
+                INSERT INTO section_gallery_item_translations (item_id, language_code, title, description)
+                VALUES (?, ?, ?, ?)
+                ON DUPLICATE KEY UPDATE title = VALUES(title), description = VALUES(description)
+            ');
+            $success = $stmt->execute([$itemId, $langCode, $title, $description]) && $success;
+        } catch (PDOException $e) {
+            $success = false;
+        }
+    }
+
+    return $success;
+}
+
+/**
+ * Get gallery item title for a specific language
+ */
+function getGalleryItemTitleForLanguage(array $item, string $langCode = 'fr'): string {
+    if ($langCode === 'fr') {
+        return $item['title'];
+    }
+
+    return $item['translations'][$langCode]['title'] ?? $item['title'];
+}
+
+/**
+ * Get gallery item description for a specific language
+ */
+function getGalleryItemDescriptionForLanguage(array $item, string $langCode = 'fr'): string {
+    if ($langCode === 'fr') {
+        return $item['description'] ?? '';
+    }
+
+    return $item['translations'][$langCode]['description'] ?? ($item['description'] ?? '');
 }

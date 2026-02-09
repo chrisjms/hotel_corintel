@@ -380,6 +380,23 @@
             }
           }
         });
+
+        // Handle dynamic section gallery items (data-dynamic-gallery="itemId:field")
+        document.querySelectorAll('[data-dynamic-gallery]').forEach(el => {
+          const [itemId, field] = el.dataset.dynamicGallery.split(':');
+          // Find the section this gallery item belongs to
+          for (const sectionCode in window.dynamicSectionsTranslations) {
+            const section = window.dynamicSectionsTranslations[sectionCode];
+            if (section.gallery && section.gallery[itemId]) {
+              const itemTrans = section.gallery[itemId];
+              const langData = itemTrans[this.currentLang] || itemTrans['fr'];
+              if (langData && langData[field]) {
+                el.textContent = langData[field];
+              }
+              break;
+            }
+          }
+        });
       }
     },
 

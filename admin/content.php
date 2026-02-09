@@ -9,6 +9,13 @@ require_once __DIR__ . '/../includes/functions.php';
 
 requireAuth();
 
+// Ensure section templates are seeded
+seedSectionTemplates();
+
+// Fix existing gallery sections that are missing has_gallery flag
+$pdo = getDatabase();
+$pdo->exec("UPDATE content_sections SET has_gallery = 1 WHERE template_type = 'gallery_style' AND has_gallery = 0");
+
 $admin = getCurrentAdmin();
 $unreadMessages = getUnreadMessagesCount();
 $pendingOrders = getPendingOrdersCount();
@@ -427,6 +434,170 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 }
                 break;
 
+            // Gallery CRUD operations
+            case 'create_gallery_item':
+                $sectionCode = $_POST['section_code'] ?? '';
+                $title = trim($_POST['gallery_title'] ?? '');
+                $description = trim($_POST['gallery_description'] ?? '');
+                $imageAlt = trim($_POST['gallery_image_alt'] ?? '');
+
+                if (empty($title)) {
+                    $message = 'Veuillez entrer un titre.';
+                    $messageType = 'error';
+                    break;
+                }
+
+                // Handle image upload
+                $imageFilename = '';
+                if (!empty($_FILES['gallery_image']['tmp_name'])) {
+                    $uploadDir = __DIR__ . '/../uploads/gallery/';
+                    if (!is_dir($uploadDir)) {
+                        mkdir($uploadDir, 0755, true);
+                    }
+
+                    $ext = strtolower(pathinfo($_FILES['gallery_image']['name'], PATHINFO_EXTENSION));
+                    if (!in_array($ext, ['jpg', 'jpeg', 'png', 'webp'])) {
+                        $message = 'Format d\'image non supporté. Utilisez JPG, PNG ou WebP.';
+                        $messageType = 'error';
+                        break;
+                    }
+
+                    $filename = 'gallery_' . uniqid() . '.' . $ext;
+                    if (move_uploaded_file($_FILES['gallery_image']['tmp_name'], $uploadDir . $filename)) {
+                        $imageFilename = 'uploads/gallery/' . $filename;
+                    } else {
+                        $message = 'Erreur lors de l\'upload de l\'image.';
+                        $messageType = 'error';
+                        break;
+                    }
+                } else {
+                    $message = 'Veuillez sélectionner une image.';
+                    $messageType = 'error';
+                    break;
+                }
+
+                $itemId = createSectionGalleryItem($sectionCode, $imageFilename, $title, $description, $imageAlt);
+
+                if ($itemId) {
+                    // Save translations
+                    $translations = [];
+                    foreach (['en', 'es', 'it'] as $lang) {
+                        $transTitle = trim($_POST["gallery_title_$lang"] ?? '');
+                        $transDesc = trim($_POST["gallery_description_$lang"] ?? '');
+                        if (!empty($transTitle)) {
+                            $translations[$lang] = [
+                                'title' => $transTitle,
+                                'description' => $transDesc
+                            ];
+                        }
+                    }
+                    if (!empty($translations)) {
+                        saveSectionGalleryItemTranslations($itemId, $translations);
+                    }
+
+                    $message = 'Élément ajouté avec succès.';
+                    $messageType = 'success';
+                } else {
+                    $message = 'Erreur lors de l\'ajout de l\'élément.';
+                    $messageType = 'error';
+                }
+                break;
+
+            case 'update_gallery_item':
+                $itemId = (int)($_POST['gallery_item_id'] ?? 0);
+                $title = trim($_POST['gallery_title'] ?? '');
+                $description = trim($_POST['gallery_description'] ?? '');
+                $imageAlt = trim($_POST['gallery_image_alt'] ?? '');
+                $isActive = isset($_POST['gallery_active']) ? 1 : 0;
+
+                if (empty($title)) {
+                    $message = 'Veuillez entrer un titre.';
+                    $messageType = 'error';
+                    break;
+                }
+
+                // Handle image upload (optional for update)
+                $newImageFilename = null;
+                if (!empty($_FILES['gallery_image']['tmp_name'])) {
+                    $uploadDir = __DIR__ . '/../uploads/gallery/';
+                    if (!is_dir($uploadDir)) {
+                        mkdir($uploadDir, 0755, true);
+                    }
+
+                    $ext = strtolower(pathinfo($_FILES['gallery_image']['name'], PATHINFO_EXTENSION));
+                    if (!in_array($ext, ['jpg', 'jpeg', 'png', 'webp'])) {
+                        $message = 'Format d\'image non supporté. Utilisez JPG, PNG ou WebP.';
+                        $messageType = 'error';
+                        break;
+                    }
+
+                    $filename = 'gallery_' . uniqid() . '.' . $ext;
+                    if (move_uploaded_file($_FILES['gallery_image']['tmp_name'], $uploadDir . $filename)) {
+                        $newImageFilename = 'uploads/gallery/' . $filename;
+
+                        // Delete old image
+                        $oldItem = getSectionGalleryItem($itemId);
+                        if ($oldItem && !empty($oldItem['image_filename']) && file_exists(__DIR__ . '/../' . $oldItem['image_filename'])) {
+                            @unlink(__DIR__ . '/../' . $oldItem['image_filename']);
+                        }
+                    }
+                }
+
+                if (updateSectionGalleryItem($itemId, $title, $description, $imageAlt, $isActive, $newImageFilename)) {
+                    // Save translations
+                    $translations = [];
+                    foreach (['en', 'es', 'it'] as $lang) {
+                        $transTitle = trim($_POST["gallery_title_$lang"] ?? '');
+                        $transDesc = trim($_POST["gallery_description_$lang"] ?? '');
+                        if (!empty($transTitle)) {
+                            $translations[$lang] = [
+                                'title' => $transTitle,
+                                'description' => $transDesc
+                            ];
+                        }
+                    }
+                    saveSectionGalleryItemTranslations($itemId, $translations);
+
+                    $message = 'Élément mis à jour.';
+                    $messageType = 'success';
+
+                    // Get item to redirect to its section
+                    $item = getSectionGalleryItem($itemId);
+                    if ($item) {
+                        $currentSection = $item['section_code'];
+                    }
+                } else {
+                    $message = 'Erreur lors de la mise à jour.';
+                    $messageType = 'error';
+                }
+                break;
+
+            case 'delete_gallery_item':
+                $itemId = (int)($_POST['gallery_item_id'] ?? 0);
+                $item = getSectionGalleryItem($itemId);
+
+                if ($item && deleteSectionGalleryItem($itemId)) {
+                    $message = 'Élément supprimé.';
+                    $messageType = 'success';
+                    $currentSection = $item['section_code'];
+                } else {
+                    $message = 'Erreur lors de la suppression.';
+                    $messageType = 'error';
+                }
+                break;
+
+            case 'reorder_gallery_items':
+                $sectionCode = $_POST['section_code'] ?? '';
+                $itemIds = json_decode($_POST['gallery_item_ids'] ?? '[]', true);
+
+                if ($sectionCode && is_array($itemIds)) {
+                    reorderSectionGalleryItems($sectionCode, $itemIds);
+                    header('Content-Type: application/json');
+                    echo json_encode(['success' => true]);
+                    exit;
+                }
+                break;
+
             case 'create_dynamic_section':
                 $page = $_POST['page'] ?? '';
                 $templateCode = $_POST['template_code'] ?? '';
@@ -560,6 +731,35 @@ if ($editBlockId) {
             background: var(--admin-primary);
             border-color: var(--admin-primary);
             color: white;
+        }
+        .dynamic-sections-sortable {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .section-btn-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        .section-btn-wrapper.dragging {
+            opacity: 0.5;
+        }
+        .section-drag-handle {
+            cursor: grab;
+            padding: 0.25rem;
+            color: var(--admin-text-light);
+            display: flex;
+            align-items: center;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+        .section-drag-handle:hover {
+            color: var(--admin-primary);
+            background: rgba(139, 90, 43, 0.1);
+        }
+        .section-drag-handle:active {
+            cursor: grabbing;
         }
         .page-group {
             margin-bottom: 1rem;
@@ -1876,6 +2076,313 @@ if ($editBlockId) {
         .images-panel .empty-state p {
             font-size: 0.875rem;
         }
+
+        /* Gallery panel */
+        .gallery-panel {
+            background: var(--admin-bg);
+            border: 1px solid var(--admin-border);
+            border-radius: var(--admin-radius);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .gallery-panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--admin-border);
+        }
+        .gallery-panel-header h4 {
+            margin: 0;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .gallery-panel-header h4 svg {
+            width: 18px;
+            height: 18px;
+            color: var(--admin-primary);
+        }
+        .gallery-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        .gallery-item {
+            position: relative;
+            background: var(--admin-card);
+            border: 1px solid var(--admin-border);
+            border-radius: 8px;
+            overflow: hidden;
+            transition: box-shadow 0.2s, border-color 0.2s;
+        }
+        .gallery-item:hover {
+            box-shadow: var(--admin-shadow);
+            border-color: var(--admin-primary);
+        }
+        .gallery-item.inactive {
+            opacity: 0.5;
+        }
+        .gallery-item-image {
+            width: 100%;
+            aspect-ratio: 4/3;
+            object-fit: cover;
+            background: var(--admin-bg);
+        }
+        .gallery-item-placeholder {
+            width: 100%;
+            aspect-ratio: 4/3;
+            background: var(--admin-bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--admin-text-light);
+        }
+        .gallery-item-placeholder svg {
+            width: 48px;
+            height: 48px;
+            opacity: 0.3;
+        }
+        .gallery-item-info {
+            padding: 0.75rem;
+        }
+        .gallery-item-title {
+            font-weight: 500;
+            color: var(--admin-text);
+            margin-bottom: 0.25rem;
+            font-size: 0.9rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .gallery-item-description {
+            font-size: 0.8rem;
+            color: var(--admin-text-light);
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .gallery-item-actions {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            display: flex;
+            gap: 0.25rem;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .gallery-item:hover .gallery-item-actions {
+            opacity: 1;
+        }
+        .gallery-item-actions button {
+            padding: 0.375rem;
+            background: var(--admin-card);
+            border: none;
+            cursor: pointer;
+            color: var(--admin-text-light);
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            transition: all 0.2s;
+        }
+        .gallery-item-actions button:hover {
+            background: var(--admin-primary);
+            color: white;
+        }
+        .gallery-item-actions button.delete-btn:hover {
+            background: #C53030;
+        }
+        .gallery-item-actions button svg {
+            width: 14px;
+            height: 14px;
+        }
+        .gallery-item-drag {
+            position: absolute;
+            top: 0.5rem;
+            left: 0.5rem;
+            padding: 0.375rem;
+            background: var(--admin-card);
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            cursor: grab;
+            color: var(--admin-text-light);
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .gallery-item:hover .gallery-item-drag {
+            opacity: 1;
+        }
+        .gallery-item-drag:active {
+            cursor: grabbing;
+        }
+        .gallery-item-drag svg {
+            width: 14px;
+            height: 14px;
+        }
+        .gallery-empty {
+            text-align: center;
+            padding: 2rem 1rem;
+            color: var(--admin-text-light);
+            font-size: 0.9rem;
+        }
+        .add-gallery-btn {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px dashed var(--admin-border);
+            background: transparent;
+            border-radius: 6px;
+            color: var(--admin-text-light);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+        }
+        .add-gallery-btn:hover {
+            border-color: var(--admin-primary);
+            color: var(--admin-primary);
+        }
+        .add-gallery-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        /* Gallery modal */
+        .gallery-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.5);
+        }
+        .gallery-modal.active {
+            display: flex;
+        }
+        .gallery-modal-content {
+            background: var(--admin-card);
+            border-radius: var(--admin-radius);
+            width: 100%;
+            max-width: 550px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        .gallery-form-group {
+            margin-bottom: 1rem;
+        }
+        .gallery-form-group label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 0.375rem;
+            color: var(--admin-text);
+            font-size: 0.9rem;
+        }
+        .gallery-form-group input,
+        .gallery-form-group textarea {
+            width: 100%;
+            padding: 0.625rem;
+            border: 1px solid var(--admin-border);
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+        .gallery-form-group input:focus,
+        .gallery-form-group textarea:focus {
+            outline: none;
+            border-color: var(--admin-primary);
+        }
+        .gallery-form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        .gallery-image-upload {
+            margin-bottom: 1rem;
+        }
+        .gallery-image-preview {
+            width: 100%;
+            aspect-ratio: 16/9;
+            background: var(--admin-bg);
+            border: 2px dashed var(--admin-border);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            overflow: hidden;
+            position: relative;
+        }
+        .gallery-image-preview:hover {
+            border-color: var(--admin-primary);
+        }
+        .gallery-image-preview.has-image {
+            border-style: solid;
+        }
+        .gallery-image-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .gallery-image-preview-placeholder {
+            text-align: center;
+            color: var(--admin-text-light);
+        }
+        .gallery-image-preview-placeholder svg {
+            width: 48px;
+            height: 48px;
+            margin-bottom: 0.5rem;
+            opacity: 0.5;
+        }
+        .gallery-translations {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--admin-border);
+        }
+        .gallery-trans-grid {
+            display: grid;
+            gap: 0.75rem;
+        }
+        .gallery-trans-lang {
+            background: var(--admin-bg);
+            padding: 0.75rem;
+            border-radius: 6px;
+        }
+        .gallery-trans-lang-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            font-size: 0.85rem;
+        }
+        .gallery-trans-lang-header .flag {
+            font-size: 1rem;
+        }
+        .gallery-trans-lang .form-row {
+            display: grid;
+            gap: 0.5rem;
+        }
+        .gallery-trans-lang input,
+        .gallery-trans-lang textarea {
+            padding: 0.5rem;
+            border: 1px solid var(--admin-border);
+            border-radius: 4px;
+            font-size: 0.85rem;
+        }
+        .gallery-trans-lang textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
     </style>
 </head>
 <body>
@@ -2221,20 +2728,33 @@ if ($editBlockId) {
                                     </a>
                                     <?php endforeach; ?>
 
+                                    <?php if (!empty($pageDynamicSections)): ?>
+                                    <div class="dynamic-sections-sortable" data-page="<?= h($page) ?>">
                                     <?php
-                                    // Show dynamic sections
+                                    // Show dynamic sections with drag handles
                                     foreach ($pageDynamicSections as $dynSection):
                                     ?>
-                                    <a href="?section=<?= h($dynSection['code']) ?>"
-                                       class="section-btn <?= $currentSection === $dynSection['code'] ? 'active' : '' ?>"
-                                       style="border-style: dashed;">
-                                        <?= h($dynSection['custom_name'] ?: $dynSection['name']) ?>
-                                        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" style="margin-left: 0.5rem; opacity: 0.5;">
-                                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                                        </svg>
-                                    </a>
+                                    <div class="section-btn-wrapper" data-section-code="<?= h($dynSection['code']) ?>">
+                                        <span class="section-drag-handle" title="Glisser pour réordonner">
+                                            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2">
+                                                <line x1="8" y1="6" x2="16" y2="6"/>
+                                                <line x1="8" y1="12" x2="16" y2="12"/>
+                                                <line x1="8" y1="18" x2="16" y2="18"/>
+                                            </svg>
+                                        </span>
+                                        <a href="?section=<?= h($dynSection['code']) ?>"
+                                           class="section-btn <?= $currentSection === $dynSection['code'] ? 'active' : '' ?>"
+                                           style="border-style: dashed; flex: 1;">
+                                            <?= h($dynSection['custom_name'] ?: $dynSection['name']) ?>
+                                            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" style="margin-left: 0.5rem; opacity: 0.5;">
+                                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                            </svg>
+                                        </a>
+                                    </div>
                                     <?php endforeach; ?>
+                                    </div>
+                                    <?php endif; ?>
 
                                     <button type="button" class="section-btn add-section-btn" data-page="<?= h($page) ?>" style="border-style: dashed; color: var(--admin-text-light);">
                                         <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
@@ -2757,6 +3277,196 @@ if ($editBlockId) {
                                         <div class="feature-modal-footer">
                                             <button type="button" class="btn btn-outline" id="serviceModalCancel">Annuler</button>
                                             <button type="submit" class="btn btn-primary" id="serviceSubmitBtn">Ajouter</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                            <?php endif; ?>
+
+                            <?php
+                            // Show gallery panel for sections that support gallery
+                            $showGalleryPanel = $currentSectionData && !empty($currentSectionData['has_gallery']);
+                            if ($showGalleryPanel):
+                                $galleryItems = getSectionGalleryItemsWithTranslations($currentSection, false);
+                            ?>
+                            <div class="gallery-panel">
+                                <div class="gallery-panel-header">
+                                    <h4>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <rect x="3" y="3" width="7" height="7"/>
+                                            <rect x="14" y="3" width="7" height="7"/>
+                                            <rect x="14" y="14" width="7" height="7"/>
+                                            <rect x="3" y="14" width="7" height="7"/>
+                                        </svg>
+                                        Galerie d'images
+                                    </h4>
+                                </div>
+
+                                <?php if (!empty($galleryItems)): ?>
+                                <div class="gallery-list" id="galleryList" data-section="<?= h($currentSection) ?>">
+                                    <?php foreach ($galleryItems as $item): ?>
+                                    <div class="gallery-item <?= !$item['is_active'] ? 'inactive' : '' ?>" data-gallery-id="<?= $item['id'] ?>">
+                                        <div class="gallery-item-drag" title="Glisser pour réordonner">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <line x1="8" y1="6" x2="16" y2="6"/>
+                                                <line x1="8" y1="12" x2="16" y2="12"/>
+                                                <line x1="8" y1="18" x2="16" y2="18"/>
+                                            </svg>
+                                        </div>
+                                        <?php if (!empty($item['image_filename'])): ?>
+                                        <img src="../<?= h($item['image_filename']) ?>" alt="<?= h($item['title']) ?>" class="gallery-item-image">
+                                        <?php else: ?>
+                                        <div class="gallery-item-placeholder">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                                <circle cx="8.5" cy="8.5" r="1.5"/>
+                                                <polyline points="21 15 16 10 5 21"/>
+                                            </svg>
+                                        </div>
+                                        <?php endif; ?>
+                                        <div class="gallery-item-info">
+                                            <div class="gallery-item-title"><?= h($item['title']) ?></div>
+                                            <?php if (!empty($item['description'])): ?>
+                                            <div class="gallery-item-description"><?= h($item['description']) ?></div>
+                                            <?php endif; ?>
+                                        </div>
+                                        <div class="gallery-item-actions">
+                                            <button type="button" class="edit-gallery-btn" data-gallery='<?= h(json_encode([
+                                                'id' => $item['id'],
+                                                'title' => $item['title'],
+                                                'description' => $item['description'] ?? '',
+                                                'image_filename' => $item['image_filename'] ?? '',
+                                                'is_active' => $item['is_active'],
+                                                'translations' => $item['translations'] ?? []
+                                            ])) ?>' title="Modifier">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                                </svg>
+                                            </button>
+                                            <form method="POST" style="display: inline;" onsubmit="return confirm('Supprimer cet élément ?');">
+                                                <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
+                                                <input type="hidden" name="action" value="delete_gallery_item">
+                                                <input type="hidden" name="gallery_item_id" value="<?= $item['id'] ?>">
+                                                <button type="submit" class="delete-btn" title="Supprimer">
+                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                        <polyline points="3 6 5 6 21 6"/>
+                                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                                    </svg>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                    <?php endforeach; ?>
+                                </div>
+                                <?php else: ?>
+                                <div class="gallery-empty">
+                                    Aucun élément dans la galerie
+                                </div>
+                                <?php endif; ?>
+
+                                <button type="button" class="add-gallery-btn" id="addGalleryBtn">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <line x1="12" y1="5" x2="12" y2="19"/>
+                                        <line x1="5" y1="12" x2="19" y2="12"/>
+                                    </svg>
+                                    Ajouter un élément
+                                </button>
+                            </div>
+
+                            <!-- Gallery Modal -->
+                            <div class="gallery-modal" id="galleryModal">
+                                <div class="gallery-modal-content">
+                                    <div class="feature-modal-header">
+                                        <h3 id="galleryModalTitle">Ajouter un élément</h3>
+                                        <button type="button" class="feature-modal-close" id="galleryModalClose">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <line x1="18" y1="6" x2="6" y2="18"/>
+                                                <line x1="6" y1="6" x2="18" y2="18"/>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                    <form method="POST" id="galleryForm" enctype="multipart/form-data">
+                                        <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
+                                        <input type="hidden" name="action" id="galleryAction" value="create_gallery_item">
+                                        <input type="hidden" name="section_code" value="<?= h($currentSection) ?>">
+                                        <input type="hidden" name="gallery_item_id" id="galleryItemId" value="">
+
+                                        <div class="feature-modal-body">
+                                            <div class="gallery-image-upload">
+                                                <label class="gallery-form-group label">Image</label>
+                                                <div class="gallery-image-preview" id="galleryImagePreview">
+                                                    <div class="gallery-image-preview-placeholder" id="galleryImagePlaceholder">
+                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                                            <circle cx="8.5" cy="8.5" r="1.5"/>
+                                                            <polyline points="21 15 16 10 5 21"/>
+                                                        </svg>
+                                                        <span>Cliquer pour ajouter une image</span>
+                                                    </div>
+                                                    <img id="galleryPreviewImg" src="" alt="Preview" style="display: none;">
+                                                </div>
+                                                <input type="file" id="galleryImageInput" name="gallery_image" accept="image/*" style="display: none;">
+                                                <input type="hidden" name="existing_image" id="galleryExistingImage" value="">
+                                            </div>
+
+                                            <div class="gallery-form-group">
+                                                <label for="galleryTitle">Titre (Français)</label>
+                                                <input type="text" id="galleryTitle" name="gallery_title" required placeholder="Ex: Vignobles de Saint-Émilion">
+                                            </div>
+
+                                            <div class="gallery-form-group">
+                                                <label for="galleryDescription">Description (Français)</label>
+                                                <textarea id="galleryDescription" name="gallery_description" placeholder="Description de l'élément..."></textarea>
+                                            </div>
+
+                                            <div class="gallery-translations">
+                                                <div class="feature-translations-header" id="galleryTransToggle">
+                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                        <polyline points="6 9 12 15 18 9"/>
+                                                    </svg>
+                                                    <h5>Traductions (optionnel)</h5>
+                                                </div>
+                                                <div class="gallery-trans-grid" id="galleryTransContent">
+                                                    <div class="gallery-trans-lang">
+                                                        <div class="gallery-trans-lang-header">
+                                                            <span class="flag">🇬🇧</span> English
+                                                        </div>
+                                                        <div class="form-row">
+                                                            <input type="text" name="gallery_title_en" id="galleryTitleEn" placeholder="Title">
+                                                            <textarea name="gallery_description_en" id="galleryDescriptionEn" placeholder="Description"></textarea>
+                                                        </div>
+                                                    </div>
+                                                    <div class="gallery-trans-lang">
+                                                        <div class="gallery-trans-lang-header">
+                                                            <span class="flag">🇪🇸</span> Español
+                                                        </div>
+                                                        <div class="form-row">
+                                                            <input type="text" name="gallery_title_es" id="galleryTitleEs" placeholder="Título">
+                                                            <textarea name="gallery_description_es" id="galleryDescriptionEs" placeholder="Descripción"></textarea>
+                                                        </div>
+                                                    </div>
+                                                    <div class="gallery-trans-lang">
+                                                        <div class="gallery-trans-lang-header">
+                                                            <span class="flag">🇮🇹</span> Italiano
+                                                        </div>
+                                                        <div class="form-row">
+                                                            <input type="text" name="gallery_title_it" id="galleryTitleIt" placeholder="Titolo">
+                                                            <textarea name="gallery_description_it" id="galleryDescriptionIt" placeholder="Descrizione"></textarea>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="feature-active-toggle" id="galleryActiveToggle" style="display: none;">
+                                                <input type="checkbox" name="gallery_active" id="galleryIsActive" value="1" checked>
+                                                <span>Actif (visible sur le site)</span>
+                                            </div>
+                                        </div>
+
+                                        <div class="feature-modal-footer">
+                                            <button type="button" class="btn btn-outline" id="galleryModalCancel">Annuler</button>
+                                            <button type="submit" class="btn btn-primary" id="gallerySubmitBtn">Ajouter</button>
                                         </div>
                                     </form>
                                 </div>
@@ -3424,6 +4134,190 @@ if ($editBlockId) {
     }
 
     // =====================================================
+    // GALLERY MODAL FUNCTIONALITY
+    // =====================================================
+
+    const galleryModal = document.getElementById('galleryModal');
+    const addGalleryBtn = document.getElementById('addGalleryBtn');
+    const galleryModalClose = document.getElementById('galleryModalClose');
+    const galleryModalCancel = document.getElementById('galleryModalCancel');
+    const galleryForm = document.getElementById('galleryForm');
+    const galleryModalTitle = document.getElementById('galleryModalTitle');
+    const galleryAction = document.getElementById('galleryAction');
+    const galleryItemId = document.getElementById('galleryItemId');
+    const galleryTitle = document.getElementById('galleryTitle');
+    const galleryDescription = document.getElementById('galleryDescription');
+    const gallerySubmitBtn = document.getElementById('gallerySubmitBtn');
+    const galleryActiveToggle = document.getElementById('galleryActiveToggle');
+    const galleryIsActive = document.getElementById('galleryIsActive');
+    const galleryTransToggle = document.getElementById('galleryTransToggle');
+    const galleryTransContent = document.getElementById('galleryTransContent');
+    const galleryImageInput = document.getElementById('galleryImageInput');
+    const galleryImagePreview = document.getElementById('galleryImagePreview');
+    const galleryPreviewImg = document.getElementById('galleryPreviewImg');
+    const galleryImagePlaceholder = document.getElementById('galleryImagePlaceholder');
+    const galleryExistingImage = document.getElementById('galleryExistingImage');
+
+    if (galleryModal) {
+        // Toggle translations panel
+        let galleryTransOpen = false;
+        galleryTransToggle?.addEventListener('click', () => {
+            galleryTransOpen = !galleryTransOpen;
+            galleryTransContent.style.display = galleryTransOpen ? 'grid' : 'none';
+            galleryTransToggle.querySelector('svg').style.transform = galleryTransOpen ? 'rotate(180deg)' : '';
+        });
+        if (galleryTransContent) galleryTransContent.style.display = 'none';
+
+        // Image upload handling
+        galleryImagePreview?.addEventListener('click', () => {
+            galleryImageInput?.click();
+        });
+
+        galleryImageInput?.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    galleryPreviewImg.src = e.target.result;
+                    galleryPreviewImg.style.display = 'block';
+                    galleryImagePlaceholder.style.display = 'none';
+                    galleryImagePreview.classList.add('has-image');
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Add new gallery item
+        addGalleryBtn?.addEventListener('click', () => openGalleryModal());
+
+        // Edit gallery item
+        document.querySelectorAll('.edit-gallery-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const data = JSON.parse(btn.dataset.gallery);
+                openGalleryModal(data);
+            });
+        });
+
+        // Close modal
+        galleryModalClose?.addEventListener('click', closeGalleryModal);
+        galleryModalCancel?.addEventListener('click', closeGalleryModal);
+        galleryModal.addEventListener('click', (e) => {
+            if (e.target === galleryModal) closeGalleryModal();
+        });
+
+        function openGalleryModal(data = null) {
+            galleryForm.reset();
+
+            // Reset image preview
+            galleryPreviewImg.style.display = 'none';
+            galleryImagePlaceholder.style.display = 'block';
+            galleryImagePreview.classList.remove('has-image');
+            galleryExistingImage.value = '';
+
+            if (data) {
+                // Edit mode
+                galleryAction.value = 'update_gallery_item';
+                galleryItemId.value = data.id;
+                galleryTitle.value = data.title;
+                galleryDescription.value = data.description || '';
+                galleryModalTitle.textContent = 'Modifier l\'élément';
+                gallerySubmitBtn.textContent = 'Enregistrer';
+                galleryActiveToggle.style.display = 'flex';
+                galleryIsActive.checked = data.is_active == 1;
+
+                // Set existing image
+                if (data.image_filename) {
+                    galleryExistingImage.value = data.image_filename;
+                    galleryPreviewImg.src = '../' + data.image_filename;
+                    galleryPreviewImg.style.display = 'block';
+                    galleryImagePlaceholder.style.display = 'none';
+                    galleryImagePreview.classList.add('has-image');
+                }
+
+                // Fill translations
+                if (data.translations) {
+                    ['en', 'es', 'it'].forEach(lang => {
+                        const trans = data.translations[lang];
+                        if (trans) {
+                            document.getElementById('galleryTitle' + lang.charAt(0).toUpperCase() + lang.slice(1)).value = trans.title || '';
+                            document.getElementById('galleryDescription' + lang.charAt(0).toUpperCase() + lang.slice(1)).value = trans.description || '';
+                        }
+                    });
+                }
+            } else {
+                // Add mode
+                galleryAction.value = 'create_gallery_item';
+                galleryItemId.value = '';
+                galleryModalTitle.textContent = 'Ajouter un élément';
+                gallerySubmitBtn.textContent = 'Ajouter';
+                galleryActiveToggle.style.display = 'none';
+            }
+
+            galleryModal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeGalleryModal() {
+            galleryModal.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+    }
+
+    // Gallery drag and drop reordering
+    const galleryList = document.getElementById('galleryList');
+    if (galleryList) {
+        let draggedGallery = null;
+
+        galleryList.querySelectorAll('.gallery-item').forEach(item => {
+            const handle = item.querySelector('.gallery-item-drag');
+
+            handle.addEventListener('mousedown', () => {
+                item.draggable = true;
+            });
+
+            item.addEventListener('dragstart', () => {
+                draggedGallery = item;
+                item.style.opacity = '0.5';
+            });
+
+            item.addEventListener('dragend', () => {
+                item.draggable = false;
+                item.style.opacity = '';
+                draggedGallery = null;
+                saveGalleryOrder();
+            });
+
+            item.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                if (draggedGallery && draggedGallery !== item) {
+                    const rect = item.getBoundingClientRect();
+                    const midX = rect.left + rect.width / 2;
+                    if (e.clientX < midX) {
+                        galleryList.insertBefore(draggedGallery, item);
+                    } else {
+                        galleryList.insertBefore(draggedGallery, item.nextSibling);
+                    }
+                }
+            });
+        });
+
+        function saveGalleryOrder() {
+            const galleryIds = Array.from(galleryList.querySelectorAll('.gallery-item'))
+                .map(item => item.dataset.galleryId);
+
+            const sectionCode = galleryList.dataset.section;
+
+            fetch('content.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `action=reorder_gallery_items&csrf_token=<?= h($csrfToken) ?>&section_code=${encodeURIComponent(sectionCode)}&gallery_item_ids=${encodeURIComponent(JSON.stringify(galleryIds))}`
+            });
+        }
+    }
+
+    // =====================================================
     // DYNAMIC SECTIONS FUNCTIONALITY
     // =====================================================
 
@@ -3473,6 +4367,67 @@ if ($editBlockId) {
             dynamicSectionModal.classList.remove('active');
             document.body.style.overflow = '';
         }
+    }
+
+    // Dynamic sections drag and drop reordering
+    document.querySelectorAll('.dynamic-sections-sortable').forEach(container => {
+        const page = container.dataset.page;
+        let draggedItem = null;
+
+        container.querySelectorAll('.section-btn-wrapper').forEach(wrapper => {
+            const handle = wrapper.querySelector('.section-drag-handle');
+
+            // Enable drag only when using the handle
+            handle.addEventListener('mousedown', () => {
+                wrapper.draggable = true;
+            });
+
+            wrapper.addEventListener('dragstart', (e) => {
+                draggedItem = wrapper;
+                wrapper.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+            });
+
+            wrapper.addEventListener('dragend', () => {
+                wrapper.draggable = false;
+                wrapper.classList.remove('dragging');
+                draggedItem = null;
+                saveDynamicSectionsOrder(container, page);
+            });
+
+            wrapper.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                if (draggedItem && draggedItem !== wrapper) {
+                    const rect = wrapper.getBoundingClientRect();
+                    const midX = rect.left + rect.width / 2;
+                    if (e.clientX < midX) {
+                        container.insertBefore(draggedItem, wrapper);
+                    } else {
+                        container.insertBefore(draggedItem, wrapper.nextSibling);
+                    }
+                }
+            });
+        });
+    });
+
+    function saveDynamicSectionsOrder(container, page) {
+        const sectionCodes = Array.from(container.querySelectorAll('.section-btn-wrapper'))
+            .map(wrapper => wrapper.dataset.sectionCode);
+
+        fetch('content.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `action=reorder_dynamic_sections&csrf_token=<?= h($csrfToken) ?>&page=${encodeURIComponent(page)}&section_codes=${encodeURIComponent(JSON.stringify(sectionCodes))}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (!data.success) {
+                console.error('Failed to save section order');
+            }
+        })
+        .catch(error => {
+            console.error('Error saving section order:', error);
+        });
     }
     </script>
 </body>
