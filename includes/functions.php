@@ -2394,6 +2394,9 @@ function initContentTables(): void {
 
     // Seed default templates
     seedSectionTemplates();
+
+    // Migrate any existing data from old template codes to new ones
+    migrateSectionTemplates();
 }
 
 /**
@@ -2535,11 +2538,11 @@ function seedSectionTemplates(): void {
     $pdo = getDatabase();
 
     $templates = [
-        // Intro-style template: overlay texts, single image, feature indicators
+        // Services section with indicators (icons + labels)
         [
-            'code' => 'intro_style',
-            'name' => 'Section Introduction',
-            'description' => 'Section avec textes, image et indicateurs (style Introduction)',
+            'code' => 'services_indicators',
+            'name' => 'Section Services (indicateurs)',
+            'description' => 'Section avec textes, image optionnelle et indicateurs avec icônes',
             'image_mode' => IMAGE_OPTIONAL,
             'max_blocks' => 1,
             'has_title' => 0,
@@ -2548,22 +2551,7 @@ function seedSectionTemplates(): void {
             'has_overlay' => 1,
             'has_features' => 1,
             'has_services' => 0,
-            'css_class' => 'section-intro-style'
-        ],
-        // Image gallery template: multiple images, no text
-        [
-            'code' => 'gallery_style',
-            'name' => 'Galerie d\'imagesssss',
-            'description' => 'Section galerie avec plusieurs images',
-            'image_mode' => IMAGE_REQUIRED,
-            'max_blocks' => null,
-            'has_title' => 0,
-            'has_description' => 0,
-            'has_link' => 0,
-            'has_overlay' => 1,
-            'has_features' => 0,
-            'has_services' => 0,
-            'css_class' => 'section-gallery-style'
+            'css_class' => 'section-services-indicators'
         ],
         // Text-only template: overlay texts, no images
         [
@@ -2583,7 +2571,7 @@ function seedSectionTemplates(): void {
         // Services-style template: overlay texts + service cards grid
         [
             'code' => 'services_style',
-            'name' => 'Section Services',
+            'name' => 'Section Services (grille)',
             'description' => 'Section avec textes et grille de services (icône + texte)',
             'image_mode' => IMAGE_FORBIDDEN,
             'max_blocks' => 0,
@@ -2595,20 +2583,20 @@ function seedSectionTemplates(): void {
             'has_services' => 1,
             'css_class' => 'section-services-style'
         ],
-        // Detail-style template: overlay texts, optional image, checklist items
+        // Services section with checklist (checkmarks + labels)
         [
-            'code' => 'detail_style',
-            'name' => 'Section Détailsssss',
-            'description' => 'Section avec textes, image optionnelle et liste à puces (style Service)',
+            'code' => 'services_checklist',
+            'name' => 'Section Services (liste à puces)',
+            'description' => 'Section avec textes, image optionnelle et liste à puces avec coches',
             'image_mode' => IMAGE_OPTIONAL,
             'max_blocks' => 1,
             'has_title' => 0,
             'has_description' => 0,
             'has_link' => 0,
             'has_overlay' => 1,
-            'has_features' => 1,  // Reuses features but renders as checklist
+            'has_features' => 1,
             'has_services' => 0,
-            'css_class' => 'section-detail-style'
+            'css_class' => 'section-services-checklist'
         ]
     ];
 
@@ -2636,6 +2624,40 @@ function seedSectionTemplates(): void {
             ]);
         }
     }
+}
+
+/**
+ * Migrate existing data from old template codes to new ones
+ * This ensures backward compatibility with any existing sections
+ */
+function migrateSectionTemplates(): void {
+    $pdo = getDatabase();
+
+    // Mapping of old codes to new codes
+    $migrations = [
+        'intro_style' => 'services_indicators',
+        'detail_style' => 'services_checklist',
+    ];
+
+    // Update content_sections.template_type from old to new values
+    foreach ($migrations as $oldCode => $newCode) {
+        $stmt = $pdo->prepare('UPDATE content_sections SET template_type = ? WHERE template_type = ?');
+        $stmt->execute([$newCode, $oldCode]);
+    }
+
+    // Delete old templates from section_templates table
+    $oldCodes = array_keys($migrations);
+    $oldCodes[] = 'gallery_style'; // Also remove gallery_style
+
+    foreach ($oldCodes as $oldCode) {
+        $stmt = $pdo->prepare('DELETE FROM section_templates WHERE code = ?');
+        $stmt->execute([$oldCode]);
+    }
+
+    // Delete any content_sections using gallery_style (can't migrate - different functionality)
+    // Note: This will cascade delete related content_blocks, overlay_texts, etc.
+    $stmt = $pdo->prepare('DELETE FROM content_sections WHERE template_type = ?');
+    $stmt->execute(['gallery_style']);
 }
 
 /**
@@ -2911,7 +2933,7 @@ function countDynamicSections(string $page): int {
  * @return string HTML output
  */
 function renderDynamicSection(array $section, string $currentLang = 'fr'): string {
-    $templateType = $section['template_type'] ?? 'intro_style';
+    $templateType = $section['template_type'] ?? 'services_indicators';
 
     // Get localized overlay texts
     $overlay = $section['overlay'] ?? [];
@@ -2951,19 +2973,16 @@ function renderDynamicSection(array $section, string $currentLang = 'fr'): strin
     }
 
     // Get CSS class from template
-    $cssClass = $section['template_css_class'] ?? 'section-intro-style';
+    $cssClass = $section['template_css_class'] ?? 'section-services-indicators';
     $sectionCode = $section['code'];
 
     // Start output buffering
     ob_start();
 
     switch ($templateType) {
-        case 'intro_style':
-            renderIntroStyleSection($section, $currentLang, $cssClass);
-            break;
-
-        case 'gallery_style':
-            renderGalleryStyleSection($section, $currentLang, $cssClass);
+        case 'services_indicators':
+        case 'intro_style': // Legacy support
+            renderServicesIndicatorsSection($section, $currentLang, $cssClass);
             break;
 
         case 'text_style':
@@ -2974,22 +2993,23 @@ function renderDynamicSection(array $section, string $currentLang = 'fr'): strin
             renderServicesStyleSection($section, $currentLang, $cssClass);
             break;
 
-        case 'detail_style':
-            renderDetailStyleSection($section, $currentLang, $cssClass);
+        case 'services_checklist':
+        case 'detail_style': // Legacy support
+            renderServicesChecklistSection($section, $currentLang, $cssClass);
             break;
 
         default:
-            // Fallback to intro style
-            renderIntroStyleSection($section, $currentLang, $cssClass);
+            // Fallback to services indicators
+            renderServicesIndicatorsSection($section, $currentLang, $cssClass);
     }
 
     return ob_get_clean();
 }
 
 /**
- * Render intro-style section (text + image + features)
+ * Render services section with indicators (icons + labels)
  */
-function renderIntroStyleSection(array $section, string $currentLang, string $cssClass): void {
+function renderServicesIndicatorsSection(array $section, string $currentLang, string $cssClass): void {
     $overlay = $section['overlay'] ?? [];
     $subtitle = $overlay['translations'][$currentLang]['subtitle'] ?? $overlay['subtitle'] ?? '';
     $title = $overlay['translations'][$currentLang]['title'] ?? $overlay['title'] ?? '';
@@ -3045,50 +3065,6 @@ function renderIntroStyleSection(array $section, string $currentLang, string $cs
                     </div>
                     <?php endif; ?>
                 </div>
-            </div>
-        </div>
-    </section>
-    <?php
-}
-
-/**
- * Render gallery-style section (title + multiple images)
- */
-function renderGalleryStyleSection(array $section, string $currentLang, string $cssClass): void {
-    $overlay = $section['overlay'] ?? [];
-    $subtitle = $overlay['translations'][$currentLang]['subtitle'] ?? $overlay['subtitle'] ?? '';
-    $title = $overlay['translations'][$currentLang]['title'] ?? $overlay['title'] ?? '';
-    $description = $overlay['translations'][$currentLang]['description'] ?? $overlay['description'] ?? '';
-    $blocks = $section['blocks'] ?? [];
-    $sectionCode = $section['code'];
-
-    if (empty($blocks)) {
-        return;
-    }
-    ?>
-    <section class="section <?= h($cssClass) ?>" data-section="<?= h($sectionCode) ?>">
-        <div class="container">
-            <?php if ($subtitle || $title || $description): ?>
-            <div class="section-header">
-                <?php if ($subtitle): ?>
-                <p class="section-subtitle" data-dynamic-text="<?= h($sectionCode) ?>:subtitle"><?= h($subtitle) ?></p>
-                <?php endif; ?>
-                <?php if ($title): ?>
-                <h2 class="section-title" data-dynamic-text="<?= h($sectionCode) ?>:title"><?= h($title) ?></h2>
-                <?php endif; ?>
-                <?php if ($description): ?>
-                <p class="section-description" data-dynamic-text="<?= h($sectionCode) ?>:description"><?= h($description) ?></p>
-                <?php endif; ?>
-            </div>
-            <?php endif; ?>
-            <div class="gallery-grid">
-                <?php foreach ($blocks as $block): ?>
-                <?php if (!empty($block['image_filename'])): ?>
-                <div class="gallery-item">
-                    <img src="<?= h($block['image_filename']) ?>" alt="<?= h($block['image_alt']) ?>">
-                </div>
-                <?php endif; ?>
-                <?php endforeach; ?>
             </div>
         </div>
     </section>
@@ -3209,10 +3185,10 @@ function renderServicesStyleSection(array $section, string $currentLang, string 
 }
 
 /**
- * Render detail-style section (text + optional image + checklist items)
- * Similar to service-detail layout with checkmark feature tags
+ * Render services section with checklist (checkmarks + labels)
+ * Uses service-detail layout with checkmark feature tags
  */
-function renderDetailStyleSection(array $section, string $currentLang, string $cssClass): void {
+function renderServicesChecklistSection(array $section, string $currentLang, string $cssClass): void {
     $overlay = $section['overlay'] ?? [];
     $subtitle = $overlay['translations'][$currentLang]['subtitle'] ?? $overlay['subtitle'] ?? '';
     $title = $overlay['translations'][$currentLang]['title'] ?? $overlay['title'] ?? '';

@@ -12,6 +12,10 @@ $messageCategories = getGuestMessageCategories();
 // Load content helper for dynamic content
 require_once __DIR__ . '/includes/content-helper.php';
 
+// Get dynamic sections for the services page
+$dynamicSections = getDynamicSectionsWithData('services');
+$dynamicSectionsTranslations = !empty($dynamicSections) ? getDynamicSectionsTranslations('services') : [];
+
 // Get images from content system with fallbacks
 $heroImage = contentImage('services_hero', 1, 'images/resto/restaurant-hotel-bordeaux-1.jpg');
 $restaurantImage = contentImage('services_restaurant', 1, 'images/resto/petit_dej.jpg');
@@ -377,6 +381,16 @@ $parkingImage = contentImage('services_parking', 1, 'images/parking/hotel-bordea
       <a href="activites.php" class="btn btn-primary" data-i18n="nav.discover">À découvrir</a>
     </div>
   </section>
+
+  <?php
+  // Render dynamic sections (if any exist)
+  if (!empty($dynamicSections)):
+      echo renderDynamicSectionsForPage('services', 'fr');
+  ?>
+  <script>
+    window.dynamicSectionsTranslations = <?= json_encode($dynamicSectionsTranslations, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
+  </script>
+  <?php endif; ?>
 
   <!-- Footer -->
   <footer class="footer">

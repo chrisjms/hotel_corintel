@@ -2236,7 +2236,6 @@ if ($editBlockId) {
                                     </a>
                                     <?php endforeach; ?>
 
-                                    <?php if ($page === 'home'): // Only enable for home page for now ?>
                                     <button type="button" class="section-btn add-section-btn" data-page="<?= h($page) ?>" style="border-style: dashed; color: var(--admin-text-light);">
                                         <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
                                             <line x1="12" y1="5" x2="12" y2="19"/>
@@ -2244,7 +2243,6 @@ if ($editBlockId) {
                                         </svg>
                                         Nouvelle section
                                     </button>
-                                    <?php endif; ?>
                                 </div>
                             </div>
                             <?php endforeach; ?>
@@ -2410,17 +2408,17 @@ if ($editBlockId) {
                             <?php
                             // Show features panel for sections that support it
                             $showFeaturesPanel = $currentSectionData && sectionHasFeatures($currentSection);
-                            // Check if this is a detail_style section (simplified checklist - no icon selector)
-                            $isDetailStyle = $currentSectionData && ($currentSectionData['template_type'] ?? '') === 'detail_style';
+                            // Check if this is a services_checklist section (simplified checklist - no icon selector)
+                            $isChecklistMode = $currentSectionData && ($currentSectionData['template_type'] ?? '') === 'services_checklist';
                             if ($showFeaturesPanel):
                                 $sectionFeatures = getSectionFeaturesWithTranslations($currentSection, false);
                                 $availableIcons = getAvailableIcons();
                                 $iconCategories = getIconCategories();
                             ?>
-                            <div class="features-panel" data-detail-style="<?= $isDetailStyle ? '1' : '0' ?>">
+                            <div class="features-panel" data-checklist-mode="<?= $isChecklistMode ? '1' : '0' ?>">
                                 <div class="features-panel-header">
                                     <h4>
-                                        <?php if ($isDetailStyle): ?>
+                                        <?php if ($isChecklistMode): ?>
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                             <polyline points="20 6 9 17 4 12"/>
                                         </svg>
@@ -2446,7 +2444,7 @@ if ($editBlockId) {
                                             </svg>
                                         </div>
                                         <div class="feature-icon">
-                                            <?php if ($isDetailStyle): ?>
+                                            <?php if ($isChecklistMode): ?>
                                             <?= getIconSvg('check') ?>
                                             <?php else: ?>
                                             <?= getIconSvg($feature['icon_code']) ?>
@@ -2483,7 +2481,7 @@ if ($editBlockId) {
                                 </div>
                                 <?php else: ?>
                                 <div class="features-empty">
-                                    <?= $isDetailStyle ? 'Aucun élément configuré' : 'Aucun indicateur configuré' ?>
+                                    <?= $isChecklistMode ? 'Aucun élément configuré' : 'Aucun indicateur configuré' ?>
                                 </div>
                                 <?php endif; ?>
 
@@ -2492,15 +2490,15 @@ if ($editBlockId) {
                                         <line x1="12" y1="5" x2="12" y2="19"/>
                                         <line x1="5" y1="12" x2="19" y2="12"/>
                                     </svg>
-                                    <?= $isDetailStyle ? 'Ajouter un élément' : 'Ajouter un indicateur' ?>
+                                    <?= $isChecklistMode ? 'Ajouter un élément' : 'Ajouter un indicateur' ?>
                                 </button>
                             </div>
 
                             <!-- Feature Modal (Add/Edit) -->
-                            <div class="feature-modal" id="featureModal" data-detail-style="<?= $isDetailStyle ? '1' : '0' ?>">
+                            <div class="feature-modal" id="featureModal" data-checklist-mode="<?= $isChecklistMode ? '1' : '0' ?>">
                                 <div class="feature-modal-content">
                                     <div class="feature-modal-header">
-                                        <h3 id="featureModalTitle"><?= $isDetailStyle ? 'Ajouter un élément' : 'Ajouter un indicateur' ?></h3>
+                                        <h3 id="featureModalTitle"><?= $isChecklistMode ? 'Ajouter un élément' : 'Ajouter un indicateur' ?></h3>
                                         <button type="button" class="feature-modal-close" id="featureModalClose">
                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                                 <line x1="18" y1="6" x2="6" y2="18"/>
@@ -2513,10 +2511,10 @@ if ($editBlockId) {
                                         <input type="hidden" name="action" id="featureAction" value="create_feature">
                                         <input type="hidden" name="section_code" value="<?= h($currentSection) ?>">
                                         <input type="hidden" name="feature_id" id="featureId" value="">
-                                        <input type="hidden" name="icon_code" id="selectedIconCode" value="<?= $isDetailStyle ? 'check' : '' ?>">
+                                        <input type="hidden" name="icon_code" id="selectedIconCode" value="<?= $isChecklistMode ? 'check' : '' ?>">
 
                                         <div class="feature-modal-body">
-                                            <div class="icon-selector" <?= $isDetailStyle ? 'style="display: none;"' : '' ?>>
+                                            <div class="icon-selector" <?= $isChecklistMode ? 'style="display: none;"' : '' ?>>
                                                 <label class="icon-selector-label">Icône</label>
                                                 <?php foreach ($iconCategories as $catCode => $catName): ?>
                                                 <div class="icon-category">
@@ -3130,9 +3128,9 @@ if ($editBlockId) {
 
         // Form validation
         featureForm?.addEventListener('submit', (e) => {
-            const isDetailStyle = featureModal.dataset.detailStyle === '1';
-            // Only validate icon selection for non-detail_style sections
-            if (!isDetailStyle && !selectedIconCode.value) {
+            const isChecklistMode = featureModal.dataset.checklistMode === '1';
+            // Only validate icon selection for non-services_checklist sections
+            if (!isChecklistMode && !selectedIconCode.value) {
                 e.preventDefault();
                 alert('Veuillez sélectionner une icône.');
                 return false;
@@ -3145,30 +3143,30 @@ if ($editBlockId) {
         });
 
         function openFeatureModal(mode, data = null) {
-            // Check if this is a detail_style section (checklist mode)
-            const isDetailStyle = featureModal.dataset.detailStyle === '1';
-            const itemLabel = isDetailStyle ? 'élément' : 'indicateur';
+            // Check if this is a services_checklist section (checklist mode)
+            const isChecklistMode = featureModal.dataset.checklistMode === '1';
+            const itemLabel = isChecklistMode ? 'élément' : 'indicateur';
 
             // Reset form
             featureForm.reset();
             document.querySelectorAll('.icon-option').forEach(o => o.classList.remove('selected'));
 
-            // For detail_style, always use 'check' icon
-            if (isDetailStyle) {
+            // For services_checklist, always use 'check' icon
+            if (isChecklistMode) {
                 selectedIconCode.value = 'check';
             } else {
                 selectedIconCode.value = '';
             }
 
             if (mode === 'edit' && data) {
-                featureModalTitle.textContent = isDetailStyle ? 'Modifier l\'élément' : 'Modifier l\'indicateur';
+                featureModalTitle.textContent = isChecklistMode ? 'Modifier l\'élément' : 'Modifier l\'indicateur';
                 featureAction.value = 'update_feature';
                 featureId.value = data.id;
                 featureSubmitBtn.textContent = 'Enregistrer';
                 featureActiveToggle.style.display = 'flex';
 
-                // Select icon (only for non-detail_style)
-                if (!isDetailStyle) {
+                // Select icon (only for non-services_checklist)
+                if (!isChecklistMode) {
                     const iconOption = document.querySelector(`.icon-option[data-icon="${data.icon_code}"]`);
                     if (iconOption) {
                         iconOption.classList.add('selected');
@@ -3187,7 +3185,7 @@ if ($editBlockId) {
                     featureLabelIt.value = data.translations.it || '';
                 }
             } else {
-                featureModalTitle.textContent = isDetailStyle ? 'Ajouter un élément' : 'Ajouter un indicateur';
+                featureModalTitle.textContent = isChecklistMode ? 'Ajouter un élément' : 'Ajouter un indicateur';
                 featureAction.value = 'create_feature';
                 featureId.value = '';
                 featureSubmitBtn.textContent = 'Ajouter';

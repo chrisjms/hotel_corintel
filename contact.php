@@ -59,6 +59,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 // Load content helper for dynamic content
 require_once __DIR__ . '/includes/content-helper.php';
 
+// Get dynamic sections for the contact page
+$dynamicSections = getDynamicSectionsWithData('contact');
+$dynamicSectionsTranslations = !empty($dynamicSections) ? getDynamicSectionsTranslations('contact') : [];
+
 // Get hero image from content system with fallback
 $heroImage = contentImage('contact_hero', 1, 'images/acceuil/dehors_nuit.jpg');
 ?>
@@ -424,6 +428,16 @@ $heroImage = contentImage('contact_hero', 1, 'images/acceuil/dehors_nuit.jpg');
       <a href="tel:+33557341395" class="btn btn-primary" data-i18n="contact.callUs">Appelez-nous</a>
     </div>
   </section>
+
+  <?php
+  // Render dynamic sections (if any exist)
+  if (!empty($dynamicSections)):
+      echo renderDynamicSectionsForPage('contact', 'fr');
+  ?>
+  <script>
+    window.dynamicSectionsTranslations = <?= json_encode($dynamicSectionsTranslations, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
+  </script>
+  <?php endif; ?>
 
   <!-- Footer -->
   <footer class="footer">

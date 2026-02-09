@@ -12,6 +12,10 @@ $messageCategories = getGuestMessageCategories();
 // Load content helper for dynamic content
 require_once __DIR__ . '/includes/content-helper.php';
 
+// Get dynamic sections for the activities page
+$dynamicSections = getDynamicSectionsWithData('activities');
+$dynamicSectionsTranslations = !empty($dynamicSections) ? getDynamicSectionsTranslations('activities') : [];
+
 // Get images from content system with fallbacks
 $heroImage = contentImage('activities_hero', 1, 'images/acceuil/plan_large.jpg');
 $bordeauxImage = contentImage('activities_bordeaux', 1, 'images/acceuil/plan_large-2.png');
@@ -361,6 +365,16 @@ $countrysideImage = contentImage('activities_countryside', 1, 'images/acceuil/ba
       <a href="services.php" class="btn btn-primary" data-i18n="nav.services">Nos services</a>
     </div>
   </section>
+
+  <?php
+  // Render dynamic sections (if any exist)
+  if (!empty($dynamicSections)):
+      echo renderDynamicSectionsForPage('activities', 'fr');
+  ?>
+  <script>
+    window.dynamicSectionsTranslations = <?= json_encode($dynamicSectionsTranslations, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
+  </script>
+  <?php endif; ?>
 
   <!-- Footer -->
   <footer class="footer">
