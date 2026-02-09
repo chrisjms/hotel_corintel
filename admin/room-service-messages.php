@@ -11,6 +11,7 @@ requireAuth();
 
 $admin = getCurrentAdmin();
 $csrfToken = generateCsrfToken();
+$hotelName = getHotelName();
 $statuses = getGuestMessageStatuses();
 $categories = getGuestMessageCategories();
 
@@ -103,7 +104,7 @@ if (isset($_GET['view'])) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
-    <title>Messages Clients | Admin Hôtel Corintel</title>
+    <title>Messages Clients | Admin <?= h($hotelName) ?></title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Lato:wght@300;400;500;700&display=swap" rel="stylesheet">
@@ -391,7 +392,7 @@ if (isset($_GET['view'])) {
                 </svg>
             </button>
             <div class="sidebar-header">
-                <h2>Hôtel Corintel</h2>
+                <h2><?= h($hotelName) ?></h2>
                 <span>Administration</span>
             </div>
 

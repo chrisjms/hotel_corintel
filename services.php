@@ -25,20 +25,23 @@ $galleryImage3 = contentImage('services_restaurant_gallery', 3, 'images/resto/pr
 $barImage = contentImage('services_bar', 1, 'images/acceuil/bar.jpg');
 $boulodromeImage = contentImage('services_boulodrome', 1, 'images/acceuil/boulodrome.jpg');
 $parkingImage = contentImage('services_parking', 1, 'images/parking/hotel-bordeaux-parking.jpg');
+
+$hotelName = getHotelName();
 ?>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Découvrez les services de l'Hôtel Corintel : restaurant table d'hôtes avec cuisine régionale, bar, boulodrome et parking gratuit. Près de Bordeaux et Saint-Émilion.">
+  <meta name="description" content="Découvrez les services de <?= h($hotelName) ?> : restaurant table d'hôtes avec cuisine régionale, bar, boulodrome et parking gratuit. Près de Bordeaux et Saint-Émilion.">
   <meta name="keywords" content="services hôtel, restaurant bordeaux, table d'hôtes, bar hôtel, pétanque, parking gratuit">
-  <title>Nos Services | Hôtel Corintel - Bordeaux Est</title>
+  <title>Nos Services | <?= h($hotelName) ?> - Bordeaux Est</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Lato:wght@300;400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <?= getThemeCSS() ?>
+  <?= getHotelNameJS() ?>
 </head>
 <body>
   <!-- Header -->
@@ -49,7 +52,7 @@ $parkingImage = contentImage('services_parking', 1, 'images/parking/hotel-bordea
           <path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6M9 9h.01M15 9h.01M9 13h.01M15 13h.01"/>
         </svg>
         <div class="logo-text">
-          Hôtel Corintel
+          <?= h($hotelName) ?>
           <span data-i18n="header.logoSubtitle">Bordeaux Est</span>
         </div>
       </a>
@@ -77,7 +80,7 @@ $parkingImage = contentImage('services_parking', 1, 'images/parking/hotel-bordea
   <!-- Page Hero -->
   <section class="page-hero" style="background-image: url('<?= htmlspecialchars($heroImage) ?>');">
     <div class="page-hero-content">
-      <p class="hero-subtitle" data-i18n="services.heroSubtitle">L'Hôtel Corintel</p>
+      <p class="hero-subtitle" data-i18n="services.heroSubtitle"><?= h($hotelName) ?></p>
       <h1 class="page-hero-title" data-i18n="services.heroTitle">Nos Services</h1>
       <p class="page-hero-subtitle" data-i18n="services.heroDescription">Tout pour un séjour inoubliable</p>
     </div>
@@ -90,7 +93,7 @@ $parkingImage = contentImage('services_parking', 1, 'images/parking/hotel-bordea
         <p class="section-subtitle" data-i18n="services.introSubtitle">À votre service</p>
         <h2 class="section-title" data-i18n="services.introTitle">Une expérience complète</h2>
         <p class="section-description" data-i18n="services.introDescription">
-          L'Hôtel Corintel met à votre disposition une gamme de services pensés
+          <?= h($hotelName) ?> met à votre disposition une gamme de services pensés
           pour votre confort et votre détente. Découvrez tout ce qui rendra
           votre séjour mémorable.
         </p>
@@ -103,7 +106,7 @@ $parkingImage = contentImage('services_parking', 1, 'images/parking/hotel-bordea
     <div class="container">
       <div class="service-detail">
         <div class="service-detail-image">
-          <img src="<?= htmlspecialchars($restaurantImage) ?>" alt="Petit-déjeuner au restaurant de l'Hôtel Corintel">
+          <img src="<?= htmlspecialchars($restaurantImage) ?>" alt="Petit-déjeuner au restaurant de <?= h($hotelName) ?>">
         </div>
         <div class="service-detail-content">
           <p class="section-subtitle" data-i18n="services.restaurantSubtitle">Restauration</p>
@@ -217,7 +220,7 @@ $parkingImage = contentImage('services_parking', 1, 'images/parking/hotel-bordea
           </div>
         </div>
         <div class="service-detail-image">
-          <img src="<?= htmlspecialchars($barImage) ?>" alt="Bar de l'Hôtel Corintel">
+          <img src="<?= htmlspecialchars($barImage) ?>" alt="Bar de <?= h($hotelName) ?>">
         </div>
       </div>
     </div>
@@ -228,13 +231,13 @@ $parkingImage = contentImage('services_parking', 1, 'images/parking/hotel-bordea
     <div class="container">
       <div class="service-detail">
         <div class="service-detail-image">
-          <img src="<?= htmlspecialchars($boulodromeImage) ?>" alt="Espace extérieur de l'Hôtel Corintel">
+          <img src="<?= htmlspecialchars($boulodromeImage) ?>" alt="Espace extérieur de <?= h($hotelName) ?>">
         </div>
         <div class="service-detail-content">
           <p class="section-subtitle" data-i18n="services.boulodromeSubtitle">Loisirs</p>
           <h3 data-i18n="services.boulodromeTitle">Boulodrome</h3>
           <p data-i18n="services.boulodromeText1">
-            À l'Hôtel Corintel, nous cultivons l'art de vivre à la française.
+            À <?= h($hotelName) ?>, nous cultivons l'art de vivre à la française.
             Notre terrain de pétanque vous attend pour des parties mémorables,
             que vous soyez joueur aguerri ou simple amateur de moments conviviaux.
           </p>
@@ -276,7 +279,7 @@ $parkingImage = contentImage('services_parking', 1, 'images/parking/hotel-bordea
           <p class="section-subtitle" data-i18n="services.parkingSubtitle">Pratique</p>
           <h3 data-i18n="services.parkingTitle">Parking privé gratuit</h3>
           <p data-i18n="services.parkingText1">
-            Votre tranquillité commence dès votre arrivée. L'Hôtel Corintel dispose
+            Votre tranquillité commence dès votre arrivée. <?= h($hotelName) ?> dispose
             d'un parking privé et sécurisé, entièrement gratuit pour tous nos clients.
           </p>
           <p data-i18n="services.parkingText2">
@@ -306,7 +309,7 @@ $parkingImage = contentImage('services_parking', 1, 'images/parking/hotel-bordea
           </div>
         </div>
         <div class="service-detail-image">
-          <img src="<?= htmlspecialchars($parkingImage) ?>" alt="Parking de l'Hôtel Corintel">
+          <img src="<?= htmlspecialchars($parkingImage) ?>" alt="Parking de <?= h($hotelName) ?>">
         </div>
       </div>
     </div>
@@ -398,7 +401,7 @@ $parkingImage = contentImage('services_parking', 1, 'images/parking/hotel-bordea
       <div class="footer-grid">
         <div class="footer-brand">
           <div class="logo-text">
-            Hôtel Corintel
+            <?= h($hotelName) ?>
             <span data-i18n="header.logoSubtitle">Bordeaux Est</span>
           </div>
           <p data-i18n="footer.description">Un havre de paix aux portes de Bordeaux, où charme et authenticité vous attendent pour un séjour inoubliable.</p>
@@ -445,7 +448,7 @@ $parkingImage = contentImage('services_parking', 1, 'images/parking/hotel-bordea
         </div>
       </div>
       <div class="footer-bottom">
-        <p data-i18n="footer.copyright">&copy; 2024 Hôtel Corintel. Tous droits réservés.</p>
+        <p data-i18n="footer.copyright">&copy; <?= date('Y') ?> <?= h($hotelName) ?>. Tous droits réservés.</p>
       </div>
     </div>
   </footer>

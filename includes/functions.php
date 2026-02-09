@@ -2201,6 +2201,71 @@ function getThemeCSS(): string {
 }
 
 // =====================================================
+// HOTEL IDENTITY SETTINGS
+// =====================================================
+
+/**
+ * Default hotel name constant
+ */
+define('DEFAULT_HOTEL_NAME', 'Hôtel Corintel');
+
+/**
+ * Get the configured hotel name
+ * @param bool $withPrefix If true, returns "Hôtel Name", if false returns just "Name"
+ * @return string The hotel name
+ */
+function getHotelName(bool $withPrefix = true): string {
+    $name = getSetting('hotel_name', DEFAULT_HOTEL_NAME);
+
+    if (!$withPrefix) {
+        // Remove "Hôtel " or "Hotel " prefix if present
+        $name = preg_replace('/^(Hôtel|Hotel)\s+/i', '', $name);
+    }
+
+    return $name;
+}
+
+/**
+ * Save the hotel name setting
+ * @param string $name The hotel name to save
+ * @return bool True on success
+ */
+function setHotelName(string $name): bool {
+    $name = trim($name);
+    if (empty($name)) {
+        return false;
+    }
+    return setSetting('hotel_name', $name);
+}
+
+/**
+ * Get hotel identity settings for use in templates
+ * Returns an array with various forms of the hotel name
+ * @return array
+ */
+function getHotelIdentity(): array {
+    $fullName = getHotelName(true);
+    $shortName = getHotelName(false);
+
+    return [
+        'full_name' => $fullName,           // "Hôtel Corintel"
+        'short_name' => $shortName,         // "Corintel"
+        'name_possessive_fr' => "l'" . $fullName,  // "l'Hôtel Corintel"
+        'name_at_fr' => "à l'" . $fullName,        // "à l'Hôtel Corintel"
+    ];
+}
+
+/**
+ * Output hotel name JavaScript variable for client-side use
+ * Call this in the <head> section before other scripts
+ * @return string
+ */
+function getHotelNameJS(): string {
+    $identity = getHotelIdentity();
+    return '<script>window.hotelIdentity = ' . json_encode($identity, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) . ';</script>';
+}
+
+// =====================================================
 // CONTENT MANAGEMENT FUNCTIONS
 // =====================================================
 

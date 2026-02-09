@@ -13,6 +13,7 @@ $admin = getCurrentAdmin();
 $unreadMessages = getUnreadMessagesCount();
 $pendingOrders = getPendingOrdersCount();
 $csrfToken = generateCsrfToken();
+$hotelName = getHotelName();
 
 $message = '';
 $messageType = '';
@@ -86,7 +87,7 @@ $colorFields = [
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
-    <title>Thème du site | Admin Hôtel Corintel</title>
+    <title>Thème du site | Admin <?= h($hotelName) ?></title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Lato:wght@300;400;500;700&display=swap" rel="stylesheet">
@@ -277,7 +278,7 @@ $colorFields = [
                 </svg>
             </button>
             <div class="sidebar-header">
-                <h2>Hôtel Corintel</h2>
+                <h2><?= h($hotelName) ?></h2>
                 <span>Administration</span>
             </div>
 
@@ -461,7 +462,7 @@ $colorFields = [
                         <h3>Aperçu en direct</h3>
                         <div class="preview-frame" id="previewFrame">
                             <div class="preview-header" id="previewHeader">
-                                <div class="preview-logo" id="previewLogo">Hôtel Corintel</div>
+                                <div class="preview-logo" id="previewLogo"><?= h($hotelName) ?></div>
                                 <nav class="preview-nav">
                                     <a href="#" id="previewNavLink1">Accueil</a>
                                     <a href="#" id="previewNavLink2">Services</a>
@@ -469,7 +470,7 @@ $colorFields = [
                                 </nav>
                             </div>
                             <div class="preview-hero" id="previewHero">
-                                <h1 id="previewTitle">Bienvenue à l'Hôtel Corintel</h1>
+                                <h1 id="previewTitle">Bienvenue à <?= h($hotelName) ?></h1>
                                 <p id="previewSubtitle">Un havre de paix au coeur de Bordeaux</p>
                                 <a href="#" class="preview-btn preview-btn-primary" id="previewBtnPrimary">Réserver</a>
                                 <a href="#" class="preview-btn preview-btn-outline" id="previewBtnOutline">En savoir plus</a>

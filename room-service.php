@@ -118,19 +118,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         }
     }
 }
+
+$hotelName = getHotelName();
 ?>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Commandez votre room service directement depuis votre chambre. Hôtel Corintel, Bordeaux Est.">
-  <title>Room Service | Hôtel Corintel - Bordeaux Est</title>
+  <meta name="description" content="Commandez votre room service directement depuis votre chambre. <?= h($hotelName) ?>, Bordeaux Est.">
+  <title>Room Service | <?= h($hotelName) ?> - Bordeaux Est</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Lato:wght@300;400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <?= getThemeCSS() ?>
+  <?= getHotelNameJS() ?>
   <style>
     .room-service-section {
       padding: 6rem 0 4rem;
@@ -536,7 +539,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
           <path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6M9 9h.01M15 9h.01M9 13h.01M15 13h.01"/>
         </svg>
         <div class="logo-text">
-          Hôtel Corintel
+          <?= h($hotelName) ?>
           <span>Bordeaux Est</span>
         </div>
       </a>
@@ -564,7 +567,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
   <!-- Page Hero -->
   <section class="page-hero" style="background-image: url('images/resto/restaurant-hotel-tresses-3.jpg');">
     <div class="page-hero-content">
-      <p class="hero-subtitle" data-i18n="roomService.heroSubtitle">Hôtel Corintel</p>
+      <p class="hero-subtitle" data-i18n="roomService.heroSubtitle"><?= h($hotelName) ?></p>
       <h1 class="page-hero-title" data-i18n="roomService.heroTitle">Room Service</h1>
       <p class="page-hero-subtitle" data-i18n="roomService.heroDescription">Commandez depuis votre chambre</p>
     </div>
@@ -763,7 +766,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
       <div class="footer-grid">
         <div class="footer-brand">
           <div class="logo-text">
-            Hôtel Corintel
+            <?= h($hotelName) ?>
             <span data-i18n="header.logoSubtitle">Bordeaux Est</span>
           </div>
           <p data-i18n="footer.description">Un havre de paix aux portes de Bordeaux, où charme et authenticité vous attendent pour un séjour inoubliable.</p>
@@ -810,7 +813,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         </div>
       </div>
       <div class="footer-bottom">
-        <p data-i18n="footer.copyright">&copy; 2024 Hôtel Corintel. Tous droits réservés.</p>
+        <p data-i18n="footer.copyright">&copy; <?= date('Y') ?> <?= h($hotelName) ?>. Tous droits réservés.</p>
       </div>
     </div>
   </footer>

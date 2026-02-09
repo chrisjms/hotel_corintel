@@ -17,23 +17,47 @@ $csrfToken = generateCsrfToken();
 $message = '';
 $messageType = '';
 
-// Handle password change
+// Get current hotel name
+$hotelName = getHotelName();
+
+// Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
         $message = 'Session expirée. Veuillez réessayer.';
         $messageType = 'error';
-    } else if (isset($_POST['action']) && $_POST['action'] === 'change_password') {
-        $currentPassword = $_POST['current_password'] ?? '';
-        $newPassword = $_POST['new_password'] ?? '';
-        $confirmPassword = $_POST['confirm_password'] ?? '';
+    } else {
+        $action = $_POST['action'] ?? '';
 
-        if ($newPassword !== $confirmPassword) {
-            $message = 'Les nouveaux mots de passe ne correspondent pas.';
-            $messageType = 'error';
-        } else {
-            $result = changePassword($admin['id'], $currentPassword, $newPassword);
-            $message = $result['message'];
-            $messageType = $result['success'] ? 'success' : 'error';
+        switch ($action) {
+            case 'change_password':
+                $currentPassword = $_POST['current_password'] ?? '';
+                $newPassword = $_POST['new_password'] ?? '';
+                $confirmPassword = $_POST['confirm_password'] ?? '';
+
+                if ($newPassword !== $confirmPassword) {
+                    $message = 'Les nouveaux mots de passe ne correspondent pas.';
+                    $messageType = 'error';
+                } else {
+                    $result = changePassword($admin['id'], $currentPassword, $newPassword);
+                    $message = $result['message'];
+                    $messageType = $result['success'] ? 'success' : 'error';
+                }
+                break;
+
+            case 'update_hotel_name':
+                $newHotelName = trim($_POST['hotel_name'] ?? '');
+                if (empty($newHotelName)) {
+                    $message = 'Le nom de l\'hôtel ne peut pas être vide.';
+                    $messageType = 'error';
+                } else if (setHotelName($newHotelName)) {
+                    $hotelName = $newHotelName;
+                    $message = 'Nom de l\'hôtel mis à jour avec succès.';
+                    $messageType = 'success';
+                } else {
+                    $message = 'Erreur lors de la mise à jour du nom.';
+                    $messageType = 'error';
+                }
+                break;
         }
     }
 }
@@ -44,7 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
-    <title>Paramètres | Admin Hôtel Corintel</title>
+    <title>Paramètres | Admin <?= h($hotelName) ?></title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Lato:wght@300;400;500;700&display=swap" rel="stylesheet">
@@ -64,7 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </svg>
             </button>
             <div class="sidebar-header">
-                <h2>Hôtel Corintel</h2>
+                <h2><?= h($hotelName) ?></h2>
                 <span>Administration</span>
             </div>
 
@@ -182,6 +206,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <?= h($message) ?>
                     </div>
                 <?php endif; ?>
+
+                <!-- Hotel Identity -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Identité de l'établissement</h2>
+                    </div>
+                    <div class="card-body">
+                        <form method="POST" class="hotel-name-form">
+                            <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
+                            <input type="hidden" name="action" value="update_hotel_name">
+
+                            <div class="form-group">
+                                <label for="hotel_name">Nom de l'hôtel</label>
+                                <input type="text" id="hotel_name" name="hotel_name" value="<?= h($hotelName) ?>" required>
+                                <small>Ce nom sera affiché sur tout le site (navigation, titres, pied de page, etc.)</small>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary">Enregistrer</button>
+                        </form>
+                    </div>
+                </div>
 
                 <!-- Account Info -->
                 <div class="card">

@@ -219,9 +219,12 @@
       // Translate elements with data-i18n attribute
       document.querySelectorAll('[data-i18n]').forEach(el => {
         const key = el.dataset.i18n;
-        const value = this.getNestedValue(t, key);
+        let value = this.getNestedValue(t, key);
 
         if (value !== undefined) {
+          // Replace hotel name placeholders
+          value = this.replacePlaceholders(value);
+
           // Check if it's an input placeholder
           if (el.hasAttribute('placeholder') && el.dataset.i18nAttr === 'placeholder') {
             el.placeholder = value;
@@ -269,7 +272,8 @@
       if (pageTitleKey) {
         const pageTitle = this.getNestedValue(t, pageTitleKey);
         if (pageTitle) {
-          document.title = pageTitle + ' | Hôtel Corintel';
+          const hotelName = window.hotelIdentity?.full_name || 'Hôtel Corintel';
+          document.title = pageTitle + ' | ' + hotelName;
         }
       }
 
@@ -411,11 +415,29 @@
     },
 
     /**
+     * Replace placeholders in a string with hotel identity values
+     * Supports: {hotelName}, {hotelShortName}
+     */
+    replacePlaceholders(str) {
+      if (typeof str !== 'string') return str;
+
+      const identity = window.hotelIdentity || {
+        full_name: 'Hôtel Corintel',
+        short_name: 'Corintel'
+      };
+
+      return str
+        .replace(/\{hotelName\}/g, identity.full_name)
+        .replace(/\{hotelShortName\}/g, identity.short_name);
+    },
+
+    /**
      * Get a translation value programmatically
      */
     t(key) {
       const t = window.translations[this.currentLang];
-      return this.getNestedValue(t, key) || key;
+      const value = this.getNestedValue(t, key) || key;
+      return this.replacePlaceholders(value);
     }
   };
 

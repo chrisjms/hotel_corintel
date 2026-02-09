@@ -65,20 +65,23 @@ $dynamicSectionsTranslations = !empty($dynamicSections) ? getDynamicSectionsTran
 
 // Get hero image from content system with fallback
 $heroImage = contentImage('contact_hero', 1, 'images/acceuil/dehors_nuit.jpg');
+
+$hotelName = getHotelName();
 ?>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Contactez l'Hôtel Corintel près de Bordeaux. Adresse, téléphone, email et formulaire de contact. Situé à Tresses, Bordeaux Est, Gironde.">
+  <meta name="description" content="Contactez <?= h($hotelName) ?> près de Bordeaux. Adresse, téléphone, email et formulaire de contact. Situé à Tresses, Bordeaux Est, Gironde.">
   <meta name="keywords" content="contact hôtel bordeaux, adresse hôtel tresses, réservation hôtel gironde, hôtel bordeaux est">
-  <title>Contact | Hôtel Corintel - Bordeaux Est</title>
+  <title>Contact | <?= h($hotelName) ?> - Bordeaux Est</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Lato:wght@300;400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <?= getThemeCSS() ?>
+  <?= getHotelNameJS() ?>
   <style>
     /* Guest Message Section */
     .guest-message-section {
@@ -203,7 +206,7 @@ $heroImage = contentImage('contact_hero', 1, 'images/acceuil/dehors_nuit.jpg');
           <path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6M9 9h.01M15 9h.01M9 13h.01M15 13h.01"/>
         </svg>
         <div class="logo-text">
-          Hôtel Corintel
+          <?= h($hotelName) ?>
           <span>Bordeaux Est</span>
         </div>
       </a>
@@ -263,7 +266,7 @@ $heroImage = contentImage('contact_hero', 1, 'images/acceuil/dehors_nuit.jpg');
               <div class="contact-item-text">
                 <h4 data-i18n="contact.addressLabel">Adresse</h4>
                 <p>
-                  Hôtel Corintel<br>
+                  <?= h($hotelName) ?><br>
                   14 Avenue du Périgord<br>
                   33370 TRESSES, France
                 </p>
@@ -311,7 +314,7 @@ $heroImage = contentImage('contact_hero', 1, 'images/acceuil/dehors_nuit.jpg');
               allowfullscreen=""
               loading="lazy"
               referrerpolicy="no-referrer-when-downgrade"
-              title="Localisation de l'Hôtel Corintel">
+              title="Localisation de <?= h($hotelName) ?>">
             </iframe>
           </div>
         </div>
@@ -445,7 +448,7 @@ $heroImage = contentImage('contact_hero', 1, 'images/acceuil/dehors_nuit.jpg');
       <div class="footer-grid">
         <div class="footer-brand">
           <div class="logo-text">
-            Hôtel Corintel
+            <?= h($hotelName) ?>
             <span>Bordeaux Est</span>
           </div>
           <p data-i18n="footer.description">Un havre de paix aux portes de Bordeaux, où charme et authenticité vous attendent pour un séjour inoubliable.</p>
@@ -493,7 +496,7 @@ $heroImage = contentImage('contact_hero', 1, 'images/acceuil/dehors_nuit.jpg');
         </div>
       </div>
       <div class="footer-bottom">
-        <p data-i18n="footer.copyright">&copy; 2024 Hôtel Corintel. Tous droits réservés.</p>
+        <p data-i18n="footer.copyright">&copy; <?= date('Y') ?> <?= h($hotelName) ?>. Tous droits réservés.</p>
       </div>
     </div>
   </footer>

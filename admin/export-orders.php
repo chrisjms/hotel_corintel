@@ -10,6 +10,8 @@ require_once __DIR__ . '/../includes/functions.php';
 
 requireAuth();
 
+$hotelName = getHotelName();
+
 // Get export format
 $format = $_GET['format'] ?? 'csv';
 if (!in_array($format, ['csv', 'pdf'])) {
@@ -220,7 +222,7 @@ function exportPDF($orders, $filename, $statuses, $paymentMethods, $statusFilter
 <body>
     <div class="container">
         <div class="header">
-            <h1>Hotel Corintel - Room Service</h1>
+            <h1>' . htmlspecialchars($hotelName) . ' - Room Service</h1>
             <div class="subtitle">Rapport des Commandes</div>
             <div class="date">Genere le ' . date('d/m/Y a H:i') . '</div>
         </div>
@@ -286,7 +288,7 @@ function exportPDF($orders, $filename, $statuses, $paymentMethods, $statusFilter
         </table>
 
         <div class="footer">
-            Hotel Corintel - 14 Avenue du Perigord, 33370 TRESSES - Tel: +33 5 57 34 13 95
+            ' . htmlspecialchars($hotelName) . ' - 14 Avenue du Perigord, 33370 TRESSES - Tel: +33 5 57 34 13 95
         </div>
         <div class="print-hint" style="text-align: center; margin-top: 20px; padding: 15px; background: #fff3cd; border-radius: 6px; font-size: 12px; color: #856404;">
             <strong>Pour sauvegarder en PDF:</strong> Utilisez Ctrl+P (Windows) ou Cmd+P (Mac), puis selectionnez "Enregistrer au format PDF"

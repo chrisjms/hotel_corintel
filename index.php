@@ -36,14 +36,16 @@ $dynamicSectionsTranslations = !empty($dynamicSections) ? getDynamicSectionsTran
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Hôtel Corintel - Hôtel 3 étoiles de charme près de Bordeaux et Saint-Émilion. Atmosphère chaleureuse, jardin, terrasse et cuisine régionale au cœur de la campagne bordelaise.">
+  <?php $hotelName = getHotelName(); ?>
+  <meta name="description" content="<?= h($hotelName) ?> - Hôtel 3 étoiles de charme près de Bordeaux et Saint-Émilion. Atmosphère chaleureuse, jardin, terrasse et cuisine régionale au cœur de la campagne bordelaise.">
   <meta name="keywords" content="hôtel bordeaux, hôtel saint-émilion, hôtel campagne, hôtel 3 étoiles, oenotourisme, bordeaux est">
-  <title>Hôtel Corintel | Hôtel de charme près de Bordeaux et Saint-Émilion</title>
+  <title><?= h($hotelName) ?> | Hôtel de charme près de Bordeaux et Saint-Émilion</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Lato:wght@300;400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <?= getThemeCSS() ?>
+  <?= getHotelNameJS() ?>
 </head>
 <body>
   <!-- Header -->
@@ -54,7 +56,7 @@ $dynamicSectionsTranslations = !empty($dynamicSections) ? getDynamicSectionsTran
           <path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6M9 9h.01M15 9h.01M9 13h.01M15 13h.01"/>
         </svg>
         <div class="logo-text">
-          Hôtel Corintel
+          <?= h($hotelName) ?>
           <span data-i18n="header.logoSubtitle">Bordeaux Est</span>
         </div>
       </a>
@@ -98,7 +100,7 @@ $dynamicSectionsTranslations = !empty($dynamicSections) ? getDynamicSectionsTran
         <?php foreach ($heroSlides as $index => $slide): ?>
           <?php if (!empty($slide['image_filename'])): ?>
             <div class="hero-slide<?= $index === 0 ? ' active' : '' ?>">
-              <img src="<?= htmlspecialchars($slide['image_filename']) ?>" alt="<?= htmlspecialchars($slide['image_alt'] ?? 'Image de l\'Hôtel Corintel') ?>">
+              <img src="<?= htmlspecialchars($slide['image_filename']) ?>" alt="<?= htmlspecialchars($slide['image_alt'] ?? 'Image de ' . $hotelName) ?>">
               <div class="hero-overlay"></div>
             </div>
           <?php endif; ?>
@@ -108,7 +110,7 @@ $dynamicSectionsTranslations = !empty($dynamicSections) ? getDynamicSectionsTran
     <div class="hero-content">
       <?php
       // Default fallback texts (used if not configured in admin)
-      $defaultSubtitle = 'Bienvenue à l\'Hôtel Corintel';
+      $defaultSubtitle = 'Bienvenue à ' . $hotelName;
       $defaultTitle = 'Un havre de paix<br>aux portes de Bordeaux';
       $defaultDescription = 'Découvrez notre hôtel de charme 3 étoiles, niché dans la campagne bordelaise, à quelques minutes de Bordeaux et Saint-Émilion.';
 
@@ -189,14 +191,14 @@ $dynamicSectionsTranslations = !empty($dynamicSections) ? getDynamicSectionsTran
     <div class="container">
       <div class="intro-grid">
         <div class="intro-image">
-          <img src="<?= htmlspecialchars($introImage) ?>" alt="L'entrée accueillante de l'Hôtel Corintel">
+          <img src="<?= htmlspecialchars($introImage) ?>" alt="L'entrée accueillante de <?= h($hotelName) ?>">
         </div>
         <div class="intro-content">
           <?php
           // Default fallback texts for intro section
           $defaultIntroSubtitle = 'Notre philosophie';
           $defaultIntroTitle = 'Une atmosphère chaleureuse et conviviale';
-          $defaultIntroDescription = "L'Hôtel Corintel vous accueille dans un cadre paisible et verdoyant, où se mêlent le charme de la campagne bordelaise et le confort d'un établissement 3 étoiles.\n\nEntouré de nature, notre hôtel offre une expérience de détente authentique. Profitez de notre jardin, de notre terrasse ombragée et de notre salon commun pour des moments de quiétude loin du tumulte de la ville.";
+          $defaultIntroDescription = "$hotelName vous accueille dans un cadre paisible et verdoyant, où se mêlent le charme de la campagne bordelaise et le confort d'un établissement 3 étoiles.\n\nEntouré de nature, notre hôtel offre une expérience de détente authentique. Profitez de notre jardin, de notre terrasse ombragée et de notre salon commun pour des moments de quiétude loin du tumulte de la ville.";
 
           // Use database values if available
           $displayIntroSubtitle = !empty($introOverlay['subtitle']) ? $introOverlay['subtitle'] : $defaultIntroSubtitle;
@@ -221,7 +223,7 @@ $dynamicSectionsTranslations = !empty($dynamicSections) ? getDynamicSectionsTran
           <p class="section-subtitle" data-i18n="home.introSubtitle"><?= $displayIntroSubtitle ?></p>
           <h2 data-i18n="home.introTitle"><?= $displayIntroTitle ?></h2>
           <p data-i18n="home.introText1">
-            L'Hôtel Corintel vous accueille dans un cadre paisible et verdoyant,
+            <?= h($hotelName) ?> vous accueille dans un cadre paisible et verdoyant,
             où se mêlent le charme de la campagne bordelaise et le confort d'un
             établissement 3 étoiles.
           </p>
@@ -400,7 +402,7 @@ $dynamicSectionsTranslations = !empty($dynamicSections) ? getDynamicSectionsTran
       <div class="footer-grid">
         <div class="footer-brand">
           <div class="logo-text">
-            Hôtel Corintel
+            <?= h($hotelName) ?>
             <span data-i18n="header.logoSubtitle">Bordeaux Est</span>
           </div>
           <p data-i18n="footer.description">Un havre de paix aux portes de Bordeaux, où charme et authenticité vous attendent pour un séjour inoubliable.</p>
@@ -447,7 +449,7 @@ $dynamicSectionsTranslations = !empty($dynamicSections) ? getDynamicSectionsTran
         </div>
       </div>
       <div class="footer-bottom">
-        <p data-i18n="footer.copyright">&copy; 2024 Hôtel Corintel. Tous droits réservés.</p>
+        <p data-i18n="footer.copyright">&copy; <?= date('Y') ?> <?= h($hotelName) ?>. Tous droits réservés.</p>
       </div>
     </div>
   </footer>

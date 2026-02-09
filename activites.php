@@ -25,20 +25,23 @@ $cellarsImage = contentImage('activities_wine', 2, 'images/resto/restaurant-hote
 $walksImage = contentImage('activities_wine', 3, 'images/resto/barlounge.jpg');
 $gastronomyImage = contentImage('activities_wine', 4, 'images/acceuil/1759071986_IMG_2108.jpeg');
 $countrysideImage = contentImage('activities_countryside', 1, 'images/acceuil/bar.jpg');
+
+$hotelName = getHotelName();
 ?>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Découvrez les activités et sites à visiter près de l'Hôtel Corintel : Bordeaux, Saint-Émilion, oenotourisme, châteaux viticoles et balades en campagne.">
+  <meta name="description" content="Découvrez les activités et sites à visiter près de <?= h($hotelName) ?> : Bordeaux, Saint-Émilion, oenotourisme, châteaux viticoles et balades en campagne.">
   <meta name="keywords" content="tourisme bordeaux, saint-émilion, oenotourisme, vignobles bordeaux, activités gironde, visite châteaux">
-  <title>À Découvrir | Hôtel Corintel - Bordeaux Est</title>
+  <title>À Découvrir | <?= h($hotelName) ?> - Bordeaux Est</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Lato:wght@300;400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <?= getThemeCSS() ?>
+  <?= getHotelNameJS() ?>
 </head>
 <body data-i18n-title="activities.pageTitle">
   <!-- Header -->
@@ -49,7 +52,7 @@ $countrysideImage = contentImage('activities_countryside', 1, 'images/acceuil/ba
           <path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6M9 9h.01M15 9h.01M9 13h.01M15 13h.01"/>
         </svg>
         <div class="logo-text">
-          Hôtel Corintel
+          <?= h($hotelName) ?>
           <span>Bordeaux Est</span>
         </div>
       </a>
@@ -90,7 +93,7 @@ $countrysideImage = contentImage('activities_countryside', 1, 'images/acceuil/ba
         <p class="section-subtitle" data-i18n="activities.introSubtitle">Votre point de départ</p>
         <h2 class="section-title" data-i18n="activities.introTitle">Au cœur d'une région exceptionnelle</h2>
         <p class="section-description" data-i18n="activities.introDescription">
-          Idéalement situé entre Bordeaux et Saint-Émilion, l'Hôtel Corintel
+          Idéalement situé entre Bordeaux et Saint-Émilion, <?= h($hotelName) ?>
           est le point de départ parfait pour explorer les trésors de la Gironde.
           Vignobles prestigieux, patrimoine historique et douceur de vivre vous attendent.
         </p>
@@ -382,7 +385,7 @@ $countrysideImage = contentImage('activities_countryside', 1, 'images/acceuil/ba
       <div class="footer-grid">
         <div class="footer-brand">
           <div class="logo-text">
-            Hôtel Corintel
+            <?= h($hotelName) ?>
             <span>Bordeaux Est</span>
           </div>
           <p data-i18n="footer.description">Un havre de paix aux portes de Bordeaux, où charme et authenticité vous attendent pour un séjour inoubliable.</p>
@@ -429,7 +432,7 @@ $countrysideImage = contentImage('activities_countryside', 1, 'images/acceuil/ba
         </div>
       </div>
       <div class="footer-bottom">
-        <p data-i18n="footer.copyright">&copy; 2024 Hôtel Corintel. Tous droits réservés.</p>
+        <p data-i18n="footer.copyright">&copy; <?= date('Y') ?> <?= h($hotelName) ?>. Tous droits réservés.</p>
       </div>
     </div>
   </footer>
