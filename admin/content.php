@@ -2943,6 +2943,72 @@ if ($editBlockId) {
             opacity: 0.2;
         }
 
+        /* Preview: Gallery Cards (room-card style with overlay) */
+        .preview-gallery-cards .header-area {
+            text-align: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .preview-gallery-cards .header-area .mock-subtitle,
+        .preview-gallery-cards .header-area .mock-title {
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .preview-gallery-cards .gallery-cards-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+        }
+
+        .preview-gallery-cards .gallery-card-overlay {
+            position: relative;
+            border-radius: 6px;
+            overflow: hidden;
+            height: 70px;
+        }
+
+        .preview-gallery-cards .card-image-bg {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, #8B6F47 0%, #6B5635 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .preview-gallery-cards .card-image-bg svg {
+            width: 18px;
+            height: 18px;
+            color: rgba(255,255,255,0.3);
+        }
+
+        .preview-gallery-cards .card-overlay-content {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 0.4rem;
+            background: linear-gradient(transparent, rgba(0,0,0,0.7));
+        }
+
+        .preview-gallery-cards .overlay-title {
+            height: 5px;
+            width: 70%;
+            background: #fff;
+            border-radius: 2px;
+            opacity: 0.9;
+            margin-bottom: 0.2rem;
+        }
+
+        .preview-gallery-cards .overlay-desc {
+            height: 3px;
+            width: 50%;
+            background: #fff;
+            border-radius: 2px;
+            opacity: 0.6;
+        }
+
         /* Animation for preview transitions */
         .section-preview-mock {
             transition: opacity 0.2s ease;
@@ -3365,6 +3431,100 @@ if ($editBlockId) {
                         </div>
                         <div class="card-body">
                             <?php
+                            // Show section settings panel for dynamic sections (Appearance settings first)
+                            $showSettingsPanel = $currentSectionData && ($currentSectionData['is_dynamic'] ?? false);
+                            if ($showSettingsPanel):
+                                $bgOptions = getSectionBackgroundOptions();
+                                $currentBgColor = $currentSectionData['background_color'] ?? 'cream';
+                                $templateType = $currentSectionData['template_type'] ?? '';
+                                $supportsImagePosition = sectionSupportsImagePosition($templateType);
+                                $imagePositionOptions = getImagePositionOptions();
+                                $currentImagePosition = $currentSectionData['image_position'] ?? 'left';
+                            ?>
+                            <div class="section-settings-panel">
+                                <div class="section-settings-header">
+                                    <h4>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <circle cx="12" cy="12" r="3"/>
+                                            <path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                                        </svg>
+                                        Apparence de la section
+                                    </h4>
+                                </div>
+
+                                <form method="POST" id="sectionSettingsForm">
+                                    <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
+                                    <input type="hidden" name="action" value="update_section_settings">
+                                    <input type="hidden" name="section_code" value="<?= h($currentSection) ?>">
+
+                                    <div class="bg-color-selector">
+                                        <label>Couleur de fond</label>
+
+                                        <div class="bg-color-group">
+                                            <p class="bg-color-group-label">Couleurs du thème <a href="theme.php" class="bg-color-theme-link">Modifier</a></p>
+                                            <div class="bg-color-options">
+                                                <?php foreach ($bgOptions as $colorKey => $colorData):
+                                                    if (($colorData['group'] ?? 'theme') !== 'theme') continue;
+                                                    $tooltip = $colorData['css_var'] ? "Variable CSS: {$colorData['css_var']}" : '';
+                                                ?>
+                                                <label class="bg-color-option <?= $colorKey === $currentBgColor ? 'selected' : '' ?>" <?= $tooltip ? 'title="' . h($tooltip) . '"' : '' ?>>
+                                                    <input type="radio" name="background_color" value="<?= h($colorKey) ?>" <?= $colorKey === $currentBgColor ? 'checked' : '' ?>>
+                                                    <span class="bg-color-swatch" style="background-color: <?= h($colorData['preview']) ?>"></span>
+                                                    <span class="bg-color-name"><?= h($colorData['label']) ?></span>
+                                                </label>
+                                                <?php endforeach; ?>
+                                            </div>
+                                        </div>
+
+                                        <div class="bg-color-group">
+                                            <p class="bg-color-group-label">Couleurs neutres</p>
+                                            <div class="bg-color-options">
+                                                <?php foreach ($bgOptions as $colorKey => $colorData):
+                                                    if (($colorData['group'] ?? 'theme') !== 'neutral') continue;
+                                                ?>
+                                                <label class="bg-color-option <?= $colorKey === $currentBgColor ? 'selected' : '' ?>">
+                                                    <input type="radio" name="background_color" value="<?= h($colorKey) ?>" <?= $colorKey === $currentBgColor ? 'checked' : '' ?>>
+                                                    <span class="bg-color-swatch" style="background-color: <?= h($colorData['preview']) ?>"></span>
+                                                    <span class="bg-color-name"><?= h($colorData['label']) ?></span>
+                                                </label>
+                                                <?php endforeach; ?>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <?php if ($supportsImagePosition): ?>
+                                    <div class="image-position-selector">
+                                        <label>Position de l'image</label>
+                                        <div class="image-position-options">
+                                            <?php foreach ($imagePositionOptions as $posKey => $posData): ?>
+                                            <label class="image-position-option <?= $posKey === $currentImagePosition ? 'selected' : '' ?>">
+                                                <input type="radio" name="image_position" value="<?= h($posKey) ?>" <?= $posKey === $currentImagePosition ? 'checked' : '' ?>>
+                                                <span class="image-position-preview <?= h($posKey) ?>">
+                                                    <span class="preview-image"></span>
+                                                    <span class="preview-text"></span>
+                                                </span>
+                                                <span class="image-position-name"><?= h($posData['label']) ?></span>
+                                            </label>
+                                            <?php endforeach; ?>
+                                        </div>
+                                    </div>
+                                    <?php endif; ?>
+
+                                    <div class="overlay-actions">
+                                        <button type="submit" class="btn btn-primary">
+                                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                                                <polyline points="17 21 17 13 7 13 7 21"/>
+                                                <polyline points="7 3 7 8 15 8"/>
+                                            </svg>
+                                            Enregistrer l'apparence
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                            <?php endif; ?>
+
+                            <?php
                             // Show overlay text panel for sections that support it (static or dynamic with has_overlay)
                             $sectionsWithOverlay = ['home_hero', 'home_intro'];
                             $showOverlayPanel = in_array($currentSection, $sectionsWithOverlay) || (!empty($currentSectionData['has_overlay']) && !empty($currentSectionData['is_dynamic']));
@@ -3487,100 +3647,6 @@ if ($editBlockId) {
                                                 <polyline points="7 3 7 8 15 8"/>
                                             </svg>
                                             Enregistrer les textes
-                                        </button>
-                                    </div>
-                                </form>
-                            </div>
-                            <?php endif; ?>
-
-                            <?php
-                            // Show section settings panel for dynamic sections
-                            $showSettingsPanel = $currentSectionData && ($currentSectionData['is_dynamic'] ?? false);
-                            if ($showSettingsPanel):
-                                $bgOptions = getSectionBackgroundOptions();
-                                $currentBgColor = $currentSectionData['background_color'] ?? 'cream';
-                                $templateType = $currentSectionData['template_type'] ?? '';
-                                $supportsImagePosition = sectionSupportsImagePosition($templateType);
-                                $imagePositionOptions = getImagePositionOptions();
-                                $currentImagePosition = $currentSectionData['image_position'] ?? 'left';
-                            ?>
-                            <div class="section-settings-panel">
-                                <div class="section-settings-header">
-                                    <h4>
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <circle cx="12" cy="12" r="3"/>
-                                            <path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
-                                        </svg>
-                                        Apparence de la section
-                                    </h4>
-                                </div>
-
-                                <form method="POST" id="sectionSettingsForm">
-                                    <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
-                                    <input type="hidden" name="action" value="update_section_settings">
-                                    <input type="hidden" name="section_code" value="<?= h($currentSection) ?>">
-
-                                    <div class="bg-color-selector">
-                                        <label>Couleur de fond</label>
-
-                                        <div class="bg-color-group">
-                                            <p class="bg-color-group-label">Couleurs du thème <a href="theme.php" class="bg-color-theme-link">Modifier</a></p>
-                                            <div class="bg-color-options">
-                                                <?php foreach ($bgOptions as $colorKey => $colorData):
-                                                    if (($colorData['group'] ?? 'theme') !== 'theme') continue;
-                                                    $tooltip = $colorData['css_var'] ? "Variable CSS: {$colorData['css_var']}" : '';
-                                                ?>
-                                                <label class="bg-color-option <?= $colorKey === $currentBgColor ? 'selected' : '' ?>" <?= $tooltip ? 'title="' . h($tooltip) . '"' : '' ?>>
-                                                    <input type="radio" name="background_color" value="<?= h($colorKey) ?>" <?= $colorKey === $currentBgColor ? 'checked' : '' ?>>
-                                                    <span class="bg-color-swatch" style="background-color: <?= h($colorData['preview']) ?>"></span>
-                                                    <span class="bg-color-name"><?= h($colorData['label']) ?></span>
-                                                </label>
-                                                <?php endforeach; ?>
-                                            </div>
-                                        </div>
-
-                                        <div class="bg-color-group">
-                                            <p class="bg-color-group-label">Couleurs neutres</p>
-                                            <div class="bg-color-options">
-                                                <?php foreach ($bgOptions as $colorKey => $colorData):
-                                                    if (($colorData['group'] ?? 'theme') !== 'neutral') continue;
-                                                ?>
-                                                <label class="bg-color-option <?= $colorKey === $currentBgColor ? 'selected' : '' ?>">
-                                                    <input type="radio" name="background_color" value="<?= h($colorKey) ?>" <?= $colorKey === $currentBgColor ? 'checked' : '' ?>>
-                                                    <span class="bg-color-swatch" style="background-color: <?= h($colorData['preview']) ?>"></span>
-                                                    <span class="bg-color-name"><?= h($colorData['label']) ?></span>
-                                                </label>
-                                                <?php endforeach; ?>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <?php if ($supportsImagePosition): ?>
-                                    <div class="image-position-selector">
-                                        <label>Position de l'image</label>
-                                        <div class="image-position-options">
-                                            <?php foreach ($imagePositionOptions as $posKey => $posData): ?>
-                                            <label class="image-position-option <?= $posKey === $currentImagePosition ? 'selected' : '' ?>">
-                                                <input type="radio" name="image_position" value="<?= h($posKey) ?>" <?= $posKey === $currentImagePosition ? 'checked' : '' ?>>
-                                                <span class="image-position-preview <?= h($posKey) ?>">
-                                                    <span class="preview-image"></span>
-                                                    <span class="preview-text"></span>
-                                                </span>
-                                                <span class="image-position-name"><?= h($posData['label']) ?></span>
-                                            </label>
-                                            <?php endforeach; ?>
-                                        </div>
-                                    </div>
-                                    <?php endif; ?>
-
-                                    <div class="overlay-actions">
-                                        <button type="submit" class="btn btn-primary">
-                                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-                                                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
-                                                <polyline points="17 21 17 13 7 13 7 21"/>
-                                                <polyline points="7 3 7 8 15 8"/>
-                                            </svg>
-                                            Enregistrer l'apparence
                                         </button>
                                     </div>
                                 </form>
@@ -4519,6 +4585,55 @@ if ($editBlockId) {
                                                     <div class="card-content">
                                                         <div class="card-title"></div>
                                                         <div class="card-desc"></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Gallery Cards Preview (room-card style with overlay) -->
+                                        <div class="preview-template preview-gallery-cards" data-template="gallery_cards" style="display: none;">
+                                            <div class="header-area">
+                                                <div class="mock-subtitle"></div>
+                                                <div class="mock-title"></div>
+                                            </div>
+                                            <div class="gallery-cards-grid">
+                                                <div class="gallery-card-overlay">
+                                                    <div class="card-image-bg">
+                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                            <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                                            <circle cx="8.5" cy="8.5" r="1.5"/>
+                                                            <polyline points="21 15 16 10 5 21"/>
+                                                        </svg>
+                                                    </div>
+                                                    <div class="card-overlay-content">
+                                                        <div class="overlay-title"></div>
+                                                        <div class="overlay-desc"></div>
+                                                    </div>
+                                                </div>
+                                                <div class="gallery-card-overlay">
+                                                    <div class="card-image-bg">
+                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                            <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                                            <circle cx="8.5" cy="8.5" r="1.5"/>
+                                                            <polyline points="21 15 16 10 5 21"/>
+                                                        </svg>
+                                                    </div>
+                                                    <div class="card-overlay-content">
+                                                        <div class="overlay-title"></div>
+                                                        <div class="overlay-desc"></div>
+                                                    </div>
+                                                </div>
+                                                <div class="gallery-card-overlay">
+                                                    <div class="card-image-bg">
+                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                            <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                                            <circle cx="8.5" cy="8.5" r="1.5"/>
+                                                            <polyline points="21 15 16 10 5 21"/>
+                                                        </svg>
+                                                    </div>
+                                                    <div class="card-overlay-content">
+                                                        <div class="overlay-title"></div>
+                                                        <div class="overlay-desc"></div>
                                                     </div>
                                                 </div>
                                             </div>

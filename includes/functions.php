@@ -2732,6 +2732,22 @@ function seedSectionTemplates(): void {
             'has_services' => 0,
             'has_gallery' => 1,
             'css_class' => 'section-gallery-style'
+        ],
+        // Image gallery type 2 (room-card style with overlay)
+        [
+            'code' => 'gallery_cards',
+            'name' => 'Galerie d\'images (type 2)',
+            'description' => 'Grille d\'images avec titre et description en superposition',
+            'image_mode' => IMAGE_FORBIDDEN,
+            'max_blocks' => 0,
+            'has_title' => 0,
+            'has_description' => 0,
+            'has_link' => 0,
+            'has_overlay' => 1,
+            'has_features' => 0,
+            'has_services' => 0,
+            'has_gallery' => 1,
+            'css_class' => 'section-gallery-cards'
         ]
     ];
 
@@ -3144,6 +3160,10 @@ function renderDynamicSection(array $section, string $currentLang = 'fr'): strin
             renderGalleryStyleSection($section, $currentLang, $cssClass);
             break;
 
+        case 'gallery_cards':
+            renderGalleryCardsSection($section, $currentLang, $cssClass);
+            break;
+
         default:
             // Fallback to services indicators
             renderServicesIndicatorsSection($section, $currentLang, $cssClass);
@@ -3385,6 +3405,61 @@ function renderGalleryStyleSection(array $section, string $currentLang, string $
                 <?php endforeach; ?>
             </div>
             <?php endif; ?>
+        </div>
+    </section>
+    <?php
+}
+
+/**
+ * Render gallery cards section (room-card style with overlay)
+ * Uses the room-card layout with image and overlay title/description
+ */
+function renderGalleryCardsSection(array $section, string $currentLang, string $cssClass): void {
+    $overlay = $section['overlay'] ?? [];
+    $subtitle = $overlay['translations'][$currentLang]['subtitle'] ?? $overlay['subtitle'] ?? '';
+    $title = $overlay['translations'][$currentLang]['title'] ?? $overlay['title'] ?? '';
+    $description = $overlay['translations'][$currentLang]['description'] ?? $overlay['description'] ?? '';
+    $galleryItems = $section['gallery_items'] ?? [];
+    $sectionCode = $section['code'];
+    $bgClass = getSectionBackgroundClass($section['background_color'] ?? 'cream');
+
+    // If no gallery items, don't render the section
+    if (empty($galleryItems)) {
+        return;
+    }
+    ?>
+    <section class="section <?= h($bgClass) ?> <?= h($cssClass) ?>" data-section="<?= h($sectionCode) ?>">
+        <div class="container">
+            <?php if ($subtitle || $title || $description): ?>
+            <div class="section-header">
+                <?php if ($subtitle): ?>
+                <p class="section-subtitle" data-dynamic-text="<?= h($sectionCode) ?>:subtitle"><?= h($subtitle) ?></p>
+                <?php endif; ?>
+                <?php if ($title): ?>
+                <h2 class="section-title" data-dynamic-text="<?= h($sectionCode) ?>:title"><?= h($title) ?></h2>
+                <?php endif; ?>
+                <?php if ($description): ?>
+                <p class="section-description" data-dynamic-text="<?= h($sectionCode) ?>:description"><?= h($description) ?></p>
+                <?php endif; ?>
+            </div>
+            <?php endif; ?>
+
+            <div class="rooms-gallery">
+                <?php foreach ($galleryItems as $item):
+                    $itemTitle = getGalleryItemTitleForLanguage($item, $currentLang);
+                    $itemDescription = getGalleryItemDescriptionForLanguage($item, $currentLang);
+                ?>
+                <div class="room-card">
+                    <img src="<?= h($item['image_filename']) ?>" alt="<?= h($item['image_alt'] ?: $itemTitle) ?>">
+                    <div class="room-card-overlay">
+                        <h4 data-dynamic-gallery="<?= $item['id'] ?>:title"><?= h($itemTitle) ?></h4>
+                        <?php if (!empty($itemDescription)): ?>
+                        <p data-dynamic-gallery="<?= $item['id'] ?>:description"><?= h($itemDescription) ?></p>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                <?php endforeach; ?>
+            </div>
         </div>
     </section>
     <?php
