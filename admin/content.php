@@ -2384,6 +2384,361 @@ if ($editBlockId) {
             resize: vertical;
             min-height: 60px;
         }
+
+        /* =====================================================
+           SECTION TYPE PREVIEW SYSTEM
+           Visual mockups for section templates
+           ===================================================== */
+
+        .section-preview {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: var(--admin-bg);
+            border: 1px solid var(--admin-border);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .section-preview-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--admin-text-light);
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .section-preview-label svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        .section-preview-mock {
+            background: white;
+            border-radius: 6px;
+            padding: 1rem;
+            font-size: 0.75rem;
+            position: relative;
+            min-height: 120px;
+        }
+
+        /* Mock elements - reusable building blocks */
+        .mock-subtitle {
+            height: 8px;
+            width: 60px;
+            background: linear-gradient(90deg, var(--admin-primary) 0%, transparent 100%);
+            border-radius: 4px;
+            margin-bottom: 0.5rem;
+            opacity: 0.5;
+        }
+
+        .mock-title {
+            height: 12px;
+            width: 120px;
+            background: var(--admin-text);
+            border-radius: 4px;
+            margin-bottom: 0.5rem;
+            opacity: 0.3;
+        }
+
+        .mock-text {
+            height: 6px;
+            background: var(--admin-text-light);
+            border-radius: 3px;
+            margin-bottom: 0.35rem;
+            opacity: 0.2;
+        }
+
+        .mock-text.short { width: 70%; }
+        .mock-text.medium { width: 85%; }
+        .mock-text.long { width: 100%; }
+
+        .mock-image {
+            background: linear-gradient(135deg, #e0e0e0 0%, #f5f5f5 100%);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #bbb;
+        }
+
+        .mock-image svg {
+            width: 24px;
+            height: 24px;
+            opacity: 0.5;
+        }
+
+        .mock-icon {
+            width: 24px;
+            height: 24px;
+            background: rgba(139, 90, 43, 0.1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .mock-icon svg {
+            width: 12px;
+            height: 12px;
+            color: var(--admin-primary);
+            opacity: 0.7;
+        }
+
+        .mock-check {
+            width: 14px;
+            height: 14px;
+            background: rgba(92, 124, 94, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .mock-check svg {
+            width: 8px;
+            height: 8px;
+            color: #5C7C5E;
+        }
+
+        /* Preview: Services Indicators */
+        .preview-services-indicators {
+            display: grid;
+            grid-template-columns: 1fr 80px;
+            gap: 1rem;
+            align-items: start;
+        }
+
+        .preview-services-indicators .preview-content {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .preview-services-indicators .preview-indicators {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+        }
+
+        .preview-services-indicators .indicator-item {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.25rem 0.5rem;
+            background: var(--admin-bg);
+            border-radius: 4px;
+        }
+
+        .preview-services-indicators .indicator-label {
+            height: 6px;
+            width: 35px;
+            background: var(--admin-text-light);
+            border-radius: 3px;
+            opacity: 0.3;
+        }
+
+        .preview-services-indicators .preview-image {
+            width: 80px;
+            height: 60px;
+        }
+
+        /* Preview: Text Style */
+        .preview-text-style {
+            text-align: center;
+            padding: 0.5rem;
+        }
+
+        .preview-text-style .mock-subtitle,
+        .preview-text-style .mock-title {
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .preview-text-style .text-block {
+            max-width: 200px;
+            margin: 0 auto;
+        }
+
+        .preview-text-style .preview-features {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 0.75rem;
+        }
+
+        .preview-text-style .feature-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .preview-text-style .feature-label {
+            height: 5px;
+            width: 30px;
+            background: var(--admin-text-light);
+            border-radius: 2px;
+            opacity: 0.3;
+        }
+
+        /* Preview: Services Grid */
+        .preview-services-grid .header-area {
+            text-align: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .preview-services-grid .header-area .mock-subtitle,
+        .preview-services-grid .header-area .mock-title {
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .preview-services-grid .services-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+        }
+
+        .preview-services-grid .service-card {
+            background: var(--admin-bg);
+            border-radius: 4px;
+            padding: 0.5rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
+        .preview-services-grid .card-title {
+            height: 5px;
+            width: 35px;
+            background: var(--admin-text);
+            border-radius: 2px;
+            opacity: 0.3;
+        }
+
+        .preview-services-grid .card-text {
+            height: 4px;
+            width: 45px;
+            background: var(--admin-text-light);
+            border-radius: 2px;
+            opacity: 0.2;
+        }
+
+        /* Preview: Services Checklist */
+        .preview-services-checklist {
+            display: grid;
+            grid-template-columns: 80px 1fr;
+            gap: 1rem;
+            align-items: start;
+        }
+
+        .preview-services-checklist .preview-image {
+            width: 80px;
+            height: 60px;
+        }
+
+        .preview-services-checklist .preview-content {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .preview-services-checklist .checklist {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+            margin-top: 0.5rem;
+        }
+
+        .preview-services-checklist .check-item {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
+        .preview-services-checklist .check-label {
+            height: 5px;
+            width: 60px;
+            background: var(--admin-text-light);
+            border-radius: 2px;
+            opacity: 0.3;
+        }
+
+        .preview-services-checklist .check-item:nth-child(2) .check-label { width: 75px; }
+        .preview-services-checklist .check-item:nth-child(3) .check-label { width: 50px; }
+
+        /* Preview: Gallery Style */
+        .preview-gallery-style .header-area {
+            text-align: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .preview-gallery-style .header-area .mock-subtitle,
+        .preview-gallery-style .header-area .mock-title {
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .preview-gallery-style .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.5rem;
+        }
+
+        .preview-gallery-style .gallery-card {
+            background: var(--admin-bg);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .preview-gallery-style .card-image {
+            height: 35px;
+            background: linear-gradient(135deg, #e0e0e0 0%, #f0f0f0 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .preview-gallery-style .card-image svg {
+            width: 14px;
+            height: 14px;
+            color: #ccc;
+        }
+
+        .preview-gallery-style .card-content {
+            padding: 0.35rem;
+        }
+
+        .preview-gallery-style .card-title {
+            height: 5px;
+            width: 80%;
+            background: var(--admin-text);
+            border-radius: 2px;
+            opacity: 0.3;
+            margin-bottom: 0.25rem;
+        }
+
+        .preview-gallery-style .card-desc {
+            height: 4px;
+            width: 60%;
+            background: var(--admin-text-light);
+            border-radius: 2px;
+            opacity: 0.2;
+        }
+
+        /* Animation for preview transitions */
+        .section-preview-mock {
+            transition: opacity 0.2s ease;
+        }
+
+        .section-preview-mock.switching {
+            opacity: 0.5;
+        }
     </style>
 </head>
 <body>
@@ -3627,6 +3982,244 @@ if ($editBlockId) {
                                 <div class="template-option-desc" id="templateDescription">
                                     <?= h($templates[0]['description'] ?? '') ?>
                                 </div>
+
+                                <!-- Section Type Visual Preview -->
+                                <div class="section-preview">
+                                    <div class="section-preview-label">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                            <line x1="3" y1="9" x2="21" y2="9"/>
+                                            <line x1="9" y1="21" x2="9" y2="9"/>
+                                        </svg>
+                                        Aperçu du rendu
+                                    </div>
+                                    <div class="section-preview-mock" id="sectionPreviewMock">
+                                        <!-- Preview templates - one for each section type -->
+
+                                        <!-- Services Indicators Preview -->
+                                        <div class="preview-template preview-services-indicators" data-template="services_indicators">
+                                            <div class="preview-content">
+                                                <div class="mock-subtitle"></div>
+                                                <div class="mock-title"></div>
+                                                <div class="mock-text long"></div>
+                                                <div class="mock-text medium"></div>
+                                                <div class="preview-indicators">
+                                                    <div class="indicator-item">
+                                                        <div class="mock-icon">
+                                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                                <circle cx="12" cy="12" r="10"/>
+                                                            </svg>
+                                                        </div>
+                                                        <div class="indicator-label"></div>
+                                                    </div>
+                                                    <div class="indicator-item">
+                                                        <div class="mock-icon">
+                                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                                                            </svg>
+                                                        </div>
+                                                        <div class="indicator-label"></div>
+                                                    </div>
+                                                    <div class="indicator-item">
+                                                        <div class="mock-icon">
+                                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                                <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                                                            </svg>
+                                                        </div>
+                                                        <div class="indicator-label"></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="mock-image preview-image">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                                    <circle cx="8.5" cy="8.5" r="1.5"/>
+                                                    <polyline points="21 15 16 10 5 21"/>
+                                                </svg>
+                                            </div>
+                                        </div>
+
+                                        <!-- Text Style Preview -->
+                                        <div class="preview-template preview-text-style" data-template="text_style" style="display: none;">
+                                            <div class="mock-subtitle"></div>
+                                            <div class="mock-title"></div>
+                                            <div class="text-block">
+                                                <div class="mock-text long"></div>
+                                                <div class="mock-text medium"></div>
+                                                <div class="mock-text short"></div>
+                                            </div>
+                                            <div class="preview-features">
+                                                <div class="feature-item">
+                                                    <div class="mock-icon">
+                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                            <circle cx="12" cy="12" r="10"/>
+                                                        </svg>
+                                                    </div>
+                                                    <div class="feature-label"></div>
+                                                </div>
+                                                <div class="feature-item">
+                                                    <div class="mock-icon">
+                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                                                        </svg>
+                                                    </div>
+                                                    <div class="feature-label"></div>
+                                                </div>
+                                                <div class="feature-item">
+                                                    <div class="mock-icon">
+                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                            <polygon points="12 2 15 8.5 22 9.3 17 14 18 21 12 17.8 6 21 7 14 2 9.3 9 8.5 12 2"/>
+                                                        </svg>
+                                                    </div>
+                                                    <div class="feature-label"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Services Grid Preview -->
+                                        <div class="preview-template preview-services-grid" data-template="services_style" style="display: none;">
+                                            <div class="header-area">
+                                                <div class="mock-subtitle"></div>
+                                                <div class="mock-title"></div>
+                                            </div>
+                                            <div class="services-grid">
+                                                <div class="service-card">
+                                                    <div class="mock-icon">
+                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                            <path d="M18 8h1a4 4 0 0 1 0 8h-1"/>
+                                                            <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/>
+                                                        </svg>
+                                                    </div>
+                                                    <div class="card-title"></div>
+                                                    <div class="card-text"></div>
+                                                </div>
+                                                <div class="service-card">
+                                                    <div class="mock-icon">
+                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                                                        </svg>
+                                                    </div>
+                                                    <div class="card-title"></div>
+                                                    <div class="card-text"></div>
+                                                </div>
+                                                <div class="service-card">
+                                                    <div class="mock-icon">
+                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                            <circle cx="12" cy="12" r="10"/>
+                                                            <polyline points="12 6 12 12 16 14"/>
+                                                        </svg>
+                                                    </div>
+                                                    <div class="card-title"></div>
+                                                    <div class="card-text"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Services Checklist Preview -->
+                                        <div class="preview-template preview-services-checklist" data-template="services_checklist" style="display: none;">
+                                            <div class="mock-image preview-image">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                                    <circle cx="8.5" cy="8.5" r="1.5"/>
+                                                    <polyline points="21 15 16 10 5 21"/>
+                                                </svg>
+                                            </div>
+                                            <div class="preview-content">
+                                                <div class="mock-subtitle"></div>
+                                                <div class="mock-title"></div>
+                                                <div class="checklist">
+                                                    <div class="check-item">
+                                                        <div class="mock-check">
+                                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                                                <polyline points="20 6 9 17 4 12"/>
+                                                            </svg>
+                                                        </div>
+                                                        <div class="check-label"></div>
+                                                    </div>
+                                                    <div class="check-item">
+                                                        <div class="mock-check">
+                                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                                                <polyline points="20 6 9 17 4 12"/>
+                                                            </svg>
+                                                        </div>
+                                                        <div class="check-label"></div>
+                                                    </div>
+                                                    <div class="check-item">
+                                                        <div class="mock-check">
+                                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                                                <polyline points="20 6 9 17 4 12"/>
+                                                            </svg>
+                                                        </div>
+                                                        <div class="check-label"></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Gallery Style Preview -->
+                                        <div class="preview-template preview-gallery-style" data-template="gallery_style" style="display: none;">
+                                            <div class="header-area">
+                                                <div class="mock-subtitle"></div>
+                                                <div class="mock-title"></div>
+                                            </div>
+                                            <div class="gallery-grid">
+                                                <div class="gallery-card">
+                                                    <div class="card-image">
+                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                            <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                                            <circle cx="8.5" cy="8.5" r="1.5"/>
+                                                            <polyline points="21 15 16 10 5 21"/>
+                                                        </svg>
+                                                    </div>
+                                                    <div class="card-content">
+                                                        <div class="card-title"></div>
+                                                        <div class="card-desc"></div>
+                                                    </div>
+                                                </div>
+                                                <div class="gallery-card">
+                                                    <div class="card-image">
+                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                            <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                                            <circle cx="8.5" cy="8.5" r="1.5"/>
+                                                            <polyline points="21 15 16 10 5 21"/>
+                                                        </svg>
+                                                    </div>
+                                                    <div class="card-content">
+                                                        <div class="card-title"></div>
+                                                        <div class="card-desc"></div>
+                                                    </div>
+                                                </div>
+                                                <div class="gallery-card">
+                                                    <div class="card-image">
+                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                            <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                                            <circle cx="8.5" cy="8.5" r="1.5"/>
+                                                            <polyline points="21 15 16 10 5 21"/>
+                                                        </svg>
+                                                    </div>
+                                                    <div class="card-content">
+                                                        <div class="card-title"></div>
+                                                        <div class="card-desc"></div>
+                                                    </div>
+                                                </div>
+                                                <div class="gallery-card">
+                                                    <div class="card-image">
+                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                            <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                                            <circle cx="8.5" cy="8.5" r="1.5"/>
+                                                            <polyline points="21 15 16 10 5 21"/>
+                                                        </svg>
+                                                    </div>
+                                                    <div class="card-content">
+                                                        <div class="card-title"></div>
+                                                        <div class="card-desc"></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -4339,8 +4932,28 @@ if ($editBlockId) {
                 document.getElementById('sectionName').value = '';
                 dynamicSectionModal.classList.add('active');
                 document.body.style.overflow = 'hidden';
+
+                // Initialize the preview based on current selection
+                updateSectionPreview(templateCodeSelect?.value);
             });
         });
+
+        // Function to update the section preview
+        function updateSectionPreview(code) {
+            const previewMock = document.getElementById('sectionPreviewMock');
+            if (!previewMock || !code) return;
+
+            // Hide all previews
+            previewMock.querySelectorAll('.preview-template').forEach(preview => {
+                preview.style.display = 'none';
+            });
+
+            // Show the selected preview
+            const selectedPreview = previewMock.querySelector(`[data-template="${code}"]`);
+            if (selectedPreview) {
+                selectedPreview.style.display = 'block';
+            }
+        }
 
         // Close modal
         dynamicSectionModalClose?.addEventListener('click', closeDynamicSectionModal);
@@ -4356,11 +4969,23 @@ if ($editBlockId) {
             }
         });
 
-        // Update template description when selection changes
+        // Update template description and preview when selection changes
         templateCodeSelect?.addEventListener('change', () => {
             const code = templateCodeSelect.value;
             if (templateDescriptions && templateDescriptions[code]) {
                 templateDescription.textContent = templateDescriptions[code];
+            }
+
+            // Update the visual preview with animation
+            const previewMock = document.getElementById('sectionPreviewMock');
+            if (previewMock) {
+                previewMock.classList.add('switching');
+                setTimeout(() => {
+                    updateSectionPreview(code);
+                    setTimeout(() => {
+                        previewMock.classList.remove('switching');
+                    }, 50);
+                }, 150);
             }
         });
 
