@@ -245,6 +245,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $bgColor = $_POST['background_color'] ?? 'cream';
                 $success = setSectionBackgroundColor($sectionCode, $bgColor);
 
+                // Save image position if this section type supports it
+                if (isset($_POST['image_position']) && sectionSupportsImagePosition($section['template_type'] ?? '')) {
+                    $imagePosition = $_POST['image_position'];
+                    $success = setSectionImagePosition($sectionCode, $imagePosition) && $success;
+                }
+
                 if ($success) {
                     $message = 'Apparence de la section mise à jour.';
                     $messageType = 'success';
@@ -1356,6 +1362,87 @@ if ($editBlockId) {
             color: var(--admin-text);
         }
         .bg-color-option.selected .bg-color-name {
+            font-weight: 500;
+        }
+
+        /* Image position selector */
+        .image-position-selector {
+            margin-top: 1.25rem;
+            padding-top: 1.25rem;
+            border-top: 1px solid var(--admin-border);
+        }
+        .image-position-selector > label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 0.75rem;
+            font-size: 0.9rem;
+        }
+        .image-position-options {
+            display: flex;
+            gap: 1rem;
+        }
+        .image-position-option {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem;
+            border: 2px solid var(--admin-border);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.15s;
+            background: var(--admin-bg);
+            flex: 1;
+            max-width: 140px;
+        }
+        .image-position-option:hover {
+            border-color: var(--admin-primary);
+            background: #f8f8f8;
+        }
+        .image-position-option.selected {
+            border-color: var(--admin-primary);
+            background: #f0f7f0;
+        }
+        .image-position-option input[type="radio"] {
+            display: none;
+        }
+        .image-position-preview {
+            display: flex;
+            gap: 4px;
+            width: 60px;
+            height: 36px;
+            border-radius: 4px;
+            overflow: hidden;
+            background: #e9e9e9;
+        }
+        .image-position-preview .preview-image {
+            width: 50%;
+            height: 100%;
+            background: var(--admin-primary);
+            opacity: 0.7;
+        }
+        .image-position-preview .preview-text {
+            width: 50%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                0deg,
+                #ccc,
+                #ccc 2px,
+                transparent 2px,
+                transparent 6px
+            );
+            background-size: 100% 8px;
+            background-position: center;
+        }
+        .image-position-preview.right {
+            flex-direction: row-reverse;
+        }
+        .image-position-name {
+            font-size: 0.8rem;
+            color: var(--admin-text);
+            text-align: center;
+        }
+        .image-position-option.selected .image-position-name {
             font-weight: 500;
         }
 
@@ -3412,6 +3499,10 @@ if ($editBlockId) {
                             if ($showSettingsPanel):
                                 $bgOptions = getSectionBackgroundOptions();
                                 $currentBgColor = $currentSectionData['background_color'] ?? 'cream';
+                                $templateType = $currentSectionData['template_type'] ?? '';
+                                $supportsImagePosition = sectionSupportsImagePosition($templateType);
+                                $imagePositionOptions = getImagePositionOptions();
+                                $currentImagePosition = $currentSectionData['image_position'] ?? 'left';
                             ?>
                             <div class="section-settings-panel">
                                 <div class="section-settings-header">
@@ -3463,6 +3554,24 @@ if ($editBlockId) {
                                             </div>
                                         </div>
                                     </div>
+
+                                    <?php if ($supportsImagePosition): ?>
+                                    <div class="image-position-selector">
+                                        <label>Position de l'image</label>
+                                        <div class="image-position-options">
+                                            <?php foreach ($imagePositionOptions as $posKey => $posData): ?>
+                                            <label class="image-position-option <?= $posKey === $currentImagePosition ? 'selected' : '' ?>">
+                                                <input type="radio" name="image_position" value="<?= h($posKey) ?>" <?= $posKey === $currentImagePosition ? 'checked' : '' ?>>
+                                                <span class="image-position-preview <?= h($posKey) ?>">
+                                                    <span class="preview-image"></span>
+                                                    <span class="preview-text"></span>
+                                                </span>
+                                                <span class="image-position-name"><?= h($posData['label']) ?></span>
+                                            </label>
+                                            <?php endforeach; ?>
+                                        </div>
+                                    </div>
+                                    <?php endif; ?>
 
                                     <div class="overlay-actions">
                                         <button type="submit" class="btn btn-primary">
@@ -4474,6 +4583,20 @@ if ($editBlockId) {
         option.addEventListener('click', () => {
             // Remove selected class from all options
             bgColorOptions.forEach(opt => opt.classList.remove('selected'));
+            // Add selected class to clicked option
+            option.classList.add('selected');
+            // Check the radio button
+            const radio = option.querySelector('input[type="radio"]');
+            if (radio) radio.checked = true;
+        });
+    });
+
+    // Image position selector interaction
+    const imagePositionOptions = document.querySelectorAll('.image-position-option');
+    imagePositionOptions.forEach(option => {
+        option.addEventListener('click', () => {
+            // Remove selected class from all options
+            imagePositionOptions.forEach(opt => opt.classList.remove('selected'));
             // Add selected class to clicked option
             option.classList.add('selected');
             // Check the radio button

@@ -2411,6 +2411,11 @@ function initContentTables(): void {
         $pdo->exec("ALTER TABLE content_sections ADD COLUMN background_color VARCHAR(30) DEFAULT 'cream'");
     } catch (PDOException $e) { /* Column may already exist */ }
 
+    // Add image_position column for sections with image + text layout
+    try {
+        $pdo->exec("ALTER TABLE content_sections ADD COLUMN image_position VARCHAR(10) DEFAULT 'left'");
+    } catch (PDOException $e) { /* Column may already exist */ }
+
     // Section services table (reusable service cards for any section)
     $pdo->exec("
         CREATE TABLE IF NOT EXISTS section_services (
@@ -3159,13 +3164,14 @@ function renderServicesIndicatorsSection(array $section, string $currentLang, st
     $blocks = $section['blocks'] ?? [];
     $sectionCode = $section['code'];
     $bgClass = getSectionBackgroundClass($section['background_color'] ?? 'cream');
+    $imagePos = getImagePositionClass($section['image_position'] ?? 'left');
 
     // Get first image if available
     $image = !empty($blocks) ? $blocks[0] : null;
     ?>
     <section class="section <?= h($bgClass) ?> <?= h($cssClass) ?>" data-section="<?= h($sectionCode) ?>">
         <div class="container">
-            <div class="intro-grid">
+            <div class="intro-grid <?= h($imagePos) ?>">
                 <?php if ($image && !empty($image['image_filename'])): ?>
                 <div class="intro-image">
                     <img src="<?= h($image['image_filename']) ?>" alt="<?= h($image['image_alt'] ?: $title) ?>">
@@ -3397,6 +3403,7 @@ function renderServicesChecklistSection(array $section, string $currentLang, str
     $blocks = $section['blocks'] ?? [];
     $sectionCode = $section['code'];
     $bgClass = getSectionBackgroundClass($section['background_color'] ?? 'cream');
+    $imagePos = getImagePositionClass($section['image_position'] ?? 'left');
 
     // Get first image if available
     $image = !empty($blocks) ? $blocks[0] : null;
@@ -3404,7 +3411,7 @@ function renderServicesChecklistSection(array $section, string $currentLang, str
     ?>
     <section class="section <?= h($bgClass) ?> <?= h($cssClass) ?>" data-section="<?= h($sectionCode) ?>">
         <div class="container">
-            <div class="service-detail">
+            <div class="service-detail <?= h($imagePos) ?>">
                 <?php if ($hasImage): ?>
                 <div class="service-detail-image">
                     <img src="<?= h($image['image_filename']) ?>" alt="<?= h($image['image_alt'] ?: $title) ?>">
@@ -4488,6 +4495,71 @@ function setSectionBackgroundColor(string $sectionCode, string $colorKey): bool 
     $pdo = getDatabase();
     $stmt = $pdo->prepare('UPDATE content_sections SET background_color = ? WHERE code = ?');
     return $stmt->execute([$colorKey, $sectionCode]);
+}
+
+/**
+ * Get available image position options for sections
+ * Used by section types that have image + text layouts
+ */
+function getImagePositionOptions(): array {
+    return [
+        'left' => [
+            'label' => 'Image à gauche',
+            'css_class' => 'image-left',
+            'icon' => 'layout-left'
+        ],
+        'right' => [
+            'label' => 'Image à droite',
+            'css_class' => 'image-right',
+            'icon' => 'layout-right'
+        ]
+    ];
+}
+
+/**
+ * Get section types that support image position setting
+ */
+function getSectionTypesWithImagePosition(): array {
+    return ['services_indicators', 'services_checklist'];
+}
+
+/**
+ * Check if a section type supports image position setting
+ */
+function sectionSupportsImagePosition(string $templateType): bool {
+    return in_array($templateType, getSectionTypesWithImagePosition());
+}
+
+/**
+ * Get the image position for a section
+ */
+function getSectionImagePosition(string $sectionCode): string {
+    $pdo = getDatabase();
+    $stmt = $pdo->prepare('SELECT image_position FROM content_sections WHERE code = ?');
+    $stmt->execute([$sectionCode]);
+    return $stmt->fetchColumn() ?: 'left';
+}
+
+/**
+ * Set the image position for a section
+ */
+function setSectionImagePosition(string $sectionCode, string $position): bool {
+    $options = getImagePositionOptions();
+    if (!isset($options[$position])) {
+        $position = 'left'; // Fallback to default
+    }
+
+    $pdo = getDatabase();
+    $stmt = $pdo->prepare('UPDATE content_sections SET image_position = ? WHERE code = ?');
+    return $stmt->execute([$position, $sectionCode]);
+}
+
+/**
+ * Get the CSS class for image position
+ */
+function getImagePositionClass(string $position): string {
+    $options = getImagePositionOptions();
+    return $options[$position]['css_class'] ?? 'image-left';
 }
 
 /**

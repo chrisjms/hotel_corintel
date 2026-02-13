@@ -581,6 +581,15 @@ p {
   align-items: center;
 }
 
+/* Image position modifiers for intro-grid */
+.intro-grid.image-right {
+  direction: rtl;
+}
+
+.intro-grid.image-right > * {
+  direction: ltr;
+}
+
 .intro-image {
   border-radius: 8px;
   overflow: hidden;
@@ -688,11 +697,25 @@ p {
   margin-bottom: 4rem;
 }
 
-.service-detail:nth-child(even) {
+/* Legacy alternating layout (only when no explicit position is set) */
+.service-detail:not(.image-left):not(.image-right):nth-child(even) {
   direction: rtl;
 }
 
-.service-detail:nth-child(even) > * {
+.service-detail:not(.image-left):not(.image-right):nth-child(even) > * {
+  direction: ltr;
+}
+
+/* Image position modifiers for service-detail */
+.service-detail.image-left {
+  direction: ltr;
+}
+
+.service-detail.image-right {
+  direction: rtl;
+}
+
+.service-detail.image-right > * {
   direction: ltr;
 }
 
@@ -1171,6 +1194,9 @@ p {
     gap: 2rem;
   }
 
+  /* Reset direction for all layouts on mobile (stacked vertically) */
+  .intro-grid.image-right,
+  .service-detail.image-right,
   .service-detail:nth-child(even) {
     direction: ltr;
   }
