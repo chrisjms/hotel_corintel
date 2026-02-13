@@ -232,6 +232,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 }
                 break;
 
+            case 'update_section_settings':
+                $sectionCode = $_POST['section_code'] ?? '';
+                $section = getContentSection($sectionCode);
+
+                if (!$section) {
+                    $message = 'Section invalide.';
+                    $messageType = 'error';
+                    break;
+                }
+
+                $bgColor = $_POST['background_color'] ?? 'cream';
+                $success = setSectionBackgroundColor($sectionCode, $bgColor);
+
+                if ($success) {
+                    $message = 'Apparence de la section mise à jour.';
+                    $messageType = 'success';
+                    $currentSection = $sectionCode;
+                } else {
+                    $message = 'Erreur lors de la mise à jour.';
+                    $messageType = 'error';
+                }
+                break;
+
             case 'create_feature':
                 $sectionCode = $_POST['section_code'] ?? '';
                 $iconCode = $_POST['icon_code'] ?? '';
@@ -1232,6 +1255,108 @@ if ($editBlockId) {
             margin-top: 1rem;
             padding-top: 1rem;
             border-top: 1px solid var(--admin-border);
+        }
+
+        /* Section settings panel */
+        .section-settings-panel {
+            background: var(--admin-bg);
+            border: 1px solid var(--admin-border);
+            border-radius: var(--admin-radius);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .section-settings-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--admin-border);
+        }
+        .section-settings-header h4 {
+            margin: 0;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .section-settings-header h4 svg {
+            width: 18px;
+            height: 18px;
+            color: var(--admin-primary);
+        }
+
+        /* Background color selector */
+        .bg-color-selector {
+            margin-bottom: 1rem;
+        }
+        .bg-color-selector > label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 0.75rem;
+            font-size: 0.9rem;
+        }
+        .bg-color-group {
+            margin-bottom: 1rem;
+        }
+        .bg-color-group:last-child {
+            margin-bottom: 0;
+        }
+        .bg-color-group-label {
+            font-size: 0.8rem;
+            color: var(--admin-text-light);
+            margin: 0 0 0.5rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .bg-color-theme-link {
+            font-size: 0.75rem;
+            color: var(--admin-primary);
+            text-decoration: none;
+        }
+        .bg-color-theme-link:hover {
+            text-decoration: underline;
+        }
+        .bg-color-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .bg-color-option {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 0.75rem;
+            border: 2px solid var(--admin-border);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.15s;
+            background: var(--admin-bg);
+        }
+        .bg-color-option:hover {
+            border-color: var(--admin-primary);
+            background: #f8f8f8;
+        }
+        .bg-color-option.selected {
+            border-color: var(--admin-primary);
+            background: #f0f7f0;
+        }
+        .bg-color-option input[type="radio"] {
+            display: none;
+        }
+        .bg-color-swatch {
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            flex-shrink: 0;
+        }
+        .bg-color-name {
+            font-size: 0.85rem;
+            color: var(--admin-text);
+        }
+        .bg-color-option.selected .bg-color-name {
+            font-weight: 500;
         }
 
         /* Features panel */
@@ -3282,6 +3407,78 @@ if ($editBlockId) {
                             <?php endif; ?>
 
                             <?php
+                            // Show section settings panel for dynamic sections
+                            $showSettingsPanel = $currentSectionData && ($currentSectionData['is_dynamic'] ?? false);
+                            if ($showSettingsPanel):
+                                $bgOptions = getSectionBackgroundOptions();
+                                $currentBgColor = $currentSectionData['background_color'] ?? 'cream';
+                            ?>
+                            <div class="section-settings-panel">
+                                <div class="section-settings-header">
+                                    <h4>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <circle cx="12" cy="12" r="3"/>
+                                            <path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                                        </svg>
+                                        Apparence de la section
+                                    </h4>
+                                </div>
+
+                                <form method="POST" id="sectionSettingsForm">
+                                    <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
+                                    <input type="hidden" name="action" value="update_section_settings">
+                                    <input type="hidden" name="section_code" value="<?= h($currentSection) ?>">
+
+                                    <div class="bg-color-selector">
+                                        <label>Couleur de fond</label>
+
+                                        <div class="bg-color-group">
+                                            <p class="bg-color-group-label">Couleurs du thème <a href="theme.php" class="bg-color-theme-link">Modifier</a></p>
+                                            <div class="bg-color-options">
+                                                <?php foreach ($bgOptions as $colorKey => $colorData):
+                                                    if (($colorData['group'] ?? 'theme') !== 'theme') continue;
+                                                    $tooltip = $colorData['css_var'] ? "Variable CSS: {$colorData['css_var']}" : '';
+                                                ?>
+                                                <label class="bg-color-option <?= $colorKey === $currentBgColor ? 'selected' : '' ?>" <?= $tooltip ? 'title="' . h($tooltip) . '"' : '' ?>>
+                                                    <input type="radio" name="background_color" value="<?= h($colorKey) ?>" <?= $colorKey === $currentBgColor ? 'checked' : '' ?>>
+                                                    <span class="bg-color-swatch" style="background-color: <?= h($colorData['preview']) ?>"></span>
+                                                    <span class="bg-color-name"><?= h($colorData['label']) ?></span>
+                                                </label>
+                                                <?php endforeach; ?>
+                                            </div>
+                                        </div>
+
+                                        <div class="bg-color-group">
+                                            <p class="bg-color-group-label">Couleurs neutres</p>
+                                            <div class="bg-color-options">
+                                                <?php foreach ($bgOptions as $colorKey => $colorData):
+                                                    if (($colorData['group'] ?? 'theme') !== 'neutral') continue;
+                                                ?>
+                                                <label class="bg-color-option <?= $colorKey === $currentBgColor ? 'selected' : '' ?>">
+                                                    <input type="radio" name="background_color" value="<?= h($colorKey) ?>" <?= $colorKey === $currentBgColor ? 'checked' : '' ?>>
+                                                    <span class="bg-color-swatch" style="background-color: <?= h($colorData['preview']) ?>"></span>
+                                                    <span class="bg-color-name"><?= h($colorData['label']) ?></span>
+                                                </label>
+                                                <?php endforeach; ?>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="overlay-actions">
+                                        <button type="submit" class="btn btn-primary">
+                                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                                                <polyline points="17 21 17 13 7 13 7 21"/>
+                                                <polyline points="7 3 7 8 15 8"/>
+                                            </svg>
+                                            Enregistrer l'apparence
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                            <?php endif; ?>
+
+                            <?php
                             // Show features panel for sections that support it
                             $showFeaturesPanel = $currentSectionData && sectionHasFeatures($currentSection);
                             // Check if this is a services_checklist section (simplified checklist - no icon selector)
@@ -4270,6 +4467,20 @@ if ($editBlockId) {
             translationsContent.classList.toggle('hidden');
         });
     }
+
+    // Background color selector interaction
+    const bgColorOptions = document.querySelectorAll('.bg-color-option');
+    bgColorOptions.forEach(option => {
+        option.addEventListener('click', () => {
+            // Remove selected class from all options
+            bgColorOptions.forEach(opt => opt.classList.remove('selected'));
+            // Add selected class to clicked option
+            option.classList.add('selected');
+            // Check the radio button
+            const radio = option.querySelector('input[type="radio"]');
+            if (radio) radio.checked = true;
+        });
+    });
 
     // Image upload area interaction
     const uploadArea = document.getElementById('uploadArea');

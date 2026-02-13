@@ -2406,6 +2406,11 @@ function initContentTables(): void {
         $pdo->exec("ALTER TABLE content_sections ADD COLUMN has_gallery TINYINT(1) DEFAULT 0");
     } catch (PDOException $e) { /* Column may already exist */ }
 
+    // Add background_color column for customizable section backgrounds
+    try {
+        $pdo->exec("ALTER TABLE content_sections ADD COLUMN background_color VARCHAR(30) DEFAULT 'cream'");
+    } catch (PDOException $e) { /* Column may already exist */ }
+
     // Section services table (reusable service cards for any section)
     $pdo->exec("
         CREATE TABLE IF NOT EXISTS section_services (
@@ -3153,11 +3158,12 @@ function renderServicesIndicatorsSection(array $section, string $currentLang, st
     $features = $section['features'] ?? [];
     $blocks = $section['blocks'] ?? [];
     $sectionCode = $section['code'];
+    $bgClass = getSectionBackgroundClass($section['background_color'] ?? 'cream');
 
     // Get first image if available
     $image = !empty($blocks) ? $blocks[0] : null;
     ?>
-    <section class="section section-cream <?= h($cssClass) ?>" data-section="<?= h($sectionCode) ?>">
+    <section class="section <?= h($bgClass) ?> <?= h($cssClass) ?>" data-section="<?= h($sectionCode) ?>">
         <div class="container">
             <div class="intro-grid">
                 <?php if ($image && !empty($image['image_filename'])): ?>
@@ -3217,12 +3223,13 @@ function renderTextStyleSection(array $section, string $currentLang, string $css
     $description = $overlay['translations'][$currentLang]['description'] ?? $overlay['description'] ?? '';
     $features = $section['features'] ?? [];
     $sectionCode = $section['code'];
+    $bgClass = getSectionBackgroundClass($section['background_color'] ?? 'cream');
 
     if (empty($subtitle) && empty($title) && empty($description) && empty($features)) {
         return;
     }
     ?>
-    <section class="section section-cream <?= h($cssClass) ?>" data-section="<?= h($sectionCode) ?>">
+    <section class="section <?= h($bgClass) ?> <?= h($cssClass) ?>" data-section="<?= h($sectionCode) ?>">
         <div class="container">
             <div class="text-content" style="max-width: 800px; margin: 0 auto; text-align: center;">
                 <?php if ($subtitle): ?>
@@ -3275,13 +3282,14 @@ function renderServicesStyleSection(array $section, string $currentLang, string 
     $description = $overlay['translations'][$currentLang]['description'] ?? $overlay['description'] ?? '';
     $services = $section['services'] ?? [];
     $sectionCode = $section['code'];
+    $bgClass = getSectionBackgroundClass($section['background_color'] ?? 'cream');
 
     // If no overlay content and no services, don't render
     if (empty($subtitle) && empty($title) && empty($description) && empty($services)) {
         return;
     }
     ?>
-    <section class="section section-cream <?= h($cssClass) ?>" data-section="<?= h($sectionCode) ?>">
+    <section class="section <?= h($bgClass) ?> <?= h($cssClass) ?>" data-section="<?= h($sectionCode) ?>">
         <div class="container">
             <?php if ($subtitle || $title || $description): ?>
             <div class="section-header">
@@ -3330,13 +3338,14 @@ function renderGalleryStyleSection(array $section, string $currentLang, string $
     $description = $overlay['translations'][$currentLang]['description'] ?? $overlay['description'] ?? '';
     $galleryItems = $section['gallery_items'] ?? [];
     $sectionCode = $section['code'];
+    $bgClass = getSectionBackgroundClass($section['background_color'] ?? 'cream');
 
     // If no overlay content and no gallery items, don't render
     if (empty($subtitle) && empty($title) && empty($description) && empty($galleryItems)) {
         return;
     }
     ?>
-    <section class="section section-cream <?= h($cssClass) ?>" data-section="<?= h($sectionCode) ?>">
+    <section class="section <?= h($bgClass) ?> <?= h($cssClass) ?>" data-section="<?= h($sectionCode) ?>">
         <div class="container">
             <?php if ($subtitle || $title || $description): ?>
             <div class="section-header">
@@ -3387,12 +3396,13 @@ function renderServicesChecklistSection(array $section, string $currentLang, str
     $features = $section['features'] ?? [];
     $blocks = $section['blocks'] ?? [];
     $sectionCode = $section['code'];
+    $bgClass = getSectionBackgroundClass($section['background_color'] ?? 'cream');
 
     // Get first image if available
     $image = !empty($blocks) ? $blocks[0] : null;
     $hasImage = $image && !empty($image['image_filename']);
     ?>
-    <section class="section section-cream <?= h($cssClass) ?>" data-section="<?= h($sectionCode) ?>">
+    <section class="section <?= h($bgClass) ?> <?= h($cssClass) ?>" data-section="<?= h($sectionCode) ?>">
         <div class="container">
             <div class="service-detail">
                 <?php if ($hasImage): ?>
@@ -4337,6 +4347,147 @@ function enableSectionFeatures(string $sectionCode): bool {
     $pdo = getDatabase();
     $stmt = $pdo->prepare('UPDATE content_sections SET has_features = 1 WHERE code = ?');
     return $stmt->execute([$sectionCode]);
+}
+
+/**
+ * Get available background color options for sections
+ * Returns an array of color options with their CSS variable and display info
+ * Preview colors are dynamically fetched from the current theme settings
+ *
+ * Groups:
+ * - 'theme': Colors linked to the site theme (dynamic)
+ * - 'neutral': Hardcoded neutral colors (static)
+ */
+function getSectionBackgroundOptions(): array {
+    // Get current theme colors (dynamically from database)
+    $theme = getThemeSettings();
+
+    return [
+        // Theme-driven colors (dynamic)
+        'cream' => [
+            'label' => 'Fond crème',
+            'css_var' => '--color-cream',
+            'css_class' => 'section-cream',
+            'text_light' => false,
+            'theme_key' => 'color_cream',
+            'preview' => $theme['color_cream'],
+            'group' => 'theme'
+        ],
+        'white' => [
+            'label' => 'Fond blanc',
+            'css_var' => '--color-white',
+            'css_class' => 'section-white',
+            'text_light' => false,
+            'theme_key' => null,
+            'preview' => '#FFFFFF',
+            'group' => 'theme'
+        ],
+        'beige' => [
+            'label' => 'Fond beige',
+            'css_var' => '--color-beige',
+            'css_class' => 'section-beige',
+            'text_light' => false,
+            'theme_key' => 'color_beige',
+            'preview' => $theme['color_beige'],
+            'group' => 'theme'
+        ],
+        'primary' => [
+            'label' => 'Couleur primaire',
+            'css_var' => '--color-primary',
+            'css_class' => 'section-primary',
+            'text_light' => true,
+            'theme_key' => 'color_primary',
+            'preview' => $theme['color_primary'],
+            'group' => 'theme'
+        ],
+        'primary-dark' => [
+            'label' => 'Primaire foncé',
+            'css_var' => '--color-primary-dark',
+            'css_class' => 'section-primary-dark',
+            'text_light' => true,
+            'theme_key' => 'color_primary_dark',
+            'preview' => $theme['color_primary_dark'],
+            'group' => 'theme'
+        ],
+        'accent' => [
+            'label' => 'Couleur accent',
+            'css_var' => '--color-accent',
+            'css_class' => 'section-accent',
+            'text_light' => true,
+            'theme_key' => 'color_accent',
+            'preview' => $theme['color_accent'],
+            'group' => 'theme'
+        ],
+
+        // Neutral hardcoded colors (static)
+        'neutral-gray' => [
+            'label' => 'Gris clair',
+            'css_var' => null,
+            'css_class' => 'section-neutral-gray',
+            'text_light' => false,
+            'theme_key' => null,
+            'preview' => '#F5F5F5',
+            'group' => 'neutral'
+        ],
+        'neutral-blue' => [
+            'label' => 'Bleu gris',
+            'css_var' => null,
+            'css_class' => 'section-neutral-blue',
+            'text_light' => false,
+            'theme_key' => null,
+            'preview' => '#F0F4F8',
+            'group' => 'neutral'
+        ],
+        'neutral-sand' => [
+            'label' => 'Sable clair',
+            'css_var' => null,
+            'css_class' => 'section-neutral-sand',
+            'text_light' => false,
+            'theme_key' => null,
+            'preview' => '#F8F6F1',
+            'group' => 'neutral'
+        ],
+    ];
+}
+
+/**
+ * Get the CSS class for a section background color
+ */
+function getSectionBackgroundClass(string $colorKey): string {
+    $options = getSectionBackgroundOptions();
+    return $options[$colorKey]['css_class'] ?? 'section-cream';
+}
+
+/**
+ * Check if a background color requires light text
+ */
+function sectionBackgroundNeedsLightText(string $colorKey): bool {
+    $options = getSectionBackgroundOptions();
+    return $options[$colorKey]['text_light'] ?? false;
+}
+
+/**
+ * Get the background color for a section
+ */
+function getSectionBackgroundColor(string $sectionCode): string {
+    $pdo = getDatabase();
+    $stmt = $pdo->prepare('SELECT background_color FROM content_sections WHERE code = ?');
+    $stmt->execute([$sectionCode]);
+    return $stmt->fetchColumn() ?: 'cream';
+}
+
+/**
+ * Set the background color for a section
+ */
+function setSectionBackgroundColor(string $sectionCode, string $colorKey): bool {
+    $options = getSectionBackgroundOptions();
+    if (!isset($options[$colorKey])) {
+        $colorKey = 'cream'; // Fallback to default
+    }
+
+    $pdo = getDatabase();
+    $stmt = $pdo->prepare('UPDATE content_sections SET background_color = ? WHERE code = ?');
+    return $stmt->execute([$colorKey, $sectionCode]);
 }
 
 /**

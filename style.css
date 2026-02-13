@@ -434,7 +434,8 @@ p {
   padding: 5rem 0;
 }
 
-.section-light {
+.section-light,
+.section-white {
   background-color: var(--color-white);
 }
 
@@ -444,6 +445,108 @@ p {
 
 .section-beige {
   background-color: var(--color-beige);
+}
+
+.section-primary {
+  background-color: var(--color-primary);
+}
+
+.section-primary-dark {
+  background-color: var(--color-primary-dark);
+}
+
+.section-accent {
+  background-color: var(--color-accent);
+}
+
+/* Neutral hardcoded backgrounds */
+.section-neutral-gray {
+  background-color: #F5F5F5;
+}
+
+.section-neutral-blue {
+  background-color: #F0F4F8;
+}
+
+.section-neutral-sand {
+  background-color: #F8F6F1;
+}
+
+/* Light text for dark backgrounds */
+.section-primary,
+.section-primary-dark,
+.section-accent {
+  color: var(--color-white);
+}
+
+.section-primary .section-subtitle,
+.section-primary-dark .section-subtitle,
+.section-accent .section-subtitle {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.section-primary .section-title,
+.section-primary-dark .section-title,
+.section-accent .section-title {
+  color: var(--color-white);
+}
+
+.section-primary .section-description,
+.section-primary-dark .section-description,
+.section-accent .section-description {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.section-primary .intro-feature svg,
+.section-primary-dark .intro-feature svg,
+.section-accent .intro-feature svg {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.section-primary .intro-feature span,
+.section-primary-dark .intro-feature span,
+.section-accent .intro-feature span {
+  color: rgba(255, 255, 255, 0.95);
+}
+
+/* Service cards in dark sections */
+.section-primary .service-card,
+.section-primary-dark .service-card,
+.section-accent .service-card {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.section-primary .service-card h3,
+.section-primary-dark .service-card h3,
+.section-accent .service-card h3 {
+  color: var(--color-white);
+}
+
+.section-primary .service-card p,
+.section-primary-dark .service-card p,
+.section-accent .service-card p {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* Gallery items in dark sections */
+.section-primary .gallery-item figcaption,
+.section-primary-dark .gallery-item figcaption,
+.section-accent .gallery-item figcaption {
+  background-color: rgba(0, 0, 0, 0.7);
+}
+
+/* Checklist items in dark sections */
+.section-primary .detail-item,
+.section-primary-dark .detail-item,
+.section-accent .detail-item {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.section-primary .detail-item svg,
+.section-primary-dark .detail-item svg,
+.section-accent .detail-item svg {
+  color: rgba(255, 255, 255, 0.85);
 }
 
 .section-header {
