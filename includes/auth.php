@@ -21,7 +21,7 @@ if (session_status() === PHP_SESSION_NONE) {
     // Set session cookie parameters
     $isSecure = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on';
     session_set_cookie_params([
-        'lifetime' => SESSION_LIFETIME,  // Cookie expires after 8 hours
+        'lifetime' => SESSION_LIFETIME,  // Cookie expires after 1 week
         'path' => '/',
         'domain' => '',
         'secure' => $isSecure,           // Only send over HTTPS if available

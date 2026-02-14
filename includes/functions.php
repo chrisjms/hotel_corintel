@@ -241,8 +241,8 @@ function handleFileUpload(array $file, int $imageId): array {
 /**
  * Sanitize output for HTML
  */
-function h(string $string): string {
-    return htmlspecialchars($string, ENT_QUOTES, 'UTF-8');
+function h(?string $string): string {
+    return htmlspecialchars($string ?? '', ENT_QUOTES, 'UTF-8');
 }
 
 /**
@@ -1931,35 +1931,43 @@ function createGuestMessage(array $data): int|false {
  * Get all guest messages with optional filters
  */
 function getGuestMessages(string $status = '', string $sortBy = 'created_at', string $sortOrder = 'DESC'): array {
-    $pdo = getDatabase();
-    $sql = 'SELECT * FROM guest_messages';
-    $params = [];
+    try {
+        $pdo = getDatabase();
+        $sql = 'SELECT * FROM guest_messages';
+        $params = [];
 
-    if ($status && $status !== 'all') {
-        $sql .= ' WHERE status = ?';
-        $params[] = $status;
+        if ($status && $status !== 'all') {
+            $sql .= ' WHERE status = ?';
+            $params[] = $status;
+        }
+
+        $allowedSortColumns = ['created_at', 'room_number', 'category', 'status'];
+        if (!in_array($sortBy, $allowedSortColumns)) {
+            $sortBy = 'created_at';
+        }
+        $sortOrder = strtoupper($sortOrder) === 'ASC' ? 'ASC' : 'DESC';
+
+        $sql .= ' ORDER BY ' . $sortBy . ' ' . $sortOrder;
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll();
+    } catch (PDOException $e) {
+        return [];
     }
-
-    $allowedSortColumns = ['created_at', 'room_number', 'category', 'status'];
-    if (!in_array($sortBy, $allowedSortColumns)) {
-        $sortBy = 'created_at';
-    }
-    $sortOrder = strtoupper($sortOrder) === 'ASC' ? 'ASC' : 'DESC';
-
-    $sql .= ' ORDER BY ' . $sortBy . ' ' . $sortOrder;
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute($params);
-    return $stmt->fetchAll();
 }
 
 /**
  * Get a guest message by ID
  */
 function getGuestMessageById(int $id): ?array {
-    $pdo = getDatabase();
-    $stmt = $pdo->prepare('SELECT * FROM guest_messages WHERE id = ?');
-    $stmt->execute([$id]);
-    return $stmt->fetch() ?: null;
+    try {
+        $pdo = getDatabase();
+        $stmt = $pdo->prepare('SELECT * FROM guest_messages WHERE id = ?');
+        $stmt->execute([$id]);
+        return $stmt->fetch() ?: null;
+    } catch (PDOException $e) {
+        return null;
+    }
 }
 
 /**
@@ -1997,26 +2005,30 @@ function deleteGuestMessage(int $id): bool {
  * Get guest messages statistics
  */
 function getGuestMessagesStats(): array {
-    $pdo = getDatabase();
-    $stats = [];
+    try {
+        $pdo = getDatabase();
+        $stats = [];
 
-    // Total messages
-    $stmt = $pdo->query('SELECT COUNT(*) FROM guest_messages');
-    $stats['total'] = $stmt->fetchColumn();
+        // Total messages
+        $stmt = $pdo->query('SELECT COUNT(*) FROM guest_messages');
+        $stats['total'] = (int)$stmt->fetchColumn();
 
-    // New (unread) messages
-    $stmt = $pdo->query('SELECT COUNT(*) FROM guest_messages WHERE status = "new"');
-    $stats['new'] = $stmt->fetchColumn();
+        // New (unread) messages
+        $stmt = $pdo->query('SELECT COUNT(*) FROM guest_messages WHERE status = "new"');
+        $stats['new'] = (int)$stmt->fetchColumn();
 
-    // In progress messages
-    $stmt = $pdo->query('SELECT COUNT(*) FROM guest_messages WHERE status = "in_progress"');
-    $stats['in_progress'] = $stmt->fetchColumn();
+        // In progress messages
+        $stmt = $pdo->query('SELECT COUNT(*) FROM guest_messages WHERE status = "in_progress"');
+        $stats['in_progress'] = (int)$stmt->fetchColumn();
 
-    // Today's messages
-    $stmt = $pdo->query('SELECT COUNT(*) FROM guest_messages WHERE DATE(created_at) = CURDATE()');
-    $stats['today'] = $stmt->fetchColumn();
+        // Today's messages
+        $stmt = $pdo->query('SELECT COUNT(*) FROM guest_messages WHERE DATE(created_at) = CURDATE()');
+        $stats['today'] = (int)$stmt->fetchColumn();
 
-    return $stats;
+        return $stats;
+    } catch (PDOException $e) {
+        return ['total' => 0, 'new' => 0, 'in_progress' => 0, 'today' => 0];
+    }
 }
 
 /**
