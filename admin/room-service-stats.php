@@ -16,7 +16,7 @@ $hotelName = getHotelName();
 
 // Get selected period from query params
 $period = $_GET['period'] ?? 'day';
-$validPeriods = ['day', 'week', 'month'];
+$validPeriods = ['day', 'week', 'month', 'year'];
 if (!in_array($period, $validPeriods)) {
     $period = 'day';
 }
@@ -27,6 +27,7 @@ try {
     $dailyRevenue = getRoomServiceDailyRevenue(30);
     $weeklyRevenue = getRoomServiceWeeklyRevenue(12);
     $monthlyRevenue = getRoomServiceMonthlyRevenue(12);
+    $yearlyRevenue = getRoomServiceYearlyRevenue(); // Current year monthly breakdown
     $peakHours = getRoomServicePeakHours(30);
     $peakDays = getRoomServicePeakDays(8);
     $topItems = getRoomServiceTopItems(10, 30);
@@ -108,13 +109,15 @@ $msgCategoryLabels = [
 $periodLabels = [
     'day' => "Aujourd'hui",
     'week' => 'Cette semaine',
-    'month' => 'Ce mois'
+    'month' => 'Ce mois',
+    'year' => 'Cette année'
 ];
 
 $comparisonLabels = [
     'day' => 'vs hier',
     'week' => 'vs semaine dernière',
-    'month' => 'vs mois dernier'
+    'month' => 'vs mois dernier',
+    'year' => 'vs année dernière'
 ];
 ?>
 <!DOCTYPE html>
@@ -537,6 +540,7 @@ $comparisonLabels = [
                     <a href="?period=day" class="period-btn <?= $period === 'day' ? 'active' : '' ?>">Aujourd'hui</a>
                     <a href="?period=week" class="period-btn <?= $period === 'week' ? 'active' : '' ?>">Cette semaine</a>
                     <a href="?period=month" class="period-btn <?= $period === 'month' ? 'active' : '' ?>">Ce mois</a>
+                    <a href="?period=year" class="period-btn <?= $period === 'year' ? 'active' : '' ?>">Cette année</a>
                 </div>
 
                 <!-- Main KPIs -->
@@ -615,6 +619,7 @@ $comparisonLabels = [
                             <button class="chart-tab active" data-chart="daily">Quotidien</button>
                             <button class="chart-tab" data-chart="weekly">Hebdomadaire</button>
                             <button class="chart-tab" data-chart="monthly">Mensuel</button>
+                            <button class="chart-tab" data-chart="yearly">Annuel</button>
                         </div>
                         <div class="chart-container">
                             <canvas id="revenueChart"></canvas>
@@ -900,6 +905,7 @@ $comparisonLabels = [
         const dailyData = <?= json_encode($dailyRevenue) ?>;
         const weeklyData = <?= json_encode($weeklyRevenue) ?>;
         const monthlyData = <?= json_encode($monthlyRevenue) ?>;
+        const yearlyData = <?= json_encode($yearlyRevenue) ?>;
 
         // Revenue Chart
         const revenueCtx = document.getElementById('revenueChart').getContext('2d');
@@ -959,7 +965,12 @@ $comparisonLabels = [
                 } else if (chartType === 'weekly') {
                     labels = weeklyData.map(d => d.label);
                     data = weeklyData.map(d => d.revenue);
+                } else if (chartType === 'yearly') {
+                    // Yearly view: 12 months (Jan-Dec) for current year
+                    labels = yearlyData.map(d => d.label);
+                    data = yearlyData.map(d => d.revenue);
                 } else {
+                    // Monthly (default)
                     labels = monthlyData.map(d => d.label);
                     data = monthlyData.map(d => d.revenue);
                 }

@@ -1554,6 +1554,54 @@ function getRoomServiceMonthlyRevenue(int $months = 12): array {
 }
 
 /**
+ * Get yearly revenue data for charts (monthly breakdown for a specific year)
+ * Returns all 12 months with revenue data, including empty months as 0
+ * @param int|null $year The year to fetch (defaults to current year)
+ * @return array
+ */
+function getRoomServiceYearlyRevenue(?int $year = null): array {
+    $pdo = getDatabase();
+    $year = $year ?? (int)date('Y');
+
+    // Query monthly data for the specified year
+    $stmt = $pdo->prepare("
+        SELECT
+            MONTH(created_at) as month_num,
+            COUNT(*) as orders,
+            COALESCE(SUM(CASE WHEN status != 'cancelled' THEN total_amount ELSE 0 END), 0) as revenue
+        FROM room_service_orders
+        WHERE YEAR(created_at) = ?
+        GROUP BY MONTH(created_at)
+        ORDER BY month_num ASC
+    ");
+    $stmt->execute([$year]);
+    $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Index results by month number for easy lookup
+    $resultsByMonth = [];
+    foreach ($results as $row) {
+        $resultsByMonth[(int)$row['month_num']] = $row;
+    }
+
+    // French month names
+    $monthNames = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
+
+    // Build array with all 12 months (including empty ones as 0)
+    $data = [];
+    for ($month = 1; $month <= 12; $month++) {
+        $data[] = [
+            'month' => $month,
+            'month_str' => sprintf('%04d-%02d', $year, $month),
+            'label' => $monthNames[$month - 1],
+            'orders' => isset($resultsByMonth[$month]) ? (int)$resultsByMonth[$month]['orders'] : 0,
+            'revenue' => isset($resultsByMonth[$month]) ? (float)$resultsByMonth[$month]['revenue'] : 0
+        ];
+    }
+
+    return $data;
+}
+
+/**
  * Get peak hours analysis
  * @param int $days Number of days to analyze
  * @return array
