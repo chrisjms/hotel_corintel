@@ -2,12 +2,18 @@
 /**
  * Authentication Functions
  * Hotel Corintel - Admin System
+ *
+ * Session Configuration:
+ * - Sessions are persistent indefinitely (no automatic logout)
+ * - Logout only occurs via manual logout or session destruction
+ * - Session cookies are refreshed on every request to prevent expiration
  */
 
 require_once __DIR__ . '/../config/database.php';
 
 // Session configuration constants
-define('SESSION_LIFETIME', 604800); // 1 week in seconds (7 days)
+// 10 years in seconds - effectively indefinite (315360000 = 10 * 365 * 24 * 60 * 60)
+define('SESSION_LIFETIME', 315360000);
 define('SESSION_NAME', 'hotel_admin_session');
 
 // Configure session before starting
@@ -16,22 +22,54 @@ if (session_status() === PHP_SESSION_NONE) {
     session_name(SESSION_NAME);
 
     // Set session garbage collection lifetime (when session data expires on server)
+    // This prevents PHP from cleaning up session files prematurely
     ini_set('session.gc_maxlifetime', SESSION_LIFETIME);
 
-    // Set session cookie parameters
+    // Reduce garbage collection probability to minimize session cleanup
+    // gc_probability/gc_divisor = 1/1000 = 0.1% chance per request
+    ini_set('session.gc_probability', 1);
+    ini_set('session.gc_divisor', 1000);
+
+    // Determine if connection is secure
     $isSecure = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on';
+
+    // Calculate cookie expiration time (current time + lifetime)
+    $cookieExpireTime = time() + SESSION_LIFETIME;
+
+    // Set session cookie parameters with far-future expiration
     session_set_cookie_params([
-        'lifetime' => SESSION_LIFETIME,  // Cookie expires after 1 week
+        'lifetime' => SESSION_LIFETIME,  // Cookie expires in ~10 years
         'path' => '/',
         'domain' => '',
         'secure' => $isSecure,           // Only send over HTTPS if available
-        'httponly' => true,              // Not accessible via JavaScript
+        'httponly' => true,              // Not accessible via JavaScript (XSS protection)
         'samesite' => 'Lax'              // CSRF protection
     ]);
 
     session_start();
 
+    // Refresh the session cookie on every request to extend its expiration
+    // This ensures the cookie never expires as long as the admin is active
+    if (isset($_SESSION['admin_id'])) {
+        setcookie(
+            session_name(),
+            session_id(),
+            [
+                'expires' => $cookieExpireTime,
+                'path' => '/',
+                'domain' => '',
+                'secure' => $isSecure,
+                'httponly' => true,
+                'samesite' => 'Lax'
+            ]
+        );
+
+        // Update last activity timestamp
+        $_SESSION['last_activity'] = time();
+    }
+
     // Regenerate session ID periodically for security (every 30 minutes)
+    // This protects against session fixation attacks while maintaining persistence
     if (isset($_SESSION['last_regeneration'])) {
         if (time() - $_SESSION['last_regeneration'] > 1800) {
             session_regenerate_id(true);
