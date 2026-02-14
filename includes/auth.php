@@ -6,9 +6,40 @@
 
 require_once __DIR__ . '/../config/database.php';
 
-// Start session if not already started
+// Session configuration constants
+define('SESSION_LIFETIME', 604800); // 1 week in seconds (7 days)
+define('SESSION_NAME', 'hotel_admin_session');
+
+// Configure session before starting
 if (session_status() === PHP_SESSION_NONE) {
+    // Set session name
+    session_name(SESSION_NAME);
+
+    // Set session garbage collection lifetime (when session data expires on server)
+    ini_set('session.gc_maxlifetime', SESSION_LIFETIME);
+
+    // Set session cookie parameters
+    $isSecure = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on';
+    session_set_cookie_params([
+        'lifetime' => SESSION_LIFETIME,  // Cookie expires after 8 hours
+        'path' => '/',
+        'domain' => '',
+        'secure' => $isSecure,           // Only send over HTTPS if available
+        'httponly' => true,              // Not accessible via JavaScript
+        'samesite' => 'Lax'              // CSRF protection
+    ]);
+
     session_start();
+
+    // Regenerate session ID periodically for security (every 30 minutes)
+    if (isset($_SESSION['last_regeneration'])) {
+        if (time() - $_SESSION['last_regeneration'] > 1800) {
+            session_regenerate_id(true);
+            $_SESSION['last_regeneration'] = time();
+        }
+    } else {
+        $_SESSION['last_regeneration'] = time();
+    }
 }
 
 /**
