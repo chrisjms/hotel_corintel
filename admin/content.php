@@ -22,8 +22,13 @@ $pendingOrders = getPendingOrdersCount();
 $csrfToken = generateCsrfToken();
 $hotelName = getHotelName();
 
-// Initialize content tables and seed sections
+// Initialize content tables
 initContentTables();
+
+// Clean up legacy static sections FIRST (removes old non-hero sections)
+cleanupLegacyStaticSections();
+
+// Then seed only the hero sections that should exist
 seedContentSections();
 
 $message = '';

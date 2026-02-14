@@ -182,79 +182,11 @@ $dynamicSectionsTranslations = !empty($dynamicSections) ? getDynamicSectionsTran
   // All content sections are now managed through the admin panel
   echo renderDynamicSectionsForPage('home', 'fr');
   if (!empty($dynamicSections)):
-      echo renderDynamicSectionsForPage('home', 'fr');
   ?>
   <script>
     window.dynamicSectionsTranslations = <?= json_encode($dynamicSectionsTranslations, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
   </script>
   <?php endif; ?>
-
-  <!-- Services Preview Section -->
-  <section class="section section-cream">
-    <div class="container">
-      <div class="section-header">
-        <p class="section-subtitle" data-i18n="home.servicesSubtitle">Nos services</p>
-        <h2 class="section-title" data-i18n="home.servicesTitle">Tout pour votre confort</h2>
-        <p class="section-description" data-i18n="home.servicesDescription">
-          De la table d'hôtes au boulodrome, découvrez tous les services
-          qui rendront votre séjour inoubliable.
-        </p>
-      </div>
-      <div class="services-grid">
-        <div class="service-card">
-          <div class="service-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M18 8h1a4 4 0 0 1 0 8h-1M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/>
-              <line x1="6" y1="1" x2="6" y2="4"/>
-              <line x1="10" y1="1" x2="10" y2="4"/>
-              <line x1="14" y1="1" x2="14" y2="4"/>
-            </svg>
-          </div>
-          <h3 data-i18n="home.serviceRestaurant">Table d'hôtes</h3>
-          <p data-i18n="home.serviceRestaurantDesc">Savourez une cuisine régionale authentique pour le petit-déjeuner et le dîner, préparée avec des produits locaux.</p>
-        </div>
-        <div class="service-card">
-          <div class="service-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M8 21h8M12 17v4M17 5a7 7 0 1 1-10 0"/>
-              <path d="M12 8v4"/>
-            </svg>
-          </div>
-          <h3 data-i18n="home.serviceBar">Bar</h3>
-          <p data-i18n="home.serviceBarDesc">Détendez-vous dans notre bar chaleureux et dégustez une sélection de vins de Bordeaux et de cocktails.</p>
-        </div>
-        <div class="service-card">
-          <div class="service-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"/>
-              <circle cx="12" cy="12" r="3"/>
-            </svg>
-          </div>
-          <h3 data-i18n="home.serviceBoulodrome">Boulodrome</h3>
-          <p data-i18n="home.serviceBoulodromeDesc">Profitez de notre terrain de pétanque pour des moments conviviaux entre amis ou en famille.</p>
-        </div>
-        <div class="service-card">
-          <div class="service-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="1" y="3" width="15" height="13" rx="2" ry="2"/>
-              <path d="M16 8h4a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-1"/>
-            </svg>
-          </div>
-          <h3 data-i18n="home.serviceParkingTitle">Parking gratuit</h3>
-          <p data-i18n="home.serviceParkingDesc">Stationnement privé et sécurisé offert à tous nos clients, pour un séjour en toute tranquillité.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- CTA Section -->
-  <section class="cta-section">
-    <div class="container">
-      <h2 data-i18n="home.ctaTitle">Découvrez notre hôtel</h2>
-      <p data-i18n="home.ctaText">Offrez-vous un séjour ressourçant au cœur de la campagne bordelaise</p>
-      <a href="services.php" class="btn btn-primary" data-i18n="home.discoverServices">Découvrir nos services</a>
-    </div>
-  </section>
 
   <!-- Footer -->
   <footer class="footer">
@@ -278,10 +210,10 @@ $dynamicSectionsTranslations = !empty($dynamicSections) ? getDynamicSectionsTran
         <div class="footer-nav">
           <h4 class="footer-title" data-i18n="footer.services">Services</h4>
           <ul class="footer-links">
-            <li><a href="services.php#restaurant">Restaurant</a></li>
-            <li><a href="services.php#bar">Bar</a></li>
-            <li><a href="services.php#boulodrome">Boulodrome</a></li>
-            <li><a href="services.php#parking">Parking</a></li>
+            <li><a href="services.php">Restaurant</a></li>
+            <li><a href="services.php">Bar</a></li>
+            <li><a href="services.php">Boulodrome</a></li>
+            <li><a href="services.php">Parking</a></li>
           </ul>
         </div>
         <div class="footer-contact">

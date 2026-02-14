@@ -2570,6 +2570,66 @@ function seedDefaultOverlayTexts(): void {
     $stmt->execute(['home_hero']);
 }
 
+/**
+ * Clean up legacy static sections that are no longer used
+ * Only hero/header sections should remain as static sections
+ * All other content is managed through the dynamic sections system
+ */
+function cleanupLegacyStaticSections(): void {
+    $pdo = getDatabase();
+
+    // Only these core sections should remain (hero/header sections)
+    $keepSections = [
+        'home_hero',
+        'services_hero',
+        'activities_hero',
+        'contact_hero',
+        'contact_info',
+    ];
+
+    // Helper to safely execute a delete (ignores missing tables)
+    $safeDelete = function($sql, $params) use ($pdo) {
+        try {
+            $pdo->prepare($sql)->execute($params);
+        } catch (PDOException $e) {
+            // Ignore errors (table might not exist)
+        }
+    };
+
+    try {
+        // Get ALL sections that are:
+        // 1. NOT in the keep list AND
+        // 2. NOT dynamically created from templates (template_type is NULL or empty)
+        $placeholders = implode(',', array_fill(0, count($keepSections), '?'));
+        $stmt = $pdo->prepare("
+            SELECT code FROM content_sections
+            WHERE code NOT IN ($placeholders)
+            AND (template_type IS NULL OR template_type = '')
+        ");
+        $stmt->execute($keepSections);
+        $legacySections = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+        // Delete each legacy section and its related data
+        foreach ($legacySections as $sectionCode) {
+            // Delete related data first (ignore if tables don't exist)
+            $safeDelete('DELETE FROM section_feature_translations WHERE feature_id IN (SELECT id FROM section_features WHERE section_code = ?)', [$sectionCode]);
+            $safeDelete('DELETE FROM section_features WHERE section_code = ?', [$sectionCode]);
+            $safeDelete('DELETE FROM section_overlay_translations WHERE overlay_id IN (SELECT id FROM section_overlay_texts WHERE section_code = ?)', [$sectionCode]);
+            $safeDelete('DELETE FROM section_overlay_texts WHERE section_code = ?', [$sectionCode]);
+            $safeDelete('DELETE FROM section_gallery_translations WHERE item_id IN (SELECT id FROM section_gallery_items WHERE section_code = ?)', [$sectionCode]);
+            $safeDelete('DELETE FROM section_gallery_items WHERE section_code = ?', [$sectionCode]);
+            $safeDelete('DELETE FROM section_service_translations WHERE service_id IN (SELECT id FROM section_services WHERE section_code = ?)', [$sectionCode]);
+            $safeDelete('DELETE FROM section_services WHERE section_code = ?', [$sectionCode]);
+            $safeDelete('DELETE FROM content_blocks WHERE section_code = ?', [$sectionCode]);
+
+            // Delete the section itself
+            $safeDelete('DELETE FROM content_sections WHERE code = ?', [$sectionCode]);
+        }
+    } catch (PDOException $e) {
+        // Silently fail - tables might not exist yet
+    }
+}
+
 // =====================================================
 // SECTION TEMPLATES (Reusable Section Definitions)
 // =====================================================

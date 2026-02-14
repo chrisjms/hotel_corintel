@@ -12,7 +12,8 @@ require_once __DIR__ . '/functions.php';
 // Initialize content tables on first load
 try {
     initContentTables();
-    seedContentSections();
+    cleanupLegacyStaticSections(); // Remove old non-hero static sections
+    seedContentSections(); // Only seeds hero sections now
 } catch (Exception $e) {
     // Tables may already exist, continue silently
 }

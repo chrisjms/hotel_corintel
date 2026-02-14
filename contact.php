@@ -465,10 +465,10 @@ $hotelName = getHotelName();
         <div class="footer-nav">
           <h4 class="footer-title" data-i18n="footer.services">Services</h4>
           <ul class="footer-links">
-            <li><a href="services.php#restaurant" data-i18n="footer.restaurant">Restaurant</a></li>
-            <li><a href="services.php#bar" data-i18n="footer.bar">Bar</a></li>
-            <li><a href="services.php#boulodrome" data-i18n="footer.boulodrome">Boulodrome</a></li>
-            <li><a href="services.php#parking" data-i18n="footer.parking">Parking</a></li>
+            <li><a href="services.php" data-i18n="footer.restaurant">Restaurant</a></li>
+            <li><a href="services.php" data-i18n="footer.bar">Bar</a></li>
+            <li><a href="services.php" data-i18n="footer.boulodrome">Boulodrome</a></li>
+            <li><a href="services.php" data-i18n="footer.parking">Parking</a></li>
           </ul>
         </div>
         <div class="footer-contact">
