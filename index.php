@@ -27,7 +27,7 @@ $dynamicSectionsTranslations = !empty($dynamicSections) ? getDynamicSectionsTran
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <?php $hotelName = getHotelName(); ?>
+  <?php $hotelName = getHotelName(); $logoText = getLogoText(); ?>
   <meta name="description" content="<?= h($hotelName) ?> - Hôtel 3 étoiles de charme près de Bordeaux et Saint-Émilion. Atmosphère chaleureuse, jardin, terrasse et cuisine régionale au cœur de la campagne bordelaise.">
   <meta name="keywords" content="hôtel bordeaux, hôtel saint-émilion, hôtel campagne, hôtel 3 étoiles, oenotourisme, bordeaux est">
   <title><?= h($hotelName) ?> | Hôtel de charme près de Bordeaux et Saint-Émilion</title>
@@ -48,7 +48,7 @@ $dynamicSectionsTranslations = !empty($dynamicSections) ? getDynamicSectionsTran
         </svg>
         <div class="logo-text">
           <?= h($hotelName) ?>
-          <span data-i18n="header.logoSubtitle">Bordeaux Est</span>
+          <span><?= h($logoText) ?></span>
         </div>
       </a>
       <nav class="nav-menu" id="navMenu">
@@ -195,7 +195,7 @@ $dynamicSectionsTranslations = !empty($dynamicSections) ? getDynamicSectionsTran
         <div class="footer-brand">
           <div class="logo-text">
             <?= h($hotelName) ?>
-            <span data-i18n="header.logoSubtitle">Bordeaux Est</span>
+            <span><?= h($logoText) ?></span>
           </div>
           <p data-i18n="footer.description">Un havre de paix aux portes de Bordeaux, où charme et authenticité vous attendent pour un séjour inoubliable.</p>
         </div>

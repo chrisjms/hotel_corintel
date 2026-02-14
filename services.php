@@ -20,6 +20,7 @@ $dynamicSectionsTranslations = !empty($dynamicSections) ? getDynamicSectionsTran
 $heroImage = contentImage('services_hero', 1, 'images/resto/restaurant-hotel-bordeaux-1.jpg');
 
 $hotelName = getHotelName();
+$logoText = getLogoText();
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -28,7 +29,7 @@ $hotelName = getHotelName();
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Découvrez les services de <?= h($hotelName) ?> : restaurant table d'hôtes avec cuisine régionale, bar, boulodrome et parking gratuit. Près de Bordeaux et Saint-Émilion.">
   <meta name="keywords" content="services hôtel, restaurant bordeaux, table d'hôtes, bar hôtel, pétanque, parking gratuit">
-  <title>Nos Services | <?= h($hotelName) ?> - Bordeaux Est</title>
+  <title>Nos Services | <?= h($hotelName) ?> - <?= h($logoText) ?></title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Lato:wght@300;400;500;700&display=swap" rel="stylesheet">
@@ -46,7 +47,7 @@ $hotelName = getHotelName();
         </svg>
         <div class="logo-text">
           <?= h($hotelName) ?>
-          <span data-i18n="header.logoSubtitle">Bordeaux Est</span>
+          <span><?= h($logoText) ?></span>
         </div>
       </a>
       <nav class="nav-menu" id="navMenu">
@@ -97,7 +98,7 @@ $hotelName = getHotelName();
         <div class="footer-brand">
           <div class="logo-text">
             <?= h($hotelName) ?>
-            <span data-i18n="header.logoSubtitle">Bordeaux Est</span>
+            <span><?= h($logoText) ?></span>
           </div>
           <p data-i18n="footer.description">Un havre de paix aux portes de Bordeaux, où charme et authenticité vous attendent pour un séjour inoubliable.</p>
         </div>

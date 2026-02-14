@@ -2217,9 +2217,10 @@ function getThemeCSS(): string {
 // =====================================================
 
 /**
- * Default hotel name constant
+ * Default hotel identity constants
  */
 define('DEFAULT_HOTEL_NAME', 'Hôtel Corintel');
+define('DEFAULT_LOGO_TEXT', 'Bordeaux Est');
 
 /**
  * Get the configured hotel name
@@ -2251,17 +2252,40 @@ function setHotelName(string $name): bool {
 }
 
 /**
+ * Get the configured logo text (subtitle under hotel name)
+ * @return string The logo text
+ */
+function getLogoText(): string {
+    return getSetting('logo_text', DEFAULT_LOGO_TEXT);
+}
+
+/**
+ * Save the logo text setting
+ * @param string $text The logo text to save
+ * @return bool True on success
+ */
+function setLogoText(string $text): bool {
+    $text = trim($text);
+    if (empty($text)) {
+        return false;
+    }
+    return setSetting('logo_text', $text);
+}
+
+/**
  * Get hotel identity settings for use in templates
- * Returns an array with various forms of the hotel name
+ * Returns an array with various forms of the hotel name and branding
  * @return array
  */
 function getHotelIdentity(): array {
     $fullName = getHotelName(true);
     $shortName = getHotelName(false);
+    $logoText = getLogoText();
 
     return [
-        'full_name' => $fullName,           // "Hôtel Corintel"
-        'short_name' => $shortName,         // "Corintel"
+        'full_name' => $fullName,                  // "Hôtel Corintel"
+        'short_name' => $shortName,                // "Corintel"
+        'logo_text' => $logoText,                  // "Bordeaux Est"
         'name_possessive_fr' => "l'" . $fullName,  // "l'Hôtel Corintel"
         'name_at_fr' => "à l'" . $fullName,        // "à l'Hôtel Corintel"
     ];
