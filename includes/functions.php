@@ -2302,6 +2302,145 @@ function getHotelNameJS(): string {
 }
 
 // =====================================================
+// CONTACT INFORMATION SETTINGS
+// =====================================================
+
+/**
+ * Default contact information
+ */
+define('DEFAULT_CONTACT_INFO', [
+    'phone' => '',
+    'email' => '',
+    'address' => '',
+    'postal_code' => '',
+    'city' => '',
+    'country' => 'France',
+    'maps_url' => '',
+]);
+
+/**
+ * Get a single contact setting
+ * @param string $key Contact field key
+ * @param string $default Default value if not set
+ * @return string
+ */
+function getContactSetting(string $key, string $default = ''): string {
+    $value = getSetting('contact_' . $key, null);
+    if ($value === null) {
+        return DEFAULT_CONTACT_INFO[$key] ?? $default;
+    }
+    return $value;
+}
+
+/**
+ * Get all contact information
+ * @return array
+ */
+function getContactInfo(): array {
+    return [
+        'phone' => getContactSetting('phone'),
+        'email' => getContactSetting('email'),
+        'address' => getContactSetting('address'),
+        'postal_code' => getContactSetting('postal_code'),
+        'city' => getContactSetting('city'),
+        'country' => getContactSetting('country', 'France'),
+        'maps_url' => getContactSetting('maps_url'),
+    ];
+}
+
+/**
+ * Save all contact information
+ * @param array $data Contact data array
+ * @return bool True if all settings saved successfully
+ */
+function saveContactInfo(array $data): bool {
+    $fields = ['phone', 'email', 'address', 'postal_code', 'city', 'country', 'maps_url'];
+    $success = true;
+
+    foreach ($fields as $field) {
+        if (isset($data[$field])) {
+            $value = trim($data[$field]);
+            if (!setSetting('contact_' . $field, $value)) {
+                $success = false;
+            }
+        }
+    }
+
+    return $success;
+}
+
+/**
+ * Get formatted full address
+ * @param bool $html Whether to format with HTML line breaks
+ * @return string
+ */
+function getFormattedAddress(bool $html = true): string {
+    $contact = getContactInfo();
+    $parts = [];
+
+    if (!empty($contact['address'])) {
+        $parts[] = $contact['address'];
+    }
+
+    $cityLine = '';
+    if (!empty($contact['postal_code'])) {
+        $cityLine .= $contact['postal_code'];
+    }
+    if (!empty($contact['city'])) {
+        $cityLine .= (!empty($cityLine) ? ' ' : '') . strtoupper($contact['city']);
+    }
+    if (!empty($cityLine)) {
+        $parts[] = $cityLine;
+    }
+
+    if (!empty($contact['country'])) {
+        $parts[] = $contact['country'];
+    }
+
+    $separator = $html ? '<br>' : ', ';
+    return implode($separator, $parts);
+}
+
+/**
+ * Get contact phone number, optionally formatted for tel: link
+ * @param bool $forLink If true, returns number suitable for tel: link
+ * @return string
+ */
+function getContactPhone(bool $forLink = false): string {
+    $phone = getContactSetting('phone');
+    if ($forLink && !empty($phone)) {
+        // Remove spaces, dashes, dots for tel: link
+        return preg_replace('/[\s\-\.]/', '', $phone);
+    }
+    return $phone;
+}
+
+/**
+ * Get contact email
+ * @return string
+ */
+function getContactEmail(): string {
+    return getContactSetting('email');
+}
+
+/**
+ * Get Google Maps URL
+ * @return string
+ */
+function getContactMapsUrl(): string {
+    return getContactSetting('maps_url');
+}
+
+/**
+ * Check if contact info has required fields filled
+ * @return bool
+ */
+function hasContactInfo(): bool {
+    $contact = getContactInfo();
+    return !empty($contact['phone']) || !empty($contact['email']) || !empty($contact['address']);
+}
+
+// =====================================================
 // CONTENT MANAGEMENT FUNCTIONS
 // =====================================================
 

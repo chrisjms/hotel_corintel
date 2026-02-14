@@ -21,6 +21,8 @@ $unreadMessages = getUnreadMessagesCount();
 $pendingOrders = getPendingOrdersCount();
 $csrfToken = generateCsrfToken();
 $hotelName = getHotelName();
+$logoText = getLogoText();
+$contactInfo = getContactInfo();
 
 // Initialize content tables
 initContentTables();
@@ -46,6 +48,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $messageType = 'error';
     } else {
         switch ($_POST['action']) {
+            case 'update_general_content':
+                $newHotelName = trim($_POST['hotel_name'] ?? '');
+                $newLogoText = trim($_POST['logo_text'] ?? '');
+
+                if (empty($newHotelName)) {
+                    $message = 'Le nom de l\'hôtel ne peut pas être vide.';
+                    $messageType = 'error';
+                } else if (empty($newLogoText)) {
+                    $message = 'Le texte du logo ne peut pas être vide.';
+                    $messageType = 'error';
+                } else {
+                    $nameUpdated = setHotelName($newHotelName);
+                    $logoUpdated = setLogoText($newLogoText);
+
+                    if ($nameUpdated && $logoUpdated) {
+                        $hotelName = $newHotelName;
+                        $logoText = $newLogoText;
+                        $message = 'Contenu général mis à jour avec succès.';
+                        $messageType = 'success';
+                    } else {
+                        $message = 'Erreur lors de la mise à jour.';
+                        $messageType = 'error';
+                    }
+                }
+                break;
+
+            case 'update_contact_info':
+                $contactData = [
+                    'phone' => $_POST['contact_phone'] ?? '',
+                    'email' => $_POST['contact_email'] ?? '',
+                    'address' => $_POST['contact_address'] ?? '',
+                    'postal_code' => $_POST['contact_postal_code'] ?? '',
+                    'city' => $_POST['contact_city'] ?? '',
+                    'country' => $_POST['contact_country'] ?? '',
+                    'maps_url' => $_POST['contact_maps_url'] ?? '',
+                ];
+
+                if (saveContactInfo($contactData)) {
+                    $message = 'Coordonnées mises à jour avec succès.';
+                    $messageType = 'success';
+                } else {
+                    $message = 'Erreur lors de la mise à jour des coordonnées.';
+                    $messageType = 'error';
+                }
+                break;
+
             case 'create':
                 $sectionCode = $_POST['section_code'] ?? '';
                 $section = getContentSection($sectionCode);
@@ -740,6 +788,95 @@ if ($editBlockId) {
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Lato:wght@300;400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="admin-style.css">
     <style>
+        /* Content page tabs */
+        .content-page-tabs {
+            display: flex;
+            gap: 0;
+            margin-bottom: 2rem;
+            border-bottom: 2px solid var(--admin-border);
+        }
+        .content-tab {
+            padding: 1rem 1.5rem;
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: var(--admin-text-light);
+            text-decoration: none;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .content-tab:hover {
+            color: var(--admin-primary);
+        }
+        .content-tab.active {
+            color: var(--admin-primary);
+            border-bottom-color: var(--admin-primary);
+        }
+        .content-tab svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        /* General content section */
+        .general-content-section {
+            margin-bottom: 2rem;
+        }
+        .general-content-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+        .general-content-field {
+            background: var(--admin-card);
+            border: 1px solid var(--admin-border);
+            border-radius: var(--admin-radius);
+            padding: 1.25rem;
+        }
+        .general-content-field label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+        .general-content-field input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--admin-border);
+            border-radius: 6px;
+            font-size: 0.95rem;
+        }
+        .general-content-field input:focus {
+            outline: none;
+            border-color: var(--admin-primary);
+        }
+        .general-content-field small {
+            display: block;
+            margin-top: 0.5rem;
+            color: var(--admin-text-light);
+            font-size: 0.8rem;
+        }
+        .general-content-actions {
+            margin-top: 1.5rem;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        /* Site sections area */
+        .site-sections-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+        }
+        .site-sections-header h2 {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.5rem;
+            margin: 0;
+        }
+
         /* Section navigation */
         .sections-nav {
             display: flex;
@@ -3165,6 +3302,126 @@ if ($editBlockId) {
                     </div>
                 <?php endif; ?>
 
+                <?php
+                // Determine active tab (default to sections unless we're explicitly on general)
+                $activeTab = $_GET['tab'] ?? 'sections';
+                ?>
+
+                <!-- Content Page Tabs -->
+                <div class="content-page-tabs">
+                    <a href="?tab=general" class="content-tab <?= $activeTab === 'general' ? 'active' : '' ?>">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="3"/>
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                        </svg>
+                        Contenu général
+                    </a>
+                    <a href="?tab=sections" class="content-tab <?= $activeTab === 'sections' ? 'active' : '' ?>">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                            <line x1="3" y1="9" x2="21" y2="9"/>
+                            <line x1="9" y1="21" x2="9" y2="9"/>
+                        </svg>
+                        Sections du site
+                    </a>
+                </div>
+
+                <?php if ($activeTab === 'general'): ?>
+                <!-- General Content Tab -->
+                <div class="general-content-section">
+                    <div class="card">
+                        <div class="card-header">
+                            <h2>Identité de l'établissement</h2>
+                        </div>
+                        <div class="card-body">
+                            <form method="POST">
+                                <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
+                                <input type="hidden" name="action" value="update_general_content">
+
+                                <div class="general-content-grid">
+                                    <div class="general-content-field">
+                                        <label for="hotel_name">Nom de l'hôtel</label>
+                                        <input type="text" id="hotel_name" name="hotel_name" value="<?= h($hotelName) ?>" required>
+                                        <small>Affiché dans la navigation, les titres et le pied de page</small>
+                                    </div>
+
+                                    <div class="general-content-field">
+                                        <label for="logo_text">Texte du logo</label>
+                                        <input type="text" id="logo_text" name="logo_text" value="<?= h($logoText) ?>" required>
+                                        <small>Sous-titre affiché sous le nom dans le logo (ex: "Bordeaux Est")</small>
+                                    </div>
+                                </div>
+
+                                <div class="general-content-actions">
+                                    <button type="submit" class="btn btn-primary">Enregistrer les modifications</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Contact Information Card -->
+                    <div class="card" style="margin-top: 1.5rem;">
+                        <div class="card-header">
+                            <h2>Coordonnées de l'établissement</h2>
+                        </div>
+                        <div class="card-body">
+                            <form method="POST">
+                                <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
+                                <input type="hidden" name="action" value="update_contact_info">
+
+                                <div class="general-content-grid">
+                                    <div class="general-content-field">
+                                        <label for="contact_phone">Téléphone</label>
+                                        <input type="tel" id="contact_phone" name="contact_phone" value="<?= h($contactInfo['phone']) ?>" placeholder="+33 5 57 34 13 95">
+                                        <small>Numéro affiché sur le site et dans les documents</small>
+                                    </div>
+
+                                    <div class="general-content-field">
+                                        <label for="contact_email">Email</label>
+                                        <input type="email" id="contact_email" name="contact_email" value="<?= h($contactInfo['email']) ?>" placeholder="contact@hotel.com">
+                                        <small>Adresse email principale de contact</small>
+                                    </div>
+
+                                    <div class="general-content-field" style="grid-column: 1 / -1;">
+                                        <label for="contact_address">Adresse</label>
+                                        <input type="text" id="contact_address" name="contact_address" value="<?= h($contactInfo['address']) ?>" placeholder="14 Avenue du Périgord">
+                                        <small>Numéro et nom de rue</small>
+                                    </div>
+
+                                    <div class="general-content-field">
+                                        <label for="contact_postal_code">Code postal</label>
+                                        <input type="text" id="contact_postal_code" name="contact_postal_code" value="<?= h($contactInfo['postal_code']) ?>" placeholder="33370">
+                                    </div>
+
+                                    <div class="general-content-field">
+                                        <label for="contact_city">Ville</label>
+                                        <input type="text" id="contact_city" name="contact_city" value="<?= h($contactInfo['city']) ?>" placeholder="Tresses">
+                                    </div>
+
+                                    <div class="general-content-field">
+                                        <label for="contact_country">Pays</label>
+                                        <input type="text" id="contact_country" name="contact_country" value="<?= h($contactInfo['country']) ?>" placeholder="France">
+                                    </div>
+
+                                    <div class="general-content-field">
+                                        <label for="contact_maps_url">Lien Google Maps</label>
+                                        <input type="url" id="contact_maps_url" name="contact_maps_url" value="<?= h($contactInfo['maps_url']) ?>" placeholder="https://maps.google.com/...">
+                                        <small>Optionnel - URL vers l'emplacement sur Google Maps</small>
+                                    </div>
+                                </div>
+
+                                <div class="general-content-actions">
+                                    <button type="submit" class="btn btn-primary">Enregistrer les coordonnées</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Future extensibility: Add more general content cards here -->
+                </div>
+                <?php else: ?>
+                <!-- Site Sections Tab -->
+
                 <?php if ($editBlock): ?>
                     <!-- Edit Block Form -->
                     <?php $isImageOnlyEdit = $currentSectionData && !$currentSectionData['has_title'] && !$currentSectionData['has_description']; ?>
@@ -4647,6 +4904,10 @@ if ($editBlockId) {
                         </div>
                     </form>
                 </div>
+            </div>
+
+                <?php endif; ?>
+                <!-- End of tab content -->
             </div>
         </main>
     </div>

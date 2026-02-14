@@ -17,9 +17,8 @@ $csrfToken = generateCsrfToken();
 $message = '';
 $messageType = '';
 
-// Get current hotel identity settings
+// Get current hotel name for display
 $hotelName = getHotelName();
-$logoText = getLogoText();
 
 // Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -42,32 +41,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $result = changePassword($admin['id'], $currentPassword, $newPassword);
                     $message = $result['message'];
                     $messageType = $result['success'] ? 'success' : 'error';
-                }
-                break;
-
-            case 'update_hotel_identity':
-                $newHotelName = trim($_POST['hotel_name'] ?? '');
-                $newLogoText = trim($_POST['logo_text'] ?? '');
-
-                if (empty($newHotelName)) {
-                    $message = 'Le nom de l\'hôtel ne peut pas être vide.';
-                    $messageType = 'error';
-                } else if (empty($newLogoText)) {
-                    $message = 'Le texte du logo ne peut pas être vide.';
-                    $messageType = 'error';
-                } else {
-                    $nameUpdated = setHotelName($newHotelName);
-                    $logoUpdated = setLogoText($newLogoText);
-
-                    if ($nameUpdated && $logoUpdated) {
-                        $hotelName = $newHotelName;
-                        $logoText = $newLogoText;
-                        $message = 'Identité de l\'établissement mise à jour avec succès.';
-                        $messageType = 'success';
-                    } else {
-                        $message = 'Erreur lors de la mise à jour.';
-                        $messageType = 'error';
-                    }
                 }
                 break;
         }
@@ -218,33 +191,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <?= h($message) ?>
                     </div>
                 <?php endif; ?>
-
-                <!-- Hotel Identity -->
-                <div class="card">
-                    <div class="card-header">
-                        <h2>Identité de l'établissement</h2>
-                    </div>
-                    <div class="card-body">
-                        <form method="POST" class="hotel-identity-form">
-                            <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
-                            <input type="hidden" name="action" value="update_hotel_identity">
-
-                            <div class="form-group">
-                                <label for="hotel_name">Nom de l'hôtel</label>
-                                <input type="text" id="hotel_name" name="hotel_name" value="<?= h($hotelName) ?>" required>
-                                <small>Ce nom sera affiché sur tout le site (navigation, titres, pied de page, etc.)</small>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="logo_text">Texte du logo</label>
-                                <input type="text" id="logo_text" name="logo_text" value="<?= h($logoText) ?>" required>
-                                <small>Sous-titre affiché sous le nom de l'hôtel dans le logo (ex: "Bordeaux Est")</small>
-                            </div>
-
-                            <button type="submit" class="btn btn-primary">Enregistrer</button>
-                        </form>
-                    </div>
-                </div>
 
                 <!-- Account Info -->
                 <div class="card">
