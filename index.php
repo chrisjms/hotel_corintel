@@ -18,15 +18,6 @@ $heroSlides = content('home_hero');
 // Get hero overlay texts with all translations
 $heroOverlay = getSectionOverlayWithTranslations('home_hero');
 
-// Get intro section image
-$introImage = contentImage('home_intro', 1, 'images/acceuil/entree-hotel.jpeg');
-
-// Get intro overlay texts with all translations
-$introOverlay = getSectionOverlayWithTranslations('home_intro');
-
-// Get intro features with translations
-$introFeatures = getSectionFeaturesWithTranslations('home_intro');
-
 // Get dynamic sections for the home page
 $dynamicSections = getDynamicSectionsWithData('home');
 $dynamicSectionsTranslations = !empty($dynamicSections) ? getDynamicSectionsTranslations('home') : [];
@@ -186,141 +177,10 @@ $dynamicSectionsTranslations = !empty($dynamicSections) ? getDynamicSectionsTran
     <?php endif; ?>
   </section>
 
-  <!-- Introduction Section -->
-  <section class="section section-light">
-    <div class="container">
-      <div class="intro-grid">
-        <div class="intro-image">
-          <img src="<?= htmlspecialchars($introImage) ?>" alt="L'entrée accueillante de <?= h($hotelName) ?>">
-        </div>
-        <div class="intro-content">
-          <?php
-          // Default fallback texts for intro section
-          $defaultIntroSubtitle = 'Notre philosophie';
-          $defaultIntroTitle = 'Une atmosphère chaleureuse et conviviale';
-          $defaultIntroDescription = "$hotelName vous accueille dans un cadre paisible et verdoyant, où se mêlent le charme de la campagne bordelaise et le confort d'un établissement 3 étoiles.\n\nEntouré de nature, notre hôtel offre une expérience de détente authentique. Profitez de notre jardin, de notre terrasse ombragée et de notre salon commun pour des moments de quiétude loin du tumulte de la ville.";
-
-          // Use database values if available
-          $displayIntroSubtitle = !empty($introOverlay['subtitle']) ? $introOverlay['subtitle'] : $defaultIntroSubtitle;
-          $displayIntroTitle = !empty($introOverlay['title']) ? $introOverlay['title'] : $defaultIntroTitle;
-          $displayIntroDescription = !empty($introOverlay['description']) ? $introOverlay['description'] : $defaultIntroDescription;
-
-          // Check if database has overlay configured
-          $hasIntroOverlay = !empty($introOverlay['subtitle']) || !empty($introOverlay['title']) || !empty($introOverlay['description']);
-
-          // Convert description paragraphs (split by double newline)
-          $introParagraphs = array_filter(array_map('trim', preg_split('/\n\s*\n/', $displayIntroDescription)));
-          ?>
-          <?php if ($hasIntroOverlay): ?>
-          <p class="section-subtitle" data-overlay-intro="subtitle"><?= htmlspecialchars($displayIntroSubtitle) ?></p>
-          <h2 data-overlay-intro="title"><?= htmlspecialchars($displayIntroTitle) ?></h2>
-          <div data-overlay-intro="description">
-            <?php foreach ($introParagraphs as $paragraph): ?>
-            <p><?= nl2br(htmlspecialchars($paragraph)) ?></p>
-            <?php endforeach; ?>
-          </div>
-          <?php else: ?>
-          <p class="section-subtitle" data-i18n="home.introSubtitle"><?= $displayIntroSubtitle ?></p>
-          <h2 data-i18n="home.introTitle"><?= $displayIntroTitle ?></h2>
-          <p data-i18n="home.introText1">
-            <?= h($hotelName) ?> vous accueille dans un cadre paisible et verdoyant,
-            où se mêlent le charme de la campagne bordelaise et le confort d'un
-            établissement 3 étoiles.
-          </p>
-          <p data-i18n="home.introText2">
-            Entouré de nature, notre hôtel offre une expérience de détente authentique.
-            Profitez de notre jardin, de notre terrasse ombragée et de notre salon commun
-            pour des moments de quiétude loin du tumulte de la ville.
-          </p>
-          <?php endif; ?>
-          <?php
-          // Prepare intro translations for JavaScript
-          $introTranslations = [];
-          if ($hasIntroOverlay) {
-              $introTranslations = [
-                  'fr' => [
-                      'subtitle' => $displayIntroSubtitle,
-                      'title' => $displayIntroTitle,
-                      'description' => $displayIntroDescription
-                  ]
-              ];
-              foreach (['en', 'es', 'it'] as $lang) {
-                  if (isset($introOverlay['translations'][$lang])) {
-                      $trans = $introOverlay['translations'][$lang];
-                      $introTranslations[$lang] = [
-                          'subtitle' => !empty($trans['subtitle']) ? $trans['subtitle'] : $displayIntroSubtitle,
-                          'title' => !empty($trans['title']) ? $trans['title'] : $displayIntroTitle,
-                          'description' => !empty($trans['description']) ? $trans['description'] : $displayIntroDescription
-                      ];
-                  } else {
-                      $introTranslations[$lang] = $introTranslations['fr'];
-                  }
-              }
-          }
-          ?>
-          <?php if (!empty($introFeatures)): ?>
-          <div class="intro-features">
-            <?php foreach ($introFeatures as $feature): ?>
-            <div class="intro-feature">
-              <?= getIconSvg($feature['icon_code']) ?>
-              <span data-feature-id="<?= $feature['id'] ?>"><?= h($feature['label']) ?></span>
-            </div>
-            <?php endforeach; ?>
-          </div>
-          <?php else: ?>
-          <!-- Fallback to static features if none configured -->
-          <div class="intro-features">
-            <div class="intro-feature">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M12 22c6.5-3.5 10-8.5 10-13A10 10 0 0 0 2 9c0 4.5 3.5 9.5 10 13z"/>
-              </svg>
-              <span data-i18n="home.featureGarden">Jardin paisible</span>
-            </div>
-            <div class="intro-feature">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M18 8h1a4 4 0 0 1 0 8h-1M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8zM6 1v4M10 1v4M14 1v4"/>
-              </svg>
-              <span data-i18n="home.featureBreakfast">Petit-déjeuner inclus</span>
-            </div>
-            <div class="intro-feature">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
-              </svg>
-              <span data-i18n="home.featureLocation">Proche centre-ville</span>
-            </div>
-          </div>
-          <?php endif; ?>
-        </div>
-      </div>
-    </div>
-    <?php if ($hasIntroOverlay || !empty($introFeatures)): ?>
-    <script>
-      <?php if ($hasIntroOverlay): ?>
-      // Intro overlay translations from database
-      window.introOverlayTranslations = <?= json_encode($introTranslations, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
-      <?php endif; ?>
-      <?php if (!empty($introFeatures)): ?>
-      // Intro feature translations from database
-      window.introFeatureTranslations = <?php
-        $featureTrans = [];
-        foreach ($introFeatures as $f) {
-            $featureTrans[$f['id']] = [
-                'fr' => $f['label'],
-                'en' => $f['translations']['en'] ?? $f['label'],
-                'es' => $f['translations']['es'] ?? $f['label'],
-                'it' => $f['translations']['it'] ?? $f['label']
-            ];
-        }
-        echo json_encode($featureTrans, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
-      ?>;
-      <?php endif; ?>
-    </script>
-    <?php endif; ?>
-  </section>
-
   <?php
-  // Render dynamic sections (if any exist)
-  // These are admin-created sections that appear after the intro
+  // Render dynamic sections for the home page
+  // All content sections are now managed through the admin panel
+  echo renderDynamicSectionsForPage('home', 'fr');
   if (!empty($dynamicSections)):
       echo renderDynamicSectionsForPage('home', 'fr');
   ?>

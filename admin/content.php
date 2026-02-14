@@ -3526,7 +3526,7 @@ if ($editBlockId) {
 
                             <?php
                             // Show overlay text panel for sections that support it (static or dynamic with has_overlay)
-                            $sectionsWithOverlay = ['home_hero', 'home_intro'];
+                            $sectionsWithOverlay = ['home_hero'];
                             $showOverlayPanel = in_array($currentSection, $sectionsWithOverlay) || (!empty($currentSectionData['has_overlay']) && !empty($currentSectionData['is_dynamic']));
                             if ($showOverlayPanel):
                                 $overlayData = getSectionOverlayWithTranslations($currentSection);
@@ -3540,14 +3540,6 @@ if ($editBlockId) {
                                         'title_hint' => 'Titre accrocheur en grand format',
                                         'description_placeholder' => 'Ex: Découvrez notre hôtel de charme 3 étoiles...',
                                         'description_hint' => 'Paragraphe descriptif sous le titre'
-                                    ],
-                                    'home_intro' => [
-                                        'subtitle_placeholder' => 'Ex: Notre philosophie',
-                                        'subtitle_hint' => 'Petit texte au-dessus du titre',
-                                        'title_placeholder' => 'Ex: Une atmosphère chaleureuse et conviviale',
-                                        'title_hint' => 'Titre de la section',
-                                        'description_placeholder' => 'Ex: L\'Hôtel Corintel vous accueille dans un cadre paisible...',
-                                        'description_hint' => 'Texte descriptif (utilisez deux lignes vides pour séparer les paragraphes)'
                                     ],
                                     '_default' => [
                                         'subtitle_placeholder' => 'Ex: Sous-titre de la section',

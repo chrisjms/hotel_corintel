@@ -2520,27 +2520,19 @@ function initContentTables(): void {
 function seedContentSections(): void {
     $pdo = getDatabase();
 
+    // Only structural header sections are seeded as fixed sections
+    // All content sections are now managed through the dynamic sections system
     $sections = [
-        // Home page sections
+        // Home page - only hero carousel
         ['home_hero', 'Carrousel d\'accueil', 'Images du diaporama principal (3 images recommandées)', 'home', IMAGE_REQUIRED, null, 0, 0, 0, 1],
-        ['home_intro', 'Introduction', 'Image de la section Notre philosophie', 'home', IMAGE_OPTIONAL, 1, 0, 0, 0, 2],
 
-        // Services page sections
+        // Services page - only header image
         ['services_hero', 'Image d\'en-tête Services', 'Image de fond de la bannière Services', 'services', IMAGE_REQUIRED, 1, 0, 0, 0, 1],
-        ['services_restaurant', 'Restaurant', 'Image de la section Restaurant', 'services', IMAGE_REQUIRED, 1, 1, 1, 0, 2],
-        ['services_restaurant_gallery', 'Galerie Restaurant', 'Images de la galerie du restaurant (3 images)', 'services', IMAGE_REQUIRED, 3, 1, 1, 0, 3],
-        ['services_bar', 'Bar', 'Image de la section Bar', 'services', IMAGE_REQUIRED, 1, 1, 1, 0, 4],
-        ['services_boulodrome', 'Boulodrome', 'Image de la section Boulodrome', 'services', IMAGE_REQUIRED, 1, 1, 1, 0, 5],
-        ['services_parking', 'Parking', 'Image de la section Parking', 'services', IMAGE_REQUIRED, 1, 1, 1, 0, 6],
 
-        // Activities page sections
+        // Activities page - only header image
         ['activities_hero', 'Image d\'en-tête Activités', 'Image de fond de la bannière À découvrir', 'activities', IMAGE_REQUIRED, 1, 0, 0, 0, 1],
-        ['activities_bordeaux', 'Bordeaux', 'Image de la section Bordeaux', 'activities', IMAGE_REQUIRED, 1, 1, 1, 0, 2],
-        ['activities_saintemilion', 'Saint-Émilion', 'Image de la section Saint-Émilion', 'activities', IMAGE_REQUIRED, 1, 1, 1, 0, 3],
-        ['activities_wine', 'Oenotourisme', 'Images de la section Route des vins (4 images)', 'activities', IMAGE_REQUIRED, 4, 1, 1, 0, 4],
-        ['activities_countryside', 'Campagne', 'Image de la section Échappées en campagne', 'activities', IMAGE_REQUIRED, 1, 1, 1, 0, 5],
 
-        // Contact page sections
+        // Contact page sections (unchanged for now)
         ['contact_hero', 'Image d\'en-tête Contact', 'Image de fond de la bannière Contact', 'contact', IMAGE_REQUIRED, 1, 0, 0, 0, 1],
         ['contact_info', 'Informations de contact', 'Coordonnées et horaires (texte uniquement)', 'contact', IMAGE_FORBIDDEN, 1, 1, 1, 0, 2],
     ];
@@ -2555,7 +2547,7 @@ function seedContentSections(): void {
         $stmt->execute($section);
     }
 
-    // Seed default overlay texts for home_hero if not already set
+    // Seed default overlay texts for home_hero
     seedDefaultOverlayTexts();
 }
 
@@ -2576,70 +2568,6 @@ function seedDefaultOverlayTexts(): void {
         WHERE code = ?
     ');
     $stmt->execute(['home_hero']);
-
-    // Enable overlay for home_intro and configure as image-only (texts managed via overlay)
-    // Also enable features for home_intro
-    $stmt = $pdo->prepare('
-        UPDATE content_sections
-        SET has_overlay = 1,
-            has_title = 0,
-            has_description = 0,
-            has_link = 0,
-            has_features = 1
-        WHERE code = ?
-    ');
-    $stmt->execute(['home_intro']);
-
-    // Seed default features for home_intro
-    seedDefaultIntroFeatures();
-}
-
-/**
- * Seed default features for home_intro section
- */
-function seedDefaultIntroFeatures(): void {
-    $pdo = getDatabase();
-
-    // Check if features already exist for home_intro
-    $stmt = $pdo->prepare('SELECT COUNT(*) FROM section_features WHERE section_code = ?');
-    $stmt->execute(['home_intro']);
-    if ($stmt->fetchColumn() > 0) {
-        return; // Already seeded
-    }
-
-    // Default features matching the original design
-    $defaultFeatures = [
-        ['icon' => 'tree', 'label_fr' => 'Jardin paisible', 'label_en' => 'Peaceful garden', 'label_es' => 'Jardín tranquilo', 'label_it' => 'Giardino tranquillo'],
-        ['icon' => 'coffee', 'label_fr' => 'Petit-déjeuner inclus', 'label_en' => 'Breakfast included', 'label_es' => 'Desayuno incluido', 'label_it' => 'Colazione inclusa'],
-        ['icon' => 'map-pin', 'label_fr' => 'Proche centre-ville', 'label_en' => 'Near city center', 'label_es' => 'Cerca del centro', 'label_it' => 'Vicino al centro']
-    ];
-
-    $position = 0;
-    foreach ($defaultFeatures as $feature) {
-        // Insert feature
-        $stmt = $pdo->prepare('
-            INSERT INTO section_features (section_code, icon_code, label, position, is_active)
-            VALUES (?, ?, ?, ?, 1)
-        ');
-        $stmt->execute(['home_intro', $feature['icon'], $feature['label_fr'], $position]);
-        $featureId = $pdo->lastInsertId();
-
-        // Insert translations
-        $translations = [
-            'en' => $feature['label_en'],
-            'es' => $feature['label_es'],
-            'it' => $feature['label_it']
-        ];
-        foreach ($translations as $lang => $label) {
-            $stmt = $pdo->prepare('
-                INSERT INTO section_feature_translations (feature_id, language_code, label)
-                VALUES (?, ?, ?)
-            ');
-            $stmt->execute([$featureId, $lang, $label]);
-        }
-
-        $position++;
-    }
 }
 
 // =====================================================
@@ -3973,21 +3901,21 @@ function migrateImagesToContentBlocks(): array {
     $migrated = 0;
     $errors = [];
 
-    // Map old sections to new section codes
+    // Map old sections to new section codes (only hero sections remain fixed)
     $sectionMap = [
         'home' => [
             1 => ['section' => 'home_hero', 'position' => 1],
             2 => ['section' => 'home_hero', 'position' => 2],
             3 => ['section' => 'home_hero', 'position' => 3],
-            4 => ['section' => 'home_intro', 'position' => 1],
         ],
         'services' => [
-            1 => ['section' => 'services_rooms', 'position' => 1],
-            2 => ['section' => 'services_restaurant', 'position' => 1],
+            1 => ['section' => 'services_hero', 'position' => 1],
         ],
         'activities' => [
-            1 => ['section' => 'activities_discover', 'position' => 1],
-            2 => ['section' => 'activities_wine', 'position' => 1],
+            1 => ['section' => 'activities_hero', 'position' => 1],
+        ],
+        'contact' => [
+            1 => ['section' => 'contact_hero', 'position' => 1],
         ],
     ];
 
