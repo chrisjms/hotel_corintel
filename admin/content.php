@@ -3303,8 +3303,8 @@ if ($editBlockId) {
                 <?php endif; ?>
 
                 <?php
-                // Determine active tab (default to sections unless we're explicitly on general)
-                $activeTab = $_GET['tab'] ?? 'sections';
+                // Determine active tab (default to general/Global Site Settings)
+                $activeTab = $_GET['tab'] ?? 'general';
                 ?>
 
                 <!-- Content Page Tabs -->
