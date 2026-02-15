@@ -2639,6 +2639,11 @@ function initContentTables(): void {
         $pdo->exec("ALTER TABLE content_sections ADD COLUMN image_position VARCHAR(10) DEFAULT 'left'");
     } catch (PDOException $e) { /* Column may already exist */ }
 
+    // Add text_alignment column for presentation-style sections (center, left, right)
+    try {
+        $pdo->exec("ALTER TABLE content_sections ADD COLUMN text_alignment VARCHAR(10) DEFAULT 'center'");
+    } catch (PDOException $e) { /* Column may already exist */ }
+
     // Section services table (reusable service cards for any section)
     $pdo->exec("
         CREATE TABLE IF NOT EXISTS section_services (
@@ -2959,6 +2964,22 @@ function seedSectionTemplates(): void {
             'has_services' => 0,
             'has_gallery' => 1,
             'css_class' => 'section-gallery-cards'
+        ],
+        // Presentation hero: full-width image with text overlay (like page hero)
+        [
+            'code' => 'presentation_hero',
+            'name' => 'Image avec texte (type présentation)',
+            'description' => 'Image pleine largeur avec titre et description en superposition (style hero)',
+            'image_mode' => IMAGE_REQUIRED,
+            'max_blocks' => 1,
+            'has_title' => 0,
+            'has_description' => 0,
+            'has_link' => 0,
+            'has_overlay' => 1,
+            'has_features' => 0,
+            'has_services' => 0,
+            'has_gallery' => 0,
+            'css_class' => 'section-presentation-hero'
         ]
     ];
 
@@ -3375,6 +3396,10 @@ function renderDynamicSection(array $section, string $currentLang = 'fr'): strin
             renderGalleryCardsSection($section, $currentLang, $cssClass);
             break;
 
+        case 'presentation_hero':
+            renderPresentationHeroSection($section, $currentLang, $cssClass);
+            break;
+
         default:
             // Fallback to services indicators
             renderServicesIndicatorsSection($section, $currentLang, $cssClass);
@@ -3740,6 +3765,42 @@ function renderServicesChecklistSection(array $section, string $currentLang, str
                     <?php endif; ?>
                 </div>
             </div>
+        </div>
+    </section>
+    <?php
+}
+
+/**
+ * Render presentation hero section (full-width image with text overlay)
+ * Similar to page heroes but as a reusable dynamic section
+ */
+function renderPresentationHeroSection(array $section, string $currentLang, string $cssClass): void {
+    $overlay = $section['overlay'] ?? [];
+    $subtitle = $overlay['translations'][$currentLang]['subtitle'] ?? $overlay['subtitle'] ?? '';
+    $title = $overlay['translations'][$currentLang]['title'] ?? $overlay['title'] ?? '';
+    $description = $overlay['translations'][$currentLang]['description'] ?? $overlay['description'] ?? '';
+    $blocks = $section['blocks'] ?? [];
+    $sectionCode = $section['code'];
+
+    // Get first image - required for this section type
+    $image = !empty($blocks) ? $blocks[0] : null;
+
+    // If no image, don't render the section
+    if (!$image || empty($image['image_filename'])) {
+        return;
+    }
+    ?>
+    <section class="presentation-hero" data-section="<?= h($sectionCode) ?>" style="background-image: url('<?= h($image['image_filename']) ?>');">
+        <div class="presentation-hero-overlay">
+            <?php if ($subtitle): ?>
+            <p class="presentation-hero-subtitle" data-dynamic-text="<?= h($sectionCode) ?>:subtitle"><?= h($subtitle) ?></p>
+            <?php endif; ?>
+            <?php if ($title): ?>
+            <h2 class="presentation-hero-title" data-dynamic-text="<?= h($sectionCode) ?>:title"><?= h($title) ?></h2>
+            <?php endif; ?>
+            <?php if ($description): ?>
+            <p class="presentation-hero-description" data-dynamic-text="<?= h($sectionCode) ?>:description"><?= h($description) ?></p>
+            <?php endif; ?>
         </div>
     </section>
     <?php
@@ -4846,6 +4907,67 @@ function setSectionImagePosition(string $sectionCode, string $position): bool {
 function getImagePositionClass(string $position): string {
     $options = getImagePositionOptions();
     return $options[$position]['css_class'] ?? 'image-left';
+}
+
+/**
+ * Get available text alignment options
+ */
+function getTextAlignmentOptions(): array {
+    return [
+        'center' => [
+            'label' => 'Centré',
+            'css_class' => 'text-center',
+            'icon' => 'align-center'
+        ],
+        'left' => [
+            'label' => 'Gauche',
+            'css_class' => 'text-left',
+            'icon' => 'align-left'
+        ],
+        'right' => [
+            'label' => 'Droite',
+            'css_class' => 'text-right',
+            'icon' => 'align-right'
+        ]
+    ];
+}
+
+/**
+ * Get section types that support text alignment setting
+ */
+function getSectionTypesWithTextAlignment(): array {
+    return ['presentation_hero'];
+}
+
+/**
+ * Check if a section type supports text alignment setting
+ */
+function sectionSupportsTextAlignment(string $templateType): bool {
+    return in_array($templateType, getSectionTypesWithTextAlignment());
+}
+
+/**
+ * Get the text alignment for a section
+ */
+function getSectionTextAlignment(string $sectionCode): string {
+    $pdo = getDatabase();
+    $stmt = $pdo->prepare('SELECT text_alignment FROM content_sections WHERE code = ?');
+    $stmt->execute([$sectionCode]);
+    return $stmt->fetchColumn() ?: 'center';
+}
+
+/**
+ * Set the text alignment for a section
+ */
+function setSectionTextAlignment(string $sectionCode, string $alignment): bool {
+    $options = getTextAlignmentOptions();
+    if (!isset($options[$alignment])) {
+        $alignment = 'center'; // Fallback to default
+    }
+
+    $pdo = getDatabase();
+    $stmt = $pdo->prepare('UPDATE content_sections SET text_alignment = ? WHERE code = ?');
+    return $stmt->execute([$alignment, $sectionCode]);
 }
 
 /**

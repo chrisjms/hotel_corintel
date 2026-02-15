@@ -304,6 +304,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     $success = setSectionImagePosition($sectionCode, $imagePosition) && $success;
                 }
 
+                // Save text alignment if this section type supports it
+                if (isset($_POST['text_alignment']) && sectionSupportsTextAlignment($section['template_type'] ?? '')) {
+                    $textAlignment = $_POST['text_alignment'];
+                    $success = setSectionTextAlignment($sectionCode, $textAlignment) && $success;
+                }
+
                 if ($success) {
                     $message = 'Apparence de la section mise à jour.';
                     $messageType = 'success';
@@ -1585,6 +1591,71 @@ if ($editBlockId) {
             text-align: center;
         }
         .image-position-option.selected .image-position-name {
+            font-weight: 500;
+        }
+
+        /* Text alignment selector */
+        .text-alignment-selector {
+            margin-top: 1.25rem;
+            padding-top: 1.25rem;
+            border-top: 1px solid var(--admin-border);
+        }
+        .text-alignment-selector > label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 0.75rem;
+            font-size: 0.9rem;
+        }
+        .text-alignment-options {
+            display: flex;
+            gap: 1rem;
+        }
+        .text-alignment-option {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem;
+            border: 2px solid var(--admin-border);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.15s;
+            background: var(--admin-bg);
+            flex: 1;
+            max-width: 100px;
+        }
+        .text-alignment-option:hover {
+            border-color: var(--admin-primary);
+            background: #f8f8f8;
+        }
+        .text-alignment-option.selected {
+            border-color: var(--admin-primary);
+            background: #f0f7f0;
+        }
+        .text-alignment-option input[type="radio"] {
+            display: none;
+        }
+        .text-alignment-preview {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 32px;
+        }
+        .text-alignment-preview svg {
+            width: 24px;
+            height: 24px;
+            color: var(--admin-text-light);
+        }
+        .text-alignment-option.selected .text-alignment-preview svg {
+            color: var(--admin-primary);
+        }
+        .text-alignment-name {
+            font-size: 0.8rem;
+            color: var(--admin-text);
+            text-align: center;
+        }
+        .text-alignment-option.selected .text-alignment-name {
             font-weight: 500;
         }
 
@@ -3303,8 +3374,14 @@ if ($editBlockId) {
                 <?php endif; ?>
 
                 <?php
-                // Determine active tab (default to general/Global Site Settings)
-                $activeTab = $_GET['tab'] ?? 'general';
+                // Determine active tab
+                // If a section is currently selected (via GET or after form processing), stay on sections tab
+                // Otherwise, default to general/Global Site Settings
+                if ($currentSection || $editBlockId) {
+                    $activeTab = 'sections';
+                } else {
+                    $activeTab = $_GET['tab'] ?? 'general';
+                }
                 ?>
 
                 <!-- Content Page Tabs -->
@@ -3702,6 +3779,9 @@ if ($editBlockId) {
                                 $supportsImagePosition = sectionSupportsImagePosition($templateType);
                                 $imagePositionOptions = getImagePositionOptions();
                                 $currentImagePosition = $currentSectionData['image_position'] ?? 'left';
+                                $supportsTextAlignment = sectionSupportsTextAlignment($templateType);
+                                $textAlignmentOptions = getTextAlignmentOptions();
+                                $currentTextAlignment = $currentSectionData['text_alignment'] ?? 'center';
                             ?>
                             <div class="section-settings-panel">
                                 <div class="section-settings-header">
@@ -3766,6 +3846,41 @@ if ($editBlockId) {
                                                     <span class="preview-text"></span>
                                                 </span>
                                                 <span class="image-position-name"><?= h($posData['label']) ?></span>
+                                            </label>
+                                            <?php endforeach; ?>
+                                        </div>
+                                    </div>
+                                    <?php endif; ?>
+
+                                    <?php if ($supportsTextAlignment): ?>
+                                    <div class="text-alignment-selector">
+                                        <label>Alignement du texte</label>
+                                        <div class="text-alignment-options">
+                                            <?php foreach ($textAlignmentOptions as $alignKey => $alignData): ?>
+                                            <label class="text-alignment-option <?= $alignKey === $currentTextAlignment ? 'selected' : '' ?>">
+                                                <input type="radio" name="text_alignment" value="<?= h($alignKey) ?>" <?= $alignKey === $currentTextAlignment ? 'checked' : '' ?>>
+                                                <span class="text-alignment-preview">
+                                                    <?php if ($alignKey === 'left'): ?>
+                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                        <line x1="3" y1="6" x2="21" y2="6"/>
+                                                        <line x1="3" y1="12" x2="15" y2="12"/>
+                                                        <line x1="3" y1="18" x2="18" y2="18"/>
+                                                    </svg>
+                                                    <?php elseif ($alignKey === 'center'): ?>
+                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                        <line x1="3" y1="6" x2="21" y2="6"/>
+                                                        <line x1="6" y1="12" x2="18" y2="12"/>
+                                                        <line x1="4" y1="18" x2="20" y2="18"/>
+                                                    </svg>
+                                                    <?php else: ?>
+                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                        <line x1="3" y1="6" x2="21" y2="6"/>
+                                                        <line x1="9" y1="12" x2="21" y2="12"/>
+                                                        <line x1="6" y1="18" x2="21" y2="18"/>
+                                                    </svg>
+                                                    <?php endif; ?>
+                                                </span>
+                                                <span class="text-alignment-name"><?= h($alignData['label']) ?></span>
                                             </label>
                                             <?php endforeach; ?>
                                         </div>
