@@ -342,6 +342,70 @@ foreach ($items as $item) {
         .translation-note strong {
             color: #2B6CB0;
         }
+        /* Collapsible Categories */
+        .category-group {
+            margin-bottom: 0.5rem;
+            border: 1px solid var(--admin-border);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .category-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 1.25rem;
+            background: var(--admin-bg);
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.2s ease;
+        }
+        .category-header:hover {
+            background: #e8e4de;
+        }
+        .category-header-left {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .category-header h3 {
+            margin: 0;
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--admin-text);
+        }
+        .category-header .badge {
+            font-size: 0.75rem;
+        }
+        .category-toggle {
+            width: 24px;
+            height: 24px;
+            color: var(--admin-text-light);
+            transition: transform 0.3s ease;
+        }
+        .category-header.expanded .category-toggle {
+            transform: rotate(180deg);
+        }
+        .category-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+        .category-content.expanded {
+            max-height: 2000px;
+            transition: max-height 0.5s ease-in;
+        }
+        .category-content .items-table {
+            border-top: 1px solid var(--admin-border);
+        }
+        .category-content .items-table tr:last-child td {
+            border-bottom: none;
+        }
+        .empty-category {
+            padding: 1.5rem;
+            text-align: center;
+            color: var(--admin-text-light);
+            font-style: italic;
+        }
     </style>
 </head>
 <body>
@@ -523,106 +587,135 @@ foreach ($items as $item) {
                     </div>
                 </div>
 
-                <!-- Items Table -->
+                <!-- Items by Category -->
                 <div class="card">
                     <div class="card-header">
                         <h2>Liste des articles</h2>
                         <span class="badge"><?= count($items) ?> articles</span>
                     </div>
-                    <div class="card-body" style="padding: 0;">
+                    <div class="card-body">
                         <?php if (empty($items)): ?>
                             <p class="empty-state">Aucun article. Cliquez sur "Ajouter un article" pour commencer.</p>
                         <?php else: ?>
-                            <table class="items-table">
-                                <thead>
-                                    <tr>
-                                        <th>Article</th>
-                                        <th>Catégorie</th>
-                                        <th>Prix</th>
-                                        <th>Position</th>
-                                        <th>Statut</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php foreach ($items as $item): ?>
-                                        <tr>
-                                            <td>
-                                                <div class="item-info">
-                                                    <?php if ($item['image']): ?>
-                                                        <img src="../<?= h($item['image']) ?>" alt="<?= h($item['name']) ?>" class="item-image">
-                                                    <?php else: ?>
-                                                        <div class="item-image" style="display: flex; align-items: center; justify-content: center;">
-                                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 24px; height: 24px; color: var(--admin-text-light);">
-                                                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                                                                <circle cx="8.5" cy="8.5" r="1.5"/>
-                                                                <polyline points="21 15 16 10 5 21"/>
-                                                            </svg>
-                                                        </div>
-                                                    <?php endif; ?>
-                                                    <div class="item-details">
-                                                        <h4><?= h($item['name']) ?></h4>
-                                                        <p><?= h($item['description'] ?? '') ?></p>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td><?= h($categories[$item['category']] ?? $item['category']) ?></td>
-                                            <td><span class="price"><?= number_format($item['price'], 2, ',', ' ') ?> €</span></td>
-                                            <td><?= $item['position'] ?></td>
-                                            <td>
-                                                <span class="badge <?= $item['is_active'] ? 'badge-active' : 'badge-inactive' ?>">
-                                                    <?= $item['is_active'] ? 'Actif' : 'Inactif' ?>
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <div class="actions-cell">
-                                                    <button type="button" class="btn btn-sm btn-outline btn-icon" onclick="openEditModal(<?= htmlspecialchars(json_encode($item)) ?>)" title="Modifier">
-                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                                                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                                                        </svg>
-                                                    </button>
-                                                    <button type="button" class="btn btn-sm btn-outline btn-icon" onclick="openImageModal(<?= $item['id'] ?>)" title="Changer l'image">
-                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                                                            <circle cx="8.5" cy="8.5" r="1.5"/>
-                                                            <polyline points="21 15 16 10 5 21"/>
-                                                        </svg>
-                                                    </button>
-                                                    <form method="POST" style="display: inline;">
-                                                        <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
-                                                        <input type="hidden" name="action" value="toggle">
-                                                        <input type="hidden" name="id" value="<?= $item['id'] ?>">
-                                                        <button type="submit" class="btn btn-sm <?= $item['is_active'] ? 'btn-outline' : 'btn-success' ?> btn-icon" title="<?= $item['is_active'] ? 'Désactiver' : 'Activer' ?>">
-                                                            <?php if ($item['is_active']): ?>
-                                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                                    <path d="M18.36 6.64a9 9 0 1 1-12.73 0"/>
-                                                                    <line x1="12" y1="2" x2="12" y2="12"/>
-                                                                </svg>
-                                                            <?php else: ?>
-                                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                                    <polyline points="20 6 9 17 4 12"/>
-                                                                </svg>
-                                                            <?php endif; ?>
-                                                        </button>
-                                                    </form>
-                                                    <form method="POST" style="display: inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cet article ?');">
-                                                        <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
-                                                        <input type="hidden" name="action" value="delete">
-                                                        <input type="hidden" name="id" value="<?= $item['id'] ?>">
-                                                        <button type="submit" class="btn btn-sm btn-danger btn-icon" title="Supprimer">
-                                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                                <polyline points="3 6 5 6 21 6"/>
-                                                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                                                            </svg>
-                                                        </button>
-                                                    </form>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
-                            </table>
+                            <?php
+                            // Group items by category
+                            $itemsByCategory = [];
+                            foreach ($items as $item) {
+                                $cat = $item['category'] ?? 'general';
+                                if (!isset($itemsByCategory[$cat])) {
+                                    $itemsByCategory[$cat] = [];
+                                }
+                                $itemsByCategory[$cat][] = $item;
+                            }
+                            ?>
+                            <?php foreach ($categories as $catKey => $catLabel): ?>
+                                <?php $categoryItems = $itemsByCategory[$catKey] ?? []; ?>
+                                <div class="category-group">
+                                    <div class="category-header" onclick="toggleCategory(this)">
+                                        <div class="category-header-left">
+                                            <h3><?= h($catLabel) ?></h3>
+                                            <span class="badge"><?= count($categoryItems) ?> article<?= count($categoryItems) > 1 ? 's' : '' ?></span>
+                                        </div>
+                                        <svg class="category-toggle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <polyline points="6 9 12 15 18 9"/>
+                                        </svg>
+                                    </div>
+                                    <div class="category-content">
+                                        <?php if (empty($categoryItems)): ?>
+                                            <p class="empty-category">Aucun article dans cette catégorie</p>
+                                        <?php else: ?>
+                                            <table class="items-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Article</th>
+                                                        <th>Prix</th>
+                                                        <th>Position</th>
+                                                        <th>Statut</th>
+                                                        <th>Actions</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <?php foreach ($categoryItems as $item): ?>
+                                                        <tr>
+                                                            <td>
+                                                                <div class="item-info">
+                                                                    <?php if ($item['image']): ?>
+                                                                        <img src="../<?= h($item['image']) ?>" alt="<?= h($item['name']) ?>" class="item-image">
+                                                                    <?php else: ?>
+                                                                        <div class="item-image" style="display: flex; align-items: center; justify-content: center;">
+                                                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 24px; height: 24px; color: var(--admin-text-light);">
+                                                                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                                                                <circle cx="8.5" cy="8.5" r="1.5"/>
+                                                                                <polyline points="21 15 16 10 5 21"/>
+                                                                            </svg>
+                                                                        </div>
+                                                                    <?php endif; ?>
+                                                                    <div class="item-details">
+                                                                        <h4><?= h($item['name']) ?></h4>
+                                                                        <p><?= h($item['description'] ?? '') ?></p>
+                                                                    </div>
+                                                                </div>
+                                                            </td>
+                                                            <td><span class="price"><?= number_format($item['price'], 2, ',', ' ') ?> €</span></td>
+                                                            <td><?= $item['position'] ?></td>
+                                                            <td>
+                                                                <span class="badge <?= $item['is_active'] ? 'badge-active' : 'badge-inactive' ?>">
+                                                                    <?= $item['is_active'] ? 'Actif' : 'Inactif' ?>
+                                                                </span>
+                                                            </td>
+                                                            <td>
+                                                                <div class="actions-cell">
+                                                                    <button type="button" class="btn btn-sm btn-outline btn-icon" onclick="openEditModal(<?= htmlspecialchars(json_encode($item)) ?>)" title="Modifier">
+                                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                                                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                                                        </svg>
+                                                                    </button>
+                                                                    <button type="button" class="btn btn-sm btn-outline btn-icon" onclick="openImageModal(<?= $item['id'] ?>)" title="Changer l'image">
+                                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                                                            <circle cx="8.5" cy="8.5" r="1.5"/>
+                                                                            <polyline points="21 15 16 10 5 21"/>
+                                                                        </svg>
+                                                                    </button>
+                                                                    <form method="POST" style="display: inline;">
+                                                                        <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
+                                                                        <input type="hidden" name="action" value="toggle">
+                                                                        <input type="hidden" name="id" value="<?= $item['id'] ?>">
+                                                                        <button type="submit" class="btn btn-sm <?= $item['is_active'] ? 'btn-outline' : 'btn-success' ?> btn-icon" title="<?= $item['is_active'] ? 'Désactiver' : 'Activer' ?>">
+                                                                            <?php if ($item['is_active']): ?>
+                                                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                                                    <path d="M18.36 6.64a9 9 0 1 1-12.73 0"/>
+                                                                                    <line x1="12" y1="2" x2="12" y2="12"/>
+                                                                                </svg>
+                                                                            <?php else: ?>
+                                                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                                                    <polyline points="20 6 9 17 4 12"/>
+                                                                                </svg>
+                                                                            <?php endif; ?>
+                                                                        </button>
+                                                                    </form>
+                                                                    <form method="POST" style="display: inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cet article ?');">
+                                                                        <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
+                                                                        <input type="hidden" name="action" value="delete">
+                                                                        <input type="hidden" name="id" value="<?= $item['id'] ?>">
+                                                                        <button type="submit" class="btn btn-sm btn-danger btn-icon" title="Supprimer">
+                                                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                                                <polyline points="3 6 5 6 21 6"/>
+                                                                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                                                            </svg>
+                                                                        </button>
+                                                                    </form>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    <?php endforeach; ?>
+                                                </tbody>
+                                            </table>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
                         <?php endif; ?>
                     </div>
                 </div>
@@ -911,6 +1004,13 @@ foreach ($items as $item) {
     </script>
 
     <script>
+        // Category toggle functionality
+        function toggleCategory(header) {
+            header.classList.toggle('expanded');
+            const content = header.nextElementSibling;
+            content.classList.toggle('expanded');
+        }
+
         // Language tab switching for Create modal
         function switchCreateTab(lang) {
             document.querySelectorAll('#createLangTabs .lang-tab').forEach(tab => {
