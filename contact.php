@@ -456,7 +456,9 @@ $contactInfo = getContactInfo();
             <?= h($hotelName) ?>
             <span><?= h($logoText) ?></span>
           </div>
-          <p data-i18n="footer.description">Un havre de paix aux portes de Bordeaux, où charme et authenticité vous attendent pour un séjour inoubliable.</p>
+<?php $footerDescription = getHotelDescription(); if ($footerDescription): ?>
+          <p><?= h($footerDescription) ?></p>
+          <?php endif; ?>
         </div>
         <div class="footer-nav">
           <h4 class="footer-title" data-i18n="footer.navigation">Navigation</h4>

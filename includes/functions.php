@@ -2157,6 +2157,87 @@ function setSetting(string $key, string $value): bool {
 }
 
 /**
+ * Get the hotel description for footer
+ * Returns empty string if not set
+ */
+/**
+ * Get the hotel description for footer (with translation support)
+ * @param string|null $langCode Language code (defaults to current language)
+ * @return string Description in requested language or fallback to default
+ */
+function getHotelDescription(?string $langCode = null): string {
+    $langCode = $langCode ?? getCurrentLanguage();
+    $defaultLang = getDefaultLanguage();
+
+    // Try requested language first (non-default languages stored with suffix)
+    if ($langCode !== $defaultLang) {
+        $translated = getSetting('hotel_description_' . $langCode, '');
+        if (!empty($translated)) {
+            return $translated;
+        }
+    }
+
+    // Fallback to default language (French)
+    return (string) getSetting('hotel_description', '');
+}
+
+/**
+ * Set the hotel description for footer (default language)
+ */
+function setHotelDescription(string $description): bool {
+    return setSetting('hotel_description', $description);
+}
+
+/**
+ * Get all hotel description translations
+ * @return array Translations keyed by language code
+ */
+function getHotelDescriptionTranslations(): array {
+    $translations = [];
+    $defaultLang = getDefaultLanguage();
+
+    // Default language (French)
+    $translations[$defaultLang] = getSetting('hotel_description', '');
+
+    // Other languages
+    foreach (getSupportedLanguages() as $langCode) {
+        if ($langCode !== $defaultLang) {
+            $translations[$langCode] = getSetting('hotel_description_' . $langCode, '');
+        }
+    }
+
+    return $translations;
+}
+
+/**
+ * Save hotel description translations
+ * @param array $translations Array of ['language_code' => 'description']
+ * @return bool Success status
+ */
+function setHotelDescriptionTranslations(array $translations): bool {
+    $success = true;
+    $defaultLang = getDefaultLanguage();
+
+    foreach ($translations as $langCode => $description) {
+        if (!in_array($langCode, getSupportedLanguages())) {
+            continue;
+        }
+
+        $description = trim($description);
+
+        if ($langCode === $defaultLang) {
+            // Default language uses base key
+            $success = setSetting('hotel_description', $description) && $success;
+        } else {
+            // Other languages use suffixed keys
+            $success = setSetting('hotel_description_' . $langCode, $description) && $success;
+        }
+    }
+
+    return $success;
+}
+
+/**
  * Default theme colors (matching style.css)
  */
 function getDefaultThemeColors(): array {

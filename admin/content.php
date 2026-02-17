@@ -52,6 +52,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $newHotelName = trim($_POST['hotel_name'] ?? '');
                 $newLogoText = trim($_POST['logo_text'] ?? '');
 
+                // Collect hotel description translations (including default French)
+                $descriptionTranslations = [
+                    'fr' => trim($_POST['hotel_description'] ?? ''),
+                    'en' => trim($_POST['hotel_description_en'] ?? ''),
+                    'es' => trim($_POST['hotel_description_es'] ?? ''),
+                    'it' => trim($_POST['hotel_description_it'] ?? '')
+                ];
+
                 if (empty($newHotelName)) {
                     $message = 'Le nom de l\'hôtel ne peut pas être vide.';
                     $messageType = 'error';
@@ -61,8 +69,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 } else {
                     $nameUpdated = setHotelName($newHotelName);
                     $logoUpdated = setLogoText($newLogoText);
+                    $descriptionUpdated = setHotelDescriptionTranslations($descriptionTranslations);
 
-                    if ($nameUpdated && $logoUpdated) {
+                    if ($nameUpdated && $logoUpdated && $descriptionUpdated) {
                         $hotelName = $newHotelName;
                         $logoText = $newLogoText;
                         $message = 'Contenu général mis à jour avec succès.';
@@ -847,14 +856,21 @@ if ($editBlockId) {
             margin-bottom: 0.5rem;
             font-size: 0.9rem;
         }
-        .general-content-field input {
+        .general-content-field input,
+        .general-content-field textarea {
             width: 100%;
             padding: 0.75rem;
             border: 1px solid var(--admin-border);
             border-radius: 6px;
             font-size: 0.95rem;
+            font-family: inherit;
         }
-        .general-content-field input:focus {
+        .general-content-field textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        .general-content-field input:focus,
+        .general-content-field textarea:focus {
             outline: none;
             border-color: var(--admin-primary);
         }
@@ -1352,7 +1368,8 @@ if ($editBlockId) {
         .overlay-translations-content {
             display: block;
         }
-        .overlay-translations-content.hidden {
+        .overlay-translations-content.hidden,
+        .hidden {
             display: none;
         }
         .translation-lang-group {
@@ -3426,6 +3443,48 @@ if ($editBlockId) {
                                         <label for="logo_text">Texte du logo</label>
                                         <input type="text" id="logo_text" name="logo_text" value="<?= h($logoText) ?>" required>
                                         <small>Sous-titre affiché sous le nom dans le logo (ex: "Bordeaux Est")</small>
+                                    </div>
+
+                                    <div class="general-content-field" style="grid-column: 1 / -1;">
+                                        <label for="hotel_description">
+                                            Description de l'hôtel
+                                            <span style="font-weight: normal; color: var(--admin-text-light); font-size: 0.85em; margin-left: 0.5rem;">🇫🇷 Français (défaut)</span>
+                                        </label>
+                                        <textarea id="hotel_description" name="hotel_description" rows="3" placeholder="Description affichée dans le pied de page du site"><?= h(getHotelDescription('fr')) ?></textarea>
+                                        <small>Cette description apparaît dans le pied de page de toutes les pages. Laissez vide pour ne pas afficher de description.</small>
+                                    </div>
+
+                                    <?php
+                                    $descTranslations = getHotelDescriptionTranslations();
+                                    $descLanguages = [
+                                        'en' => ['flag' => '🇬🇧', 'name' => 'English'],
+                                        'es' => ['flag' => '🇪🇸', 'name' => 'Español'],
+                                        'it' => ['flag' => '🇮🇹', 'name' => 'Italiano']
+                                    ];
+                                    ?>
+                                    <div class="general-content-field" style="grid-column: 1 / -1;">
+                                        <div class="overlay-translations-header collapsed" id="descriptionTranslationsToggle" onclick="this.classList.toggle('collapsed'); document.getElementById('descriptionTranslations').classList.toggle('hidden');">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <polyline points="6 9 12 15 18 9"/>
+                                            </svg>
+                                            <h5>Traductions de la description (optionnel)</h5>
+                                        </div>
+                                        <div id="descriptionTranslations" class="hidden" style="border: 1px solid var(--admin-border); border-radius: 6px; padding: 1rem; background: var(--admin-bg); margin-top: 0.5rem;">
+                                            <?php foreach ($descLanguages as $langCode => $langInfo): ?>
+                                            <div class="translation-lang-group">
+                                                <div class="translation-lang-label">
+                                                    <span class="flag"><?= $langInfo['flag'] ?></span>
+                                                    <?= $langInfo['name'] ?>
+                                                </div>
+                                                <div class="translation-fields">
+                                                    <div class="translation-field full-width">
+                                                        <textarea name="hotel_description_<?= $langCode ?>" rows="2" placeholder="Description in <?= $langInfo['name'] ?>"><?= h($descTranslations[$langCode] ?? '') ?></textarea>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <?php endforeach; ?>
+                                            <small style="display: block; margin-top: 0.75rem; color: var(--admin-text-light);">Laissez vide pour utiliser la version française par défaut.</small>
+                                        </div>
                                     </div>
                                 </div>
 

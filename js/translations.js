@@ -338,7 +338,6 @@ const translations = {
 
     // Footer
     footer: {
-      description: 'Un havre de paix aux portes de Bordeaux, où charme et authenticité vous attendent pour un séjour inoubliable.',
       navigation: 'Navigation',
       services: 'Services',
       contactTitle: 'Contact',
@@ -660,7 +659,6 @@ const translations = {
     },
 
     footer: {
-      description: 'A peaceful retreat at the gates of Bordeaux, where charm and authenticity await you for an unforgettable stay.',
       navigation: 'Navigation',
       services: 'Services',
       contactTitle: 'Contact',
@@ -981,7 +979,6 @@ const translations = {
     },
 
     footer: {
-      description: 'Un remanso de paz a las puertas de Burdeos, donde el encanto y la autenticidad le esperan para una estancia inolvidable.',
       navigation: 'Navegación',
       services: 'Servicios',
       contactTitle: 'Contacto',
@@ -1302,7 +1299,6 @@ const translations = {
     },
 
     footer: {
-      description: 'Un\'oasi di pace alle porte di Bordeaux, dove fascino e autenticità vi attendono per un soggiorno indimenticabile.',
       navigation: 'Navigazione',
       services: 'Servizi',
       contactTitle: 'Contatti',
