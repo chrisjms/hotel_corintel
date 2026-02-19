@@ -36,6 +36,9 @@ seedContentSections();
 $message = '';
 $messageType = '';
 
+// Track if we should stay on sections tab after POST actions
+$stayOnSectionsTab = false;
+
 // Get current section from URL
 $currentSection = $_GET['section'] ?? null;
 $editBlockId = isset($_GET['edit']) ? (int)$_GET['edit'] : null;
@@ -746,6 +749,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     $message = 'Section supprimée.';
                     $messageType = 'success';
                     $currentSection = null;
+                    $stayOnSectionsTab = true; // Stay on sections tab after deletion
                 } else {
                     $message = 'Erreur lors de la suppression.';
                     $messageType = 'error';
@@ -2376,6 +2380,18 @@ if ($editBlockId) {
             height: 18px;
         }
 
+        /* Section header actions */
+        .section-header-actions {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+        .section-header-actions .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+        }
+
         /* Dynamic section modal */
         .dynamic-section-modal {
             display: none;
@@ -3393,8 +3409,9 @@ if ($editBlockId) {
                 <?php
                 // Determine active tab
                 // If a section is currently selected (via GET or after form processing), stay on sections tab
+                // If we just performed an action that should stay on sections tab, respect that
                 // Otherwise, default to general/Global Site Settings
-                if ($currentSection || $editBlockId) {
+                if ($currentSection || $editBlockId || $stayOnSectionsTab) {
                     $activeTab = 'sections';
                 } else {
                     $activeTab = $_GET['tab'] ?? 'general';
@@ -3813,18 +3830,29 @@ if ($editBlockId) {
                         <div class="card-header">
                             <h2><?= h($currentSectionData['name']) ?></h2>
                             <?php if (!empty($currentSectionData['is_dynamic'])): ?>
-                            <form method="POST" style="display: inline;" onsubmit="return confirm('Supprimer cette section et tout son contenu ?');">
-                                <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
-                                <input type="hidden" name="action" value="delete_dynamic_section">
-                                <input type="hidden" name="section_code" value="<?= h($currentSection) ?>">
-                                <button type="submit" class="btn btn-danger">
+                            <div class="section-header-actions">
+                                <button type="button" class="btn btn-outline rename-section-btn"
+                                        data-section-code="<?= h($currentSection) ?>"
+                                        data-section-name="<?= h($currentSectionData['custom_name'] ?: $currentSectionData['name']) ?>">
                                     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-                                        <polyline points="3 6 5 6 21 6"/>
-                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                                     </svg>
-                                    Supprimer la section
+                                    Renommer
                                 </button>
-                            </form>
+                                <form method="POST" style="display: inline;" onsubmit="return confirm('Supprimer cette section et tout son contenu ?');">
+                                    <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
+                                    <input type="hidden" name="action" value="delete_dynamic_section">
+                                    <input type="hidden" name="section_code" value="<?= h($currentSection) ?>">
+                                    <button type="submit" class="btn btn-danger">
+                                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                            <polyline points="3 6 5 6 21 6"/>
+                                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                        </svg>
+                                        Supprimer
+                                    </button>
+                                </form>
+                            </div>
                             <?php endif; ?>
                         </div>
                         <div class="card-body">
@@ -5080,6 +5108,39 @@ if ($editBlockId) {
                 </div>
             </div>
 
+            <!-- Rename Section Modal -->
+            <div class="dynamic-section-modal" id="renameSectionModal">
+                <div class="dynamic-section-modal-content">
+                    <div class="dynamic-section-modal-header">
+                        <h3>Renommer la section</h3>
+                        <button type="button" class="dynamic-section-modal-close" id="renameSectionModalClose">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="18" y1="6" x2="6" y2="18"/>
+                                <line x1="6" y1="6" x2="18" y2="18"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <form method="POST" id="renameSectionForm">
+                        <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
+                        <input type="hidden" name="action" value="update_dynamic_section">
+                        <input type="hidden" name="section_code" id="renameSectionCode" value="">
+
+                        <div class="dynamic-section-modal-body">
+                            <div class="dynamic-section-form-group">
+                                <label for="renameSectionName">Nouveau nom</label>
+                                <input type="text" id="renameSectionName" name="section_name" required placeholder="Nom de la section">
+                                <small>Ce nom sera affiché dans l'admin et peut être utilisé comme titre</small>
+                            </div>
+                        </div>
+
+                        <div class="dynamic-section-modal-footer">
+                            <button type="button" class="btn btn-outline" id="renameSectionModalCancel">Annuler</button>
+                            <button type="submit" class="btn btn-primary">Enregistrer</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
                 <?php endif; ?>
                 <!-- End of tab content -->
             </div>
@@ -5874,6 +5935,54 @@ if ($editBlockId) {
             dynamicSectionModal.classList.remove('active');
             document.body.style.overflow = '';
         }
+    }
+
+    // =====================================================
+    // RENAME SECTION MODAL FUNCTIONALITY
+    // =====================================================
+
+    const renameSectionModal = document.getElementById('renameSectionModal');
+    const renameSectionForm = document.getElementById('renameSectionForm');
+    const renameSectionCode = document.getElementById('renameSectionCode');
+    const renameSectionName = document.getElementById('renameSectionName');
+    const renameSectionModalClose = document.getElementById('renameSectionModalClose');
+    const renameSectionModalCancel = document.getElementById('renameSectionModalCancel');
+
+    if (renameSectionModal) {
+        // Open modal when clicking "Renommer" button
+        document.querySelectorAll('.rename-section-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const sectionCode = btn.dataset.sectionCode;
+                const sectionName = btn.dataset.sectionName;
+
+                renameSectionCode.value = sectionCode;
+                renameSectionName.value = sectionName;
+                renameSectionModal.classList.add('active');
+                document.body.style.overflow = 'hidden';
+
+                // Focus on the input field
+                setTimeout(() => renameSectionName.focus(), 100);
+            });
+        });
+
+        // Close modal
+        function closeRenameSectionModal() {
+            renameSectionModal.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        renameSectionModalClose?.addEventListener('click', closeRenameSectionModal);
+        renameSectionModalCancel?.addEventListener('click', closeRenameSectionModal);
+        renameSectionModal.addEventListener('click', (e) => {
+            if (e.target === renameSectionModal) closeRenameSectionModal();
+        });
+
+        // Close on escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && renameSectionModal.classList.contains('active')) {
+                closeRenameSectionModal();
+            }
+        });
     }
 
     // Dynamic sections drag and drop reordering
