@@ -43,9 +43,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $messageType = $result['success'] ? 'success' : 'error';
                 }
                 break;
+
+            case 'update_vat_settings':
+                $defaultRate = floatval($_POST['default_vat_rate'] ?? 10);
+                if ($defaultRate < 0 || $defaultRate > 100) {
+                    $message = 'Le taux de TVA doit être entre 0 et 100%.';
+                    $messageType = 'error';
+                } else {
+                    $success = setDefaultVatRate($defaultRate);
+                    if ($success) {
+                        $message = 'Taux de TVA par défaut mis à jour.';
+                        $messageType = 'success';
+                    } else {
+                        $message = 'Erreur lors de la mise à jour.';
+                        $messageType = 'error';
+                    }
+                }
+                break;
         }
     }
 }
+
+// Get VAT settings
+$defaultVatRate = getDefaultVatRate();
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -242,6 +262,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             </div>
 
                             <button type="submit" class="btn btn-primary">Changer le mot de passe</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- VAT Settings -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Paramètres TVA</h2>
+                    </div>
+                    <div class="card-body">
+                        <form method="POST">
+                            <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
+                            <input type="hidden" name="action" value="update_vat_settings">
+
+                            <div class="form-group">
+                                <label for="default_vat_rate">Taux de TVA par défaut (%)</label>
+                                <input type="number" id="default_vat_rate" name="default_vat_rate"
+                                       value="<?= h($defaultVatRate) ?>"
+                                       min="0" max="100" step="0.1" required>
+                                <small>Ce taux est utilisé pour calculer les prix HT/TTC dans le room service. En France, le taux réduit pour la restauration est de 10%.</small>
+                            </div>
+
+                            <div class="form-group" style="margin-top: 1rem;">
+                                <p style="font-size: 0.875rem; color: var(--admin-text-light);">
+                                    <strong>Taux de TVA par catégorie :</strong> Vous pouvez définir un taux spécifique pour chaque catégorie dans
+                                    <a href="room-service-categories.php" style="color: var(--admin-primary);">Room Service → Catégories</a>.
+                                </p>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary">Enregistrer</button>
                         </form>
                     </div>
                 </div>

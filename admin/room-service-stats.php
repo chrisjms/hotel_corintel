@@ -24,6 +24,7 @@ if (!in_array($period, $validPeriods)) {
 // Fetch all statistics
 try {
     $periodStats = getRoomServicePeriodStats($period);
+    $financialStats = getRoomServiceFinancialStats($period);
     $dailyRevenue = getRoomServiceDailyRevenue(30);
     $weeklyRevenue = getRoomServiceWeeklyRevenue(12);
     $monthlyRevenue = getRoomServiceMonthlyRevenue(12);
@@ -38,6 +39,7 @@ try {
     $bestDay = getRoomServiceBestPeriod('day', 30);
     $bestWeek = getRoomServiceBestPeriod('week', 12);
     $bestMonth = getRoomServiceBestPeriod('month', 12);
+    $defaultVatRate = getDefaultVatRate();
     $statsEnabled = true;
 } catch (PDOException $e) {
     $statsEnabled = false;
@@ -377,9 +379,91 @@ $comparisonLabels = [
             gap: 1rem;
             margin-bottom: 1.5rem;
         }
+        /* Financial Stats Styles */
+        .financial-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            padding: 1.5rem;
+            color: white;
+        }
+        .financial-card h3 {
+            font-size: 0.875rem;
+            font-weight: 500;
+            opacity: 0.9;
+            margin-bottom: 0.75rem;
+        }
+        .financial-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+        }
+        .financial-item {
+            text-align: center;
+        }
+        .financial-item .label {
+            font-size: 0.75rem;
+            opacity: 0.85;
+            margin-bottom: 0.25rem;
+        }
+        .financial-item .value {
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+        .financial-item .value.small {
+            font-size: 1rem;
+        }
+        .vat-breakdown-card {
+            background: white;
+            border: 1px solid var(--admin-border);
+            border-radius: 8px;
+            padding: 1.25rem;
+        }
+        .vat-breakdown-card h4 {
+            font-size: 0.875rem;
+            color: var(--admin-text);
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+        .vat-breakdown-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--admin-bg);
+        }
+        .vat-breakdown-row:last-child {
+            border-bottom: none;
+        }
+        .vat-breakdown-row .category {
+            font-size: 0.875rem;
+            color: var(--admin-text);
+        }
+        .vat-breakdown-row .rate {
+            font-size: 0.75rem;
+            color: var(--admin-text-light);
+            padding: 2px 6px;
+            background: var(--admin-bg);
+            border-radius: 3px;
+        }
+        .vat-breakdown-row .amounts {
+            text-align: right;
+            font-size: 0.875rem;
+        }
+        .vat-breakdown-row .ttc {
+            font-weight: 600;
+            color: var(--admin-primary);
+        }
+        .vat-breakdown-row .ht-vat {
+            font-size: 0.75rem;
+            color: var(--admin-text-light);
+        }
         @media (max-width: 768px) {
             .stats-grid-3 {
                 grid-template-columns: 1fr;
+            }
+            .financial-grid {
+                grid-template-columns: 1fr;
+                gap: 0.75rem;
             }
             .section-divider {
                 flex-direction: column;
@@ -585,6 +669,50 @@ $comparisonLabels = [
                         <div class="stat-change neutral">
                             <?= $periodStats['current']['delivered_orders'] ?> livrée(s), <?= $periodStats['current']['cancelled_orders'] ?> annulée(s)
                         </div>
+                    </div>
+                </div>
+
+                <!-- Financial Breakdown -->
+                <div class="charts-grid" style="margin-bottom: 1.5rem;">
+                    <div class="financial-card">
+                        <h3>Détail financier (<?= $periodLabels[$period] ?? $period ?>)</h3>
+                        <div class="financial-grid">
+                            <div class="financial-item">
+                                <div class="label">CA TTC</div>
+                                <div class="value"><?= number_format($financialStats['current']['revenue_ttc'], 2, ',', ' ') ?> €</div>
+                            </div>
+                            <div class="financial-item">
+                                <div class="label">CA HT</div>
+                                <div class="value"><?= number_format($financialStats['current']['revenue_ht'], 2, ',', ' ') ?> €</div>
+                            </div>
+                            <div class="financial-item">
+                                <div class="label">TVA collectée</div>
+                                <div class="value"><?= number_format($financialStats['current']['vat_collected'], 2, ',', ' ') ?> €</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="vat-breakdown-card">
+                        <h4>TVA par catégorie</h4>
+                        <?php if (empty($financialStats['current']['by_category'])): ?>
+                            <p style="color: var(--admin-text-light); font-size: 0.875rem;">Aucune donnée pour cette période</p>
+                        <?php else: ?>
+                            <?php
+                            $categories = getRoomServiceCategories();
+                            foreach ($financialStats['current']['by_category'] as $catData):
+                            ?>
+                            <div class="vat-breakdown-row">
+                                <div>
+                                    <span class="category"><?= h($categories[$catData['category']] ?? ucfirst($catData['category'])) ?></span>
+                                    <span class="rate"><?= number_format($catData['vat_rate'], 1) ?>%</span>
+                                </div>
+                                <div class="amounts">
+                                    <div class="ttc"><?= number_format($catData['total_ttc'], 2, ',', ' ') ?> € TTC</div>
+                                    <div class="ht-vat"><?= number_format($catData['total_ht'], 2, ',', ' ') ?> € HT / <?= number_format($catData['total_vat'], 2, ',', ' ') ?> € TVA</div>
+                                </div>
+                            </div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
                     </div>
                 </div>
 

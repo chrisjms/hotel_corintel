@@ -62,6 +62,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                         }
                         saveCategoryTranslations($code, $translations);
 
+                        // Save custom VAT rate if specified
+                        $vatRate = isset($_POST['vat_rate']) && $_POST['vat_rate'] !== '' ? floatval($_POST['vat_rate']) : null;
+                        if ($vatRate !== null) {
+                            setCategoryVatRate($code, $vatRate);
+                        }
+
                         $message = 'Catégorie créée avec succès.';
                         $messageType = 'success';
                     } else {
@@ -104,6 +110,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                         }
                         saveCategoryTranslations($code, $translations);
 
+                        // Save custom VAT rate (empty = use default)
+                        $vatRate = isset($_POST['vat_rate']) && $_POST['vat_rate'] !== '' ? floatval($_POST['vat_rate']) : null;
+                        setCategoryVatRate($code, $vatRate);
+
                         $message = 'Catégorie mise à jour.';
                         $messageType = 'success';
                     } else {
@@ -136,10 +146,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
 }
 
-// Get all categories with translations and item counts
+// Get all categories with translations, item counts, and VAT rates
 $categories = getRoomServiceCategoriesAllWithTranslations();
+$defaultVatRate = getDefaultVatRate();
 foreach ($categories as &$cat) {
     $cat['items_count'] = getCategoryItemsCount($cat['code']);
+    $customVatRate = getSetting('vat_rate_' . $cat['code'], null);
+    $cat['vat_rate'] = $customVatRate !== null && $customVatRate !== '' ? (float)$customVatRate : null;
+    $cat['effective_vat_rate'] = $cat['vat_rate'] ?? $defaultVatRate;
 }
 unset($cat);
 
@@ -203,6 +217,23 @@ $nextPosition = getNextCategoryPosition();
             display: inline-flex;
             align-items: center;
             gap: 0.25rem;
+        }
+        .vat-rate {
+            font-weight: 600;
+            color: var(--admin-primary);
+        }
+        .vat-rate.vat-default {
+            color: var(--admin-text-light);
+            font-weight: 400;
+        }
+        .vat-rate small {
+            font-size: 0.7rem;
+            opacity: 0.7;
+        }
+        .vat-field-note {
+            font-size: 0.8rem;
+            color: var(--admin-text-light);
+            margin-top: 0.25rem;
         }
         .actions-cell {
             display: flex;
@@ -558,6 +589,7 @@ $nextPosition = getNextCategoryPosition();
                                     <tr>
                                         <th>Position</th>
                                         <th>Catégorie</th>
+                                        <th>TVA</th>
                                         <th>Horaires</th>
                                         <th>Articles</th>
                                         <th>Statut</th>
@@ -578,6 +610,13 @@ $nextPosition = getNextCategoryPosition();
                                                     <strong><?= h($category['name']) ?></strong>
                                                     <small><?= h($category['code']) ?></small>
                                                 </div>
+                                            </td>
+                                            <td>
+                                                <?php if ($category['vat_rate'] !== null): ?>
+                                                    <span class="vat-rate"><?= number_format($category['vat_rate'], 1) ?>%</span>
+                                                <?php else: ?>
+                                                    <span class="vat-rate vat-default"><?= number_format($defaultVatRate, 1) ?>% <small>(défaut)</small></span>
+                                                <?php endif; ?>
                                             </td>
                                             <td>
                                                 <?php if ($timeStart && $timeEnd): ?>
@@ -700,6 +739,12 @@ $nextPosition = getNextCategoryPosition();
                     </div>
                     <p class="form-hint">Laissez vide pour une disponibilité 24h/24</p>
 
+                    <div class="form-group">
+                        <label for="createVatRate">Taux de TVA (%)</label>
+                        <input type="number" id="createVatRate" name="vat_rate" min="0" max="100" step="0.1" placeholder="<?= $defaultVatRate ?>">
+                        <p class="vat-field-note">Laissez vide pour utiliser le taux par défaut (<?= $defaultVatRate ?>%)</p>
+                    </div>
+
                     <div class="translation-section">
                         <h4>Traductions (optionnel)</h4>
                         <div class="translation-row">
@@ -762,6 +807,12 @@ $nextPosition = getNextCategoryPosition();
                         </div>
                     </div>
                     <p class="form-hint">Laissez vide pour une disponibilité 24h/24</p>
+
+                    <div class="form-group">
+                        <label for="editVatRate">Taux de TVA (%)</label>
+                        <input type="number" id="editVatRate" name="vat_rate" min="0" max="100" step="0.1" placeholder="<?= $defaultVatRate ?>">
+                        <p class="vat-field-note">Laissez vide pour utiliser le taux par défaut (<?= $defaultVatRate ?>%)</p>
+                    </div>
 
                     <div class="form-group">
                         <label class="checkbox-group">
@@ -845,6 +896,9 @@ $nextPosition = getNextCategoryPosition();
         document.getElementById('editTimeStart').value = category.time_start ? category.time_start.substring(0, 5) : '';
         document.getElementById('editTimeEnd').value = category.time_end ? category.time_end.substring(0, 5) : '';
         document.getElementById('editActive').checked = category.is_active == 1;
+
+        // Set VAT rate (empty if null/default)
+        document.getElementById('editVatRate').value = category.vat_rate !== null ? category.vat_rate : '';
 
         // Set translations
         const translations = category.translations || {};

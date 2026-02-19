@@ -260,6 +260,38 @@ foreach ($items as $item) {
             font-weight: 600;
             color: var(--admin-primary);
         }
+        .price-ttc {
+            font-weight: 600;
+            color: var(--admin-primary);
+        }
+        .price-ht {
+            font-size: 0.8rem;
+            color: var(--admin-text-light);
+            margin-top: 2px;
+        }
+        .price-cell {
+            white-space: nowrap;
+        }
+        .price-input-group {
+            position: relative;
+        }
+        .price-ht-display {
+            font-size: 0.85rem;
+            color: var(--admin-text-light);
+            margin-top: 0.25rem;
+            padding: 0.5rem 0.75rem;
+            background: var(--admin-bg);
+            border-radius: 4px;
+        }
+        .vat-badge {
+            display: inline-block;
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            background: rgba(66, 153, 225, 0.1);
+            color: #2B6CB0;
+            border-radius: 3px;
+            margin-left: 0.5rem;
+        }
         .actions-cell {
             display: flex;
             gap: 0.5rem;
@@ -628,7 +660,7 @@ foreach ($items as $item) {
                                                 <thead>
                                                     <tr>
                                                         <th>Article</th>
-                                                        <th>Prix</th>
+                                                        <th>Prix TTC / HT</th>
                                                         <th>Position</th>
                                                         <th>Statut</th>
                                                         <th>Actions</th>
@@ -656,7 +688,14 @@ foreach ($items as $item) {
                                                                     </div>
                                                                 </div>
                                                             </td>
-                                                            <td><span class="price"><?= number_format($item['price'], 2, ',', ' ') ?> €</span></td>
+                                                            <td class="price-cell">
+                                                                <?php
+                                                                $vatRate = getCategoryVatRate($catKey);
+                                                                $priceHT = calculatePriceHT($item['price'], $vatRate);
+                                                                ?>
+                                                                <div class="price-ttc"><?= number_format($item['price'], 2, ',', ' ') ?> € TTC</div>
+                                                                <div class="price-ht"><?= number_format($priceHT, 2, ',', ' ') ?> € HT</div>
+                                                            </td>
                                                             <td><?= $item['position'] ?></td>
                                                             <td>
                                                                 <span class="badge <?= $item['is_active'] ? 'badge-active' : 'badge-inactive' ?>">
@@ -813,16 +852,19 @@ foreach ($items as $item) {
 
                     <!-- Common fields (not translatable) -->
                     <div class="form-group">
-                        <label for="createPrice">Prix (€) *</label>
-                        <input type="number" id="createPrice" name="price" required min="0.01" step="0.01">
-                    </div>
-                    <div class="form-group">
                         <label for="createCategory">Catégorie</label>
-                        <select id="createCategory" name="category">
+                        <select id="createCategory" name="category" onchange="updateCreatePriceHT()">
                             <?php foreach ($categories as $key => $label): ?>
-                                <option value="<?= h($key) ?>"><?= h($label) ?></option>
+                                <option value="<?= h($key) ?>" data-vat="<?= getCategoryVatRate($key) ?>"><?= h($label) ?></option>
                             <?php endforeach; ?>
                         </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="createPrice">Prix TTC (€) * <span class="vat-badge" id="createVatBadge">TVA <?= getDefaultVatRate() ?>%</span></label>
+                        <div class="price-input-group">
+                            <input type="number" id="createPrice" name="price" required min="0.01" step="0.01" oninput="updateCreatePriceHT()">
+                            <div class="price-ht-display" id="createPriceHT">Prix HT : - €</div>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label for="createPosition">Position (ordre d'affichage)</label>
@@ -933,16 +975,19 @@ foreach ($items as $item) {
 
                     <!-- Common fields (not translatable) -->
                     <div class="form-group">
-                        <label for="editPrice">Prix (€) *</label>
-                        <input type="number" id="editPrice" name="price" required min="0.01" step="0.01">
-                    </div>
-                    <div class="form-group">
                         <label for="editCategory">Catégorie</label>
-                        <select id="editCategory" name="category">
+                        <select id="editCategory" name="category" onchange="updateEditPriceHT()">
                             <?php foreach ($categories as $key => $label): ?>
-                                <option value="<?= h($key) ?>"><?= h($label) ?></option>
+                                <option value="<?= h($key) ?>" data-vat="<?= getCategoryVatRate($key) ?>"><?= h($label) ?></option>
                             <?php endforeach; ?>
                         </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="editPrice">Prix TTC (€) * <span class="vat-badge" id="editVatBadge">TVA <?= getDefaultVatRate() ?>%</span></label>
+                        <div class="price-input-group">
+                            <input type="number" id="editPrice" name="price" required min="0.01" step="0.01" oninput="updateEditPriceHT()">
+                            <div class="price-ht-display" id="editPriceHT">Prix HT : - €</div>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label for="editPosition">Position (ordre d'affichage)</label>
@@ -1011,6 +1056,71 @@ foreach ($items as $item) {
             content.classList.toggle('expanded');
         }
 
+        // VAT rate data for categories
+        const categoryVatRates = <?= json_encode(getAllVatRates()) ?>;
+        const defaultVatRate = <?= getDefaultVatRate() ?>;
+
+        // Calculate HT price from TTC
+        function calculateHT(priceTTC, vatRate) {
+            if (vatRate <= 0) return priceTTC;
+            return priceTTC / (1 + (vatRate / 100));
+        }
+
+        // Format price for display (French format)
+        function formatPriceDisplay(price) {
+            return price.toFixed(2).replace('.', ',') + ' €';
+        }
+
+        // Get VAT rate for a category
+        function getVatRateForCategory(categoryCode) {
+            if (categoryVatRates[categoryCode] !== null && categoryVatRates[categoryCode] !== undefined) {
+                return categoryVatRates[categoryCode];
+            }
+            return defaultVatRate;
+        }
+
+        // Update Create modal HT price display
+        function updateCreatePriceHT() {
+            const priceInput = document.getElementById('createPrice');
+            const categorySelect = document.getElementById('createCategory');
+            const htDisplay = document.getElementById('createPriceHT');
+            const vatBadge = document.getElementById('createVatBadge');
+
+            const priceTTC = parseFloat(priceInput.value) || 0;
+            const selectedOption = categorySelect.options[categorySelect.selectedIndex];
+            const vatRate = parseFloat(selectedOption.dataset.vat) || defaultVatRate;
+
+            vatBadge.textContent = `TVA ${vatRate}%`;
+
+            if (priceTTC > 0) {
+                const priceHT = calculateHT(priceTTC, vatRate);
+                htDisplay.textContent = `Prix HT : ${formatPriceDisplay(priceHT)}`;
+            } else {
+                htDisplay.textContent = 'Prix HT : - €';
+            }
+        }
+
+        // Update Edit modal HT price display
+        function updateEditPriceHT() {
+            const priceInput = document.getElementById('editPrice');
+            const categorySelect = document.getElementById('editCategory');
+            const htDisplay = document.getElementById('editPriceHT');
+            const vatBadge = document.getElementById('editVatBadge');
+
+            const priceTTC = parseFloat(priceInput.value) || 0;
+            const selectedOption = categorySelect.options[categorySelect.selectedIndex];
+            const vatRate = parseFloat(selectedOption.dataset.vat) || defaultVatRate;
+
+            vatBadge.textContent = `TVA ${vatRate}%`;
+
+            if (priceTTC > 0) {
+                const priceHT = calculateHT(priceTTC, vatRate);
+                htDisplay.textContent = `Prix HT : ${formatPriceDisplay(priceHT)}`;
+            } else {
+                htDisplay.textContent = 'Prix HT : - €';
+            }
+        }
+
         // Language tab switching for Create modal
         function switchCreateTab(lang) {
             document.querySelectorAll('#createLangTabs .lang-tab').forEach(tab => {
@@ -1036,6 +1146,8 @@ foreach ($items as $item) {
             document.querySelector('#createModal form').reset();
             // Reset tabs to French
             switchCreateTab('fr');
+            // Reset HT display
+            updateCreatePriceHT();
             document.getElementById('createModal').classList.add('active');
         }
 
@@ -1066,10 +1178,13 @@ foreach ($items as $item) {
             document.getElementById('editDescription_it').value = itTrans.description || '';
 
             // Set common fields
-            document.getElementById('editPrice').value = item.price;
             document.getElementById('editCategory').value = item.category || 'general';
+            document.getElementById('editPrice').value = item.price;
             document.getElementById('editPosition').value = item.position || 0;
             document.getElementById('editActive').checked = item.is_active == 1;
+
+            // Update HT price display
+            updateEditPriceHT();
 
             // Reset tabs to French
             switchEditTab('fr');
