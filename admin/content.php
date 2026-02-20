@@ -2844,210 +2844,455 @@ if ($editBlockId) {
         }
 
         /* =====================================================
-           SECTION TYPE PREVIEW SYSTEM
-           Visual mockups for section templates
+           SECTION TYPE SELECTION GRID
+           Visual card-based template selection
            ===================================================== */
 
-        .section-preview {
-            margin-top: 1rem;
-            padding: 1rem;
-            background: var(--admin-bg);
-            border: 1px solid var(--admin-border);
-            border-radius: 8px;
+        .template-selection-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+
+        @media (min-width: 600px) {
+            .template-selection-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        .template-card {
+            position: relative;
+            background: var(--admin-card);
+            border: 2px solid var(--admin-border);
+            border-radius: 12px;
+            padding: 0;
+            cursor: pointer;
+            transition: all 0.2s ease;
             overflow: hidden;
         }
 
-        .section-preview-label {
-            font-size: 0.7rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: var(--admin-text-light);
-            margin-bottom: 0.75rem;
+        .template-card:hover {
+            border-color: var(--admin-primary);
+            box-shadow: 0 4px 12px rgba(139, 90, 43, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .template-card.selected {
+            border-color: var(--admin-primary);
+            box-shadow: 0 0 0 3px rgba(139, 90, 43, 0.2);
+        }
+
+        .template-card.selected::after {
+            content: '';
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 24px;
+            height: 24px;
+            background: var(--admin-primary);
+            border-radius: 50%;
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            justify-content: center;
+            z-index: 2;
         }
 
-        .section-preview-label svg {
-            width: 14px;
-            height: 14px;
+        .template-card.selected::before {
+            content: '';
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            width: 6px;
+            height: 10px;
+            border: 2px solid white;
+            border-top: none;
+            border-left: none;
+            transform: rotate(45deg);
+            z-index: 3;
         }
 
-        .section-preview-mock {
-            background: white;
-            border-radius: 6px;
+        .template-card-preview {
+            background: linear-gradient(135deg, #faf6f0 0%, #f5f0e8 100%);
             padding: 1rem;
-            font-size: 0.75rem;
+            min-height: 140px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .template-card-preview .preview-inner {
+            width: 100%;
+            max-width: 200px;
+            transform: scale(0.9);
+            transform-origin: center;
+        }
+
+        .template-card-label {
+            padding: 0.75rem;
+            text-align: center;
+            border-top: 1px solid var(--admin-border);
+            background: var(--admin-card);
+        }
+
+        .template-card-name {
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--admin-text);
+            margin: 0;
+        }
+
+        .template-card.selected .template-card-label {
+            background: rgba(139, 90, 43, 0.05);
+        }
+
+        .template-card.selected .template-card-name {
+            color: var(--admin-primary);
+        }
+
+        /* Larger modal for better grid display */
+        #dynamicSectionModal .dynamic-section-modal-content {
+            max-width: 700px;
+        }
+
+        /* Section name input styling */
+        .section-name-input-group {
+            margin-bottom: 1.5rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--admin-border);
+        }
+
+        .section-name-input-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--admin-text);
+        }
+
+        .section-name-input-group input {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            border: 2px solid var(--admin-border);
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+
+        .section-name-input-group input:focus {
+            outline: none;
+            border-color: var(--admin-primary);
+        }
+
+        .section-name-input-group small {
+            display: block;
+            margin-top: 0.5rem;
+            font-size: 0.8rem;
+            color: var(--admin-text-light);
+        }
+
+        .template-selection-label {
+            font-weight: 600;
+            color: var(--admin-text);
+            margin-bottom: 1rem;
+            display: block;
+        }
+
+        /* =====================================================
+           SECTION TYPE PREVIEW MOCKUPS - UNIFIED DESIGN SYSTEM
+           Clean, consistent visual language for all templates
+           ===================================================== */
+
+        /* Base preview container - fixed proportions, no overflow */
+        .section-preview-mock {
+            background: #ffffff;
+            border-radius: 6px;
+            padding: 12px;
+            overflow: hidden;
             position: relative;
-            min-height: 120px;
+            min-height: 90px;
+            box-sizing: border-box;
         }
 
-        /* Mock elements - reusable building blocks */
-        .mock-subtitle {
-            height: 8px;
-            width: 60px;
-            background: linear-gradient(90deg, var(--admin-primary) 0%, transparent 100%);
-            border-radius: 4px;
-            margin-bottom: 0.5rem;
-            opacity: 0.5;
-        }
-
-        .mock-title {
-            height: 12px;
-            width: 120px;
-            background: var(--admin-text);
-            border-radius: 4px;
-            margin-bottom: 0.5rem;
-            opacity: 0.3;
-        }
-
-        .mock-text {
-            height: 6px;
-            background: var(--admin-text-light);
-            border-radius: 3px;
-            margin-bottom: 0.35rem;
-            opacity: 0.2;
-        }
-
-        .mock-text.short { width: 70%; }
-        .mock-text.medium { width: 85%; }
-        .mock-text.long { width: 100%; }
-
+        /* ===== UNIFIED IMAGE PLACEHOLDER ===== */
         .mock-image {
-            background: linear-gradient(135deg, #e0e0e0 0%, #f5f5f5 100%);
+            background: linear-gradient(145deg, #e8e4df 0%, #d4cfc7 100%);
             border-radius: 4px;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #bbb;
+            position: relative;
+            overflow: hidden;
+            flex-shrink: 0;
         }
 
-        .mock-image svg {
-            width: 24px;
-            height: 24px;
-            opacity: 0.5;
+        /* Landscape icon inside image placeholder */
+        .mock-image::before {
+            content: '';
+            position: absolute;
+            bottom: 25%;
+            left: 15%;
+            right: 15%;
+            height: 30%;
+            background: linear-gradient(135deg, #c9c4bc 0%, #b8b2a8 100%);
+            border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+            opacity: 0.6;
         }
 
+        .mock-image::after {
+            content: '';
+            position: absolute;
+            top: 20%;
+            right: 20%;
+            width: 15%;
+            height: 15%;
+            background: #d4cfc7;
+            border-radius: 50%;
+            opacity: 0.8;
+        }
+
+        /* ===== UNIFIED TEXT ELEMENTS ===== */
+        /* Subtitle - small accent text */
+        .mock-subtitle {
+            height: 4px;
+            width: 40px;
+            background: #8B6F47;
+            border-radius: 2px;
+            opacity: 0.6;
+            margin-bottom: 6px;
+        }
+
+        /* Title - main heading */
+        .mock-title {
+            height: 8px;
+            width: 80px;
+            background: #3d3d3d;
+            border-radius: 3px;
+            opacity: 0.7;
+            margin-bottom: 8px;
+        }
+
+        /* Body text lines */
+        .mock-text {
+            height: 4px;
+            background: #9a9a9a;
+            border-radius: 2px;
+            margin-bottom: 4px;
+            opacity: 0.4;
+        }
+        .mock-text.long { width: 100%; }
+        .mock-text.medium { width: 80%; }
+        .mock-text.short { width: 60%; }
+
+        /* ===== UNIFIED ICON STYLE ===== */
         .mock-icon {
-            width: 24px;
-            height: 24px;
-            background: rgba(139, 90, 43, 0.1);
+            width: 20px;
+            height: 20px;
+            background: linear-gradient(135deg, #8B6F47 0%, #6B5635 100%);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
+            position: relative;
+        }
+
+        /* Star shape using CSS */
+        .mock-icon::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background: #fff;
+            clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+            opacity: 0.9;
         }
 
         .mock-icon svg {
-            width: 12px;
-            height: 12px;
-            color: var(--admin-primary);
-            opacity: 0.7;
+            width: 10px;
+            height: 10px;
+            color: #fff;
+            opacity: 0.9;
         }
 
+        /* ===== UNIFIED CHECK/BULLET STYLE ===== */
         .mock-check {
-            width: 14px;
-            height: 14px;
-            background: rgba(92, 124, 94, 0.2);
+            width: 12px;
+            height: 12px;
+            background: #5C7C5E;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
+            position: relative;
+        }
+
+        /* CSS checkmark */
+        .mock-check::before {
+            content: '';
+            width: 3px;
+            height: 5px;
+            border: solid #fff;
+            border-width: 0 1.5px 1.5px 0;
+            transform: rotate(45deg);
+            margin-top: -1px;
         }
 
         .mock-check svg {
-            width: 8px;
-            height: 8px;
-            color: #5C7C5E;
+            width: 7px;
+            height: 7px;
+            color: #fff;
         }
 
-        /* Preview: Services Indicators */
+        /* ===== UNIFIED STAT/INDICATOR BLOCK ===== */
+        .mock-stat {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 8px;
+            background: rgba(139, 111, 71, 0.08);
+            border-radius: 4px;
+            border: 1px solid rgba(139, 111, 71, 0.12);
+        }
+
+        .mock-stat-value {
+            font-size: 10px;
+            font-weight: 700;
+            color: #8B6F47;
+            line-height: 1;
+        }
+
+        .mock-stat-label {
+            height: 4px;
+            width: 24px;
+            background: #8B6F47;
+            border-radius: 2px;
+            opacity: 0.4;
+        }
+
+        /* ===== UNIFIED CARD STYLE ===== */
+        .mock-card {
+            background: #f8f6f3;
+            border-radius: 4px;
+            overflow: hidden;
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .mock-card-image {
+            height: 28px;
+            background: linear-gradient(145deg, #e8e4df 0%, #d4cfc7 100%);
+            position: relative;
+        }
+
+        .mock-card-image::before {
+            content: '';
+            position: absolute;
+            bottom: 20%;
+            left: 10%;
+            right: 10%;
+            height: 40%;
+            background: rgba(180, 170, 158, 0.5);
+            border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+        }
+
+        .mock-card-body {
+            padding: 6px;
+        }
+
+        .mock-card-title {
+            height: 5px;
+            width: 70%;
+            background: #3d3d3d;
+            border-radius: 2px;
+            opacity: 0.5;
+            margin-bottom: 4px;
+        }
+
+        .mock-card-text {
+            height: 3px;
+            width: 90%;
+            background: #9a9a9a;
+            border-radius: 2px;
+            opacity: 0.3;
+        }
+
+        /* ============================================
+           TEMPLATE-SPECIFIC LAYOUTS
+           ============================================ */
+
+        /* --- Services Indicators (Image + Text + Stats) --- */
         .preview-services-indicators {
             display: grid;
-            grid-template-columns: 1fr 80px;
-            gap: 1rem;
+            grid-template-columns: 1fr 55px;
+            gap: 10px;
             align-items: start;
         }
 
         .preview-services-indicators .preview-content {
             display: flex;
             flex-direction: column;
+            min-width: 0;
         }
 
         .preview-services-indicators .preview-indicators {
             display: flex;
             flex-wrap: wrap;
-            gap: 0.5rem;
-            margin-top: 0.75rem;
+            gap: 4px;
+            margin-top: 6px;
         }
 
-        .preview-services-indicators .indicator-item {
-            display: flex;
-            align-items: center;
-            gap: 0.35rem;
-            padding: 0.25rem 0.5rem;
-            background: var(--admin-bg);
-            border-radius: 4px;
+        .preview-services-indicators .mock-image {
+            width: 55px;
+            height: 50px;
         }
 
-        .preview-services-indicators .indicator-label {
-            height: 6px;
-            width: 35px;
-            background: var(--admin-text-light);
-            border-radius: 3px;
-            opacity: 0.3;
-        }
-
-        .preview-services-indicators .preview-image {
-            width: 80px;
-            height: 60px;
-        }
-
-        /* Preview: Text Style */
+        /* --- Text Style (Centered text with features) --- */
         .preview-text-style {
             text-align: center;
-            padding: 0.5rem;
-        }
-
-        .preview-text-style .mock-subtitle,
-        .preview-text-style .mock-title {
-            margin-left: auto;
-            margin-right: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
         .preview-text-style .text-block {
-            max-width: 200px;
-            margin: 0 auto;
+            width: 100%;
+            max-width: 140px;
+            margin-bottom: 8px;
+        }
+
+        .preview-text-style .text-block .mock-text {
+            margin-left: auto;
+            margin-right: auto;
         }
 
         .preview-text-style .preview-features {
             display: flex;
             justify-content: center;
-            gap: 1rem;
-            margin-top: 0.75rem;
+            gap: 12px;
         }
 
         .preview-text-style .feature-item {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 0.25rem;
+            gap: 4px;
         }
 
         .preview-text-style .feature-label {
-            height: 5px;
-            width: 30px;
-            background: var(--admin-text-light);
+            height: 3px;
+            width: 20px;
+            background: #9a9a9a;
             border-radius: 2px;
-            opacity: 0.3;
+            opacity: 0.4;
         }
 
-        /* Preview: Services Grid */
+        /* --- Services Grid (Icon cards in grid) --- */
+        .preview-services-grid {
+            display: flex;
+            flex-direction: column;
+        }
+
         .preview-services-grid .header-area {
             text-align: center;
-            margin-bottom: 0.75rem;
+            margin-bottom: 8px;
         }
 
         .preview-services-grid .header-area .mock-subtitle,
@@ -3059,81 +3304,88 @@ if ($editBlockId) {
         .preview-services-grid .services-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 0.5rem;
+            gap: 6px;
         }
 
         .preview-services-grid .service-card {
-            background: var(--admin-bg);
+            background: #f8f6f3;
             border-radius: 4px;
-            padding: 0.5rem;
+            padding: 8px 4px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 0.35rem;
+            gap: 4px;
+            border: 1px solid rgba(0,0,0,0.04);
         }
 
         .preview-services-grid .card-title {
-            height: 5px;
-            width: 35px;
-            background: var(--admin-text);
+            height: 4px;
+            width: 28px;
+            background: #3d3d3d;
+            border-radius: 2px;
+            opacity: 0.5;
+        }
+
+        .preview-services-grid .card-text {
+            height: 3px;
+            width: 36px;
+            background: #9a9a9a;
             border-radius: 2px;
             opacity: 0.3;
         }
 
-        .preview-services-grid .card-text {
-            height: 4px;
-            width: 45px;
-            background: var(--admin-text-light);
-            border-radius: 2px;
-            opacity: 0.2;
-        }
-
-        /* Preview: Services Checklist */
+        /* --- Services Checklist (Image + checkmarks) --- */
         .preview-services-checklist {
             display: grid;
-            grid-template-columns: 80px 1fr;
-            gap: 1rem;
+            grid-template-columns: 50px 1fr;
+            gap: 10px;
             align-items: start;
         }
 
-        .preview-services-checklist .preview-image {
-            width: 80px;
-            height: 60px;
+        .preview-services-checklist .mock-image {
+            width: 50px;
+            height: 45px;
         }
 
         .preview-services-checklist .preview-content {
             display: flex;
             flex-direction: column;
+            min-width: 0;
         }
 
         .preview-services-checklist .checklist {
             display: flex;
             flex-direction: column;
-            gap: 0.35rem;
-            margin-top: 0.5rem;
+            gap: 5px;
+            margin-top: 4px;
         }
 
         .preview-services-checklist .check-item {
             display: flex;
             align-items: center;
-            gap: 0.35rem;
+            gap: 6px;
         }
 
         .preview-services-checklist .check-label {
-            height: 5px;
-            width: 60px;
-            background: var(--admin-text-light);
+            height: 4px;
+            background: #9a9a9a;
             border-radius: 2px;
-            opacity: 0.3;
+            opacity: 0.4;
         }
 
-        .preview-services-checklist .check-item:nth-child(2) .check-label { width: 75px; }
-        .preview-services-checklist .check-item:nth-child(3) .check-label { width: 50px; }
+        .preview-services-checklist .check-item:nth-child(1) .check-label { width: 50px; }
+        .preview-services-checklist .check-item:nth-child(2) .check-label { width: 60px; }
+        .preview-services-checklist .check-item:nth-child(3) .check-label { width: 40px; }
 
-        /* Preview: Gallery Style */
+        /* --- Gallery Style (Image cards with captions) --- */
+        .preview-gallery-style {
+            display: flex;
+            flex-direction: column;
+        }
+
         .preview-gallery-style .header-area {
             text-align: center;
-            margin-bottom: 0.75rem;
+            margin-bottom: 8px;
         }
 
         .preview-gallery-style .header-area .mock-subtitle,
@@ -3145,54 +3397,63 @@ if ($editBlockId) {
         .preview-gallery-style .gallery-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 0.5rem;
+            gap: 5px;
         }
 
         .preview-gallery-style .gallery-card {
-            background: var(--admin-bg);
-            border-radius: 4px;
+            background: #f8f6f3;
+            border-radius: 3px;
             overflow: hidden;
+            border: 1px solid rgba(0,0,0,0.04);
         }
 
         .preview-gallery-style .card-image {
-            height: 35px;
-            background: linear-gradient(135deg, #e0e0e0 0%, #f0f0f0 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            height: 24px;
+            background: linear-gradient(145deg, #e8e4df 0%, #d4cfc7 100%);
+            position: relative;
         }
 
-        .preview-gallery-style .card-image svg {
-            width: 14px;
-            height: 14px;
-            color: #ccc;
+        .preview-gallery-style .card-image::before {
+            content: '';
+            position: absolute;
+            bottom: 15%;
+            left: 10%;
+            right: 10%;
+            height: 45%;
+            background: rgba(180, 170, 158, 0.5);
+            border-radius: 50% 50% 0 0 / 100% 100% 0 0;
         }
 
         .preview-gallery-style .card-content {
-            padding: 0.35rem;
+            padding: 4px;
         }
 
         .preview-gallery-style .card-title {
-            height: 5px;
+            height: 4px;
             width: 80%;
-            background: var(--admin-text);
+            background: #3d3d3d;
             border-radius: 2px;
-            opacity: 0.3;
-            margin-bottom: 0.25rem;
+            opacity: 0.5;
+            margin-bottom: 3px;
         }
 
         .preview-gallery-style .card-desc {
-            height: 4px;
+            height: 3px;
             width: 60%;
-            background: var(--admin-text-light);
+            background: #9a9a9a;
             border-radius: 2px;
-            opacity: 0.2;
+            opacity: 0.3;
         }
 
-        /* Preview: Gallery Cards (room-card style with overlay) */
+        /* --- Gallery Cards (Full-bleed image with overlay text) --- */
+        .preview-gallery-cards {
+            display: flex;
+            flex-direction: column;
+        }
+
         .preview-gallery-cards .header-area {
             text-align: center;
-            margin-bottom: 0.75rem;
+            margin-bottom: 8px;
         }
 
         .preview-gallery-cards .header-area .mock-subtitle,
@@ -3204,29 +3465,43 @@ if ($editBlockId) {
         .preview-gallery-cards .gallery-cards-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 0.5rem;
+            gap: 5px;
         }
 
         .preview-gallery-cards .gallery-card-overlay {
             position: relative;
-            border-radius: 6px;
+            border-radius: 4px;
             overflow: hidden;
-            height: 70px;
+            height: 50px;
         }
 
         .preview-gallery-cards .card-image-bg {
             position: absolute;
             inset: 0;
-            background: linear-gradient(135deg, #8B6F47 0%, #6B5635 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            background: linear-gradient(145deg, #8B6F47 0%, #5d4a2f 100%);
         }
 
-        .preview-gallery-cards .card-image-bg svg {
-            width: 18px;
-            height: 18px;
-            color: rgba(255,255,255,0.3);
+        /* Mini landscape in overlay cards */
+        .preview-gallery-cards .card-image-bg::before {
+            content: '';
+            position: absolute;
+            bottom: 35%;
+            left: 10%;
+            right: 10%;
+            height: 25%;
+            background: rgba(255,255,255,0.15);
+            border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+        }
+
+        .preview-gallery-cards .card-image-bg::after {
+            content: '';
+            position: absolute;
+            top: 15%;
+            right: 15%;
+            width: 12%;
+            height: 12%;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
         }
 
         .preview-gallery-cards .card-overlay-content {
@@ -3234,34 +3509,25 @@ if ($editBlockId) {
             bottom: 0;
             left: 0;
             right: 0;
-            padding: 0.4rem;
-            background: linear-gradient(transparent, rgba(0,0,0,0.7));
+            padding: 6px;
+            background: linear-gradient(transparent 0%, rgba(0,0,0,0.6) 100%);
         }
 
         .preview-gallery-cards .overlay-title {
-            height: 5px;
-            width: 70%;
+            height: 4px;
+            width: 65%;
             background: #fff;
             border-radius: 2px;
-            opacity: 0.9;
-            margin-bottom: 0.2rem;
+            opacity: 0.95;
+            margin-bottom: 3px;
         }
 
         .preview-gallery-cards .overlay-desc {
             height: 3px;
-            width: 50%;
+            width: 45%;
             background: #fff;
             border-radius: 2px;
             opacity: 0.6;
-        }
-
-        /* Animation for preview transitions */
-        .section-preview-mock {
-            transition: opacity 0.2s ease;
-        }
-
-        .section-preview-mock.switching {
-            opacity: 0.5;
         }
     </style>
 </head>
@@ -4794,309 +5060,180 @@ if ($editBlockId) {
                         <input type="hidden" name="page" id="dynamicSectionPage" value="">
 
                         <div class="dynamic-section-modal-body">
-                            <div class="dynamic-section-form-group">
+                            <!-- Section Name Input -->
+                            <div class="section-name-input-group">
                                 <label for="sectionName">Nom de la section</label>
                                 <input type="text" id="sectionName" name="section_name" required placeholder="Ex: Nos engagements">
                                 <small>Ce nom sera affiché dans l'admin et peut être utilisé comme titre par défaut</small>
                             </div>
 
-                            <div class="dynamic-section-form-group">
-                                <label for="templateCode">Type de section</label>
-                                <select id="templateCode" name="template_code" required>
-                                    <?php foreach ($templates as $template): ?>
-                                    <option value="<?= h($template['code']) ?>"><?= h($template['name']) ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                                <div class="template-option-desc" id="templateDescription">
-                                    <?= h($templates[0]['description'] ?? '') ?>
-                                </div>
+                            <!-- Hidden input for selected template -->
+                            <input type="hidden" id="templateCode" name="template_code" value="services_indicators" required>
 
-                                <!-- Section Type Visual Preview -->
-                                <div class="section-preview">
-                                    <div class="section-preview-label">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                                            <line x1="3" y1="9" x2="21" y2="9"/>
-                                            <line x1="9" y1="21" x2="9" y2="9"/>
-                                        </svg>
-                                        Aperçu du rendu
-                                    </div>
-                                    <div class="section-preview-mock" id="sectionPreviewMock">
-                                        <!-- Preview templates - one for each section type -->
+                            <!-- Template Selection Label -->
+                            <label class="template-selection-label">Choisissez un type de section</label>
 
-                                        <!-- Services Indicators Preview -->
-                                        <div class="preview-template preview-services-indicators" data-template="services_indicators">
-                                            <div class="preview-content">
+                            <!-- Visual Template Selection Grid -->
+                            <div class="template-selection-grid">
+                                <?php foreach ($templates as $index => $template): ?>
+                                <div class="template-card<?= $index === 0 ? ' selected' : '' ?>" data-template="<?= h($template['code']) ?>">
+                                    <div class="template-card-preview">
+                                        <div class="preview-inner">
+                                            <?php if ($template['code'] === 'services_indicators'): ?>
+                                            <!-- Services Indicators: Image + Text + Stats row -->
+                                            <div class="section-preview-mock preview-services-indicators">
+                                                <div class="preview-content">
+                                                    <div class="mock-subtitle"></div>
+                                                    <div class="mock-title"></div>
+                                                    <div class="mock-text long"></div>
+                                                    <div class="mock-text medium"></div>
+                                                    <div class="preview-indicators">
+                                                        <div class="mock-stat">
+                                                            <span class="mock-stat-value">25</span>
+                                                            <div class="mock-stat-label"></div>
+                                                        </div>
+                                                        <div class="mock-stat">
+                                                            <span class="mock-stat-value">4.8</span>
+                                                            <div class="mock-stat-label"></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="mock-image"></div>
+                                            </div>
+
+                                            <?php elseif ($template['code'] === 'text_style'): ?>
+                                            <!-- Text Style: Centered text with icon features -->
+                                            <div class="section-preview-mock preview-text-style">
+                                                <div class="mock-subtitle"></div>
+                                                <div class="mock-title"></div>
+                                                <div class="text-block">
+                                                    <div class="mock-text long"></div>
+                                                    <div class="mock-text medium"></div>
+                                                    <div class="mock-text short"></div>
+                                                </div>
+                                                <div class="preview-features">
+                                                    <div class="feature-item">
+                                                        <div class="mock-icon"></div>
+                                                        <div class="feature-label"></div>
+                                                    </div>
+                                                    <div class="feature-item">
+                                                        <div class="mock-icon"></div>
+                                                        <div class="feature-label"></div>
+                                                    </div>
+                                                    <div class="feature-item">
+                                                        <div class="mock-icon"></div>
+                                                        <div class="feature-label"></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <?php elseif ($template['code'] === 'services_style'): ?>
+                                            <!-- Services Grid: Icon cards in a grid -->
+                                            <div class="section-preview-mock preview-services-grid">
+                                                <div class="header-area">
+                                                    <div class="mock-subtitle"></div>
+                                                    <div class="mock-title"></div>
+                                                </div>
+                                                <div class="services-grid">
+                                                    <div class="service-card">
+                                                        <div class="mock-icon"></div>
+                                                        <div class="card-title"></div>
+                                                        <div class="card-text"></div>
+                                                    </div>
+                                                    <div class="service-card">
+                                                        <div class="mock-icon"></div>
+                                                        <div class="card-title"></div>
+                                                        <div class="card-text"></div>
+                                                    </div>
+                                                    <div class="service-card">
+                                                        <div class="mock-icon"></div>
+                                                        <div class="card-title"></div>
+                                                        <div class="card-text"></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <?php elseif ($template['code'] === 'services_checklist'): ?>
+                                            <!-- Services Checklist: Image + bullet points -->
+                                            <div class="section-preview-mock preview-services-checklist">
+                                                <div class="mock-image"></div>
+                                                <div class="preview-content">
+                                                    <div class="mock-subtitle"></div>
+                                                    <div class="mock-title"></div>
+                                                    <div class="checklist">
+                                                        <div class="check-item"><div class="mock-check"></div><div class="check-label"></div></div>
+                                                        <div class="check-item"><div class="mock-check"></div><div class="check-label"></div></div>
+                                                        <div class="check-item"><div class="mock-check"></div><div class="check-label"></div></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <?php elseif ($template['code'] === 'gallery_style'): ?>
+                                            <!-- Gallery Style: Image cards with captions -->
+                                            <div class="section-preview-mock preview-gallery-style">
+                                                <div class="header-area">
+                                                    <div class="mock-subtitle"></div>
+                                                    <div class="mock-title"></div>
+                                                </div>
+                                                <div class="gallery-grid">
+                                                    <div class="gallery-card">
+                                                        <div class="card-image"></div>
+                                                        <div class="card-content"><div class="card-title"></div><div class="card-desc"></div></div>
+                                                    </div>
+                                                    <div class="gallery-card">
+                                                        <div class="card-image"></div>
+                                                        <div class="card-content"><div class="card-title"></div><div class="card-desc"></div></div>
+                                                    </div>
+                                                    <div class="gallery-card">
+                                                        <div class="card-image"></div>
+                                                        <div class="card-content"><div class="card-title"></div><div class="card-desc"></div></div>
+                                                    </div>
+                                                    <div class="gallery-card">
+                                                        <div class="card-image"></div>
+                                                        <div class="card-content"><div class="card-title"></div><div class="card-desc"></div></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <?php elseif ($template['code'] === 'gallery_cards'): ?>
+                                            <!-- Gallery Cards: Full-bleed images with overlay text -->
+                                            <div class="section-preview-mock preview-gallery-cards">
+                                                <div class="header-area">
+                                                    <div class="mock-subtitle"></div>
+                                                    <div class="mock-title"></div>
+                                                </div>
+                                                <div class="gallery-cards-grid">
+                                                    <div class="gallery-card-overlay">
+                                                        <div class="card-image-bg"></div>
+                                                        <div class="card-overlay-content"><div class="overlay-title"></div><div class="overlay-desc"></div></div>
+                                                    </div>
+                                                    <div class="gallery-card-overlay">
+                                                        <div class="card-image-bg"></div>
+                                                        <div class="card-overlay-content"><div class="overlay-title"></div><div class="overlay-desc"></div></div>
+                                                    </div>
+                                                    <div class="gallery-card-overlay">
+                                                        <div class="card-image-bg"></div>
+                                                        <div class="card-overlay-content"><div class="overlay-title"></div><div class="overlay-desc"></div></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <?php else: ?>
+                                            <!-- Generic Preview for unknown types -->
+                                            <div class="section-preview-mock">
                                                 <div class="mock-subtitle"></div>
                                                 <div class="mock-title"></div>
                                                 <div class="mock-text long"></div>
                                                 <div class="mock-text medium"></div>
-                                                <div class="preview-indicators">
-                                                    <div class="indicator-item">
-                                                        <div class="mock-icon">
-                                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                                <circle cx="12" cy="12" r="10"/>
-                                                            </svg>
-                                                        </div>
-                                                        <div class="indicator-label"></div>
-                                                    </div>
-                                                    <div class="indicator-item">
-                                                        <div class="mock-icon">
-                                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-                                                            </svg>
-                                                        </div>
-                                                        <div class="indicator-label"></div>
-                                                    </div>
-                                                    <div class="indicator-item">
-                                                        <div class="mock-icon">
-                                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                                <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-                                                            </svg>
-                                                        </div>
-                                                        <div class="indicator-label"></div>
-                                                    </div>
-                                                </div>
                                             </div>
-                                            <div class="mock-image preview-image">
-                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                                                    <circle cx="8.5" cy="8.5" r="1.5"/>
-                                                    <polyline points="21 15 16 10 5 21"/>
-                                                </svg>
-                                            </div>
+                                            <?php endif; ?>
                                         </div>
-
-                                        <!-- Text Style Preview -->
-                                        <div class="preview-template preview-text-style" data-template="text_style" style="display: none;">
-                                            <div class="mock-subtitle"></div>
-                                            <div class="mock-title"></div>
-                                            <div class="text-block">
-                                                <div class="mock-text long"></div>
-                                                <div class="mock-text medium"></div>
-                                                <div class="mock-text short"></div>
-                                            </div>
-                                            <div class="preview-features">
-                                                <div class="feature-item">
-                                                    <div class="mock-icon">
-                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                            <circle cx="12" cy="12" r="10"/>
-                                                        </svg>
-                                                    </div>
-                                                    <div class="feature-label"></div>
-                                                </div>
-                                                <div class="feature-item">
-                                                    <div class="mock-icon">
-                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                                                        </svg>
-                                                    </div>
-                                                    <div class="feature-label"></div>
-                                                </div>
-                                                <div class="feature-item">
-                                                    <div class="mock-icon">
-                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                            <polygon points="12 2 15 8.5 22 9.3 17 14 18 21 12 17.8 6 21 7 14 2 9.3 9 8.5 12 2"/>
-                                                        </svg>
-                                                    </div>
-                                                    <div class="feature-label"></div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <!-- Services Grid Preview -->
-                                        <div class="preview-template preview-services-grid" data-template="services_style" style="display: none;">
-                                            <div class="header-area">
-                                                <div class="mock-subtitle"></div>
-                                                <div class="mock-title"></div>
-                                            </div>
-                                            <div class="services-grid">
-                                                <div class="service-card">
-                                                    <div class="mock-icon">
-                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                            <path d="M18 8h1a4 4 0 0 1 0 8h-1"/>
-                                                            <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/>
-                                                        </svg>
-                                                    </div>
-                                                    <div class="card-title"></div>
-                                                    <div class="card-text"></div>
-                                                </div>
-                                                <div class="service-card">
-                                                    <div class="mock-icon">
-                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-                                                        </svg>
-                                                    </div>
-                                                    <div class="card-title"></div>
-                                                    <div class="card-text"></div>
-                                                </div>
-                                                <div class="service-card">
-                                                    <div class="mock-icon">
-                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                            <circle cx="12" cy="12" r="10"/>
-                                                            <polyline points="12 6 12 12 16 14"/>
-                                                        </svg>
-                                                    </div>
-                                                    <div class="card-title"></div>
-                                                    <div class="card-text"></div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <!-- Services Checklist Preview -->
-                                        <div class="preview-template preview-services-checklist" data-template="services_checklist" style="display: none;">
-                                            <div class="mock-image preview-image">
-                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                                                    <circle cx="8.5" cy="8.5" r="1.5"/>
-                                                    <polyline points="21 15 16 10 5 21"/>
-                                                </svg>
-                                            </div>
-                                            <div class="preview-content">
-                                                <div class="mock-subtitle"></div>
-                                                <div class="mock-title"></div>
-                                                <div class="checklist">
-                                                    <div class="check-item">
-                                                        <div class="mock-check">
-                                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                                                                <polyline points="20 6 9 17 4 12"/>
-                                                            </svg>
-                                                        </div>
-                                                        <div class="check-label"></div>
-                                                    </div>
-                                                    <div class="check-item">
-                                                        <div class="mock-check">
-                                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                                                                <polyline points="20 6 9 17 4 12"/>
-                                                            </svg>
-                                                        </div>
-                                                        <div class="check-label"></div>
-                                                    </div>
-                                                    <div class="check-item">
-                                                        <div class="mock-check">
-                                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                                                                <polyline points="20 6 9 17 4 12"/>
-                                                            </svg>
-                                                        </div>
-                                                        <div class="check-label"></div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <!-- Gallery Style Preview -->
-                                        <div class="preview-template preview-gallery-style" data-template="gallery_style" style="display: none;">
-                                            <div class="header-area">
-                                                <div class="mock-subtitle"></div>
-                                                <div class="mock-title"></div>
-                                            </div>
-                                            <div class="gallery-grid">
-                                                <div class="gallery-card">
-                                                    <div class="card-image">
-                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                            <rect x="3" y="3" width="18" height="18" rx="2"/>
-                                                            <circle cx="8.5" cy="8.5" r="1.5"/>
-                                                            <polyline points="21 15 16 10 5 21"/>
-                                                        </svg>
-                                                    </div>
-                                                    <div class="card-content">
-                                                        <div class="card-title"></div>
-                                                        <div class="card-desc"></div>
-                                                    </div>
-                                                </div>
-                                                <div class="gallery-card">
-                                                    <div class="card-image">
-                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                            <rect x="3" y="3" width="18" height="18" rx="2"/>
-                                                            <circle cx="8.5" cy="8.5" r="1.5"/>
-                                                            <polyline points="21 15 16 10 5 21"/>
-                                                        </svg>
-                                                    </div>
-                                                    <div class="card-content">
-                                                        <div class="card-title"></div>
-                                                        <div class="card-desc"></div>
-                                                    </div>
-                                                </div>
-                                                <div class="gallery-card">
-                                                    <div class="card-image">
-                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                            <rect x="3" y="3" width="18" height="18" rx="2"/>
-                                                            <circle cx="8.5" cy="8.5" r="1.5"/>
-                                                            <polyline points="21 15 16 10 5 21"/>
-                                                        </svg>
-                                                    </div>
-                                                    <div class="card-content">
-                                                        <div class="card-title"></div>
-                                                        <div class="card-desc"></div>
-                                                    </div>
-                                                </div>
-                                                <div class="gallery-card">
-                                                    <div class="card-image">
-                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                            <rect x="3" y="3" width="18" height="18" rx="2"/>
-                                                            <circle cx="8.5" cy="8.5" r="1.5"/>
-                                                            <polyline points="21 15 16 10 5 21"/>
-                                                        </svg>
-                                                    </div>
-                                                    <div class="card-content">
-                                                        <div class="card-title"></div>
-                                                        <div class="card-desc"></div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <!-- Gallery Cards Preview (room-card style with overlay) -->
-                                        <div class="preview-template preview-gallery-cards" data-template="gallery_cards" style="display: none;">
-                                            <div class="header-area">
-                                                <div class="mock-subtitle"></div>
-                                                <div class="mock-title"></div>
-                                            </div>
-                                            <div class="gallery-cards-grid">
-                                                <div class="gallery-card-overlay">
-                                                    <div class="card-image-bg">
-                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                            <rect x="3" y="3" width="18" height="18" rx="2"/>
-                                                            <circle cx="8.5" cy="8.5" r="1.5"/>
-                                                            <polyline points="21 15 16 10 5 21"/>
-                                                        </svg>
-                                                    </div>
-                                                    <div class="card-overlay-content">
-                                                        <div class="overlay-title"></div>
-                                                        <div class="overlay-desc"></div>
-                                                    </div>
-                                                </div>
-                                                <div class="gallery-card-overlay">
-                                                    <div class="card-image-bg">
-                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                            <rect x="3" y="3" width="18" height="18" rx="2"/>
-                                                            <circle cx="8.5" cy="8.5" r="1.5"/>
-                                                            <polyline points="21 15 16 10 5 21"/>
-                                                        </svg>
-                                                    </div>
-                                                    <div class="card-overlay-content">
-                                                        <div class="overlay-title"></div>
-                                                        <div class="overlay-desc"></div>
-                                                    </div>
-                                                </div>
-                                                <div class="gallery-card-overlay">
-                                                    <div class="card-image-bg">
-                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                            <rect x="3" y="3" width="18" height="18" rx="2"/>
-                                                            <circle cx="8.5" cy="8.5" r="1.5"/>
-                                                            <polyline points="21 15 16 10 5 21"/>
-                                                        </svg>
-                                                    </div>
-                                                    <div class="card-overlay-content">
-                                                        <div class="overlay-title"></div>
-                                                        <div class="overlay-desc"></div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
+                                    </div>
+                                    <div class="template-card-label">
+                                        <p class="template-card-name"><?= h($template['name']) ?></p>
                                     </div>
                                 </div>
+                                <?php endforeach; ?>
                             </div>
                         </div>
 
@@ -5147,10 +5284,6 @@ if ($editBlockId) {
         </main>
     </div>
 
-    <script>
-    // Template descriptions for the modal
-    const templateDescriptions = <?= json_encode(array_column($templates, 'description', 'code')) ?>;
-    </script>
     <script>
     // Mobile menu toggle
     const sidebar = document.getElementById('adminSidebar');
@@ -5862,8 +5995,8 @@ if ($editBlockId) {
     const dynamicSectionPage = document.getElementById('dynamicSectionPage');
     const dynamicSectionModalClose = document.getElementById('dynamicSectionModalClose');
     const dynamicSectionModalCancel = document.getElementById('dynamicSectionModalCancel');
-    const templateCodeSelect = document.getElementById('templateCode');
-    const templateDescription = document.getElementById('templateDescription');
+    const templateCodeInput = document.getElementById('templateCode');
+    const templateCards = document.querySelectorAll('.template-card');
 
     if (dynamicSectionModal) {
         // Open modal when clicking "Nouvelle section" buttons
@@ -5872,30 +6005,38 @@ if ($editBlockId) {
                 const page = btn.dataset.page;
                 dynamicSectionPage.value = page;
                 document.getElementById('sectionName').value = '';
+
+                // Reset template selection to first card
+                templateCards.forEach((card, index) => {
+                    if (index === 0) {
+                        card.classList.add('selected');
+                        templateCodeInput.value = card.dataset.template;
+                    } else {
+                        card.classList.remove('selected');
+                    }
+                });
+
                 dynamicSectionModal.classList.add('active');
                 document.body.style.overflow = 'hidden';
 
-                // Initialize the preview based on current selection
-                updateSectionPreview(templateCodeSelect?.value);
+                // Focus on section name input
+                setTimeout(() => document.getElementById('sectionName').focus(), 100);
             });
         });
 
-        // Function to update the section preview
-        function updateSectionPreview(code) {
-            const previewMock = document.getElementById('sectionPreviewMock');
-            if (!previewMock || !code) return;
+        // Template card click-to-select handler
+        templateCards.forEach(card => {
+            card.addEventListener('click', () => {
+                // Remove selection from all cards
+                templateCards.forEach(c => c.classList.remove('selected'));
 
-            // Hide all previews
-            previewMock.querySelectorAll('.preview-template').forEach(preview => {
-                preview.style.display = 'none';
+                // Add selection to clicked card
+                card.classList.add('selected');
+
+                // Update hidden input value
+                templateCodeInput.value = card.dataset.template;
             });
-
-            // Show the selected preview
-            const selectedPreview = previewMock.querySelector(`[data-template="${code}"]`);
-            if (selectedPreview) {
-                selectedPreview.style.display = 'block';
-            }
-        }
+        });
 
         // Close modal
         dynamicSectionModalClose?.addEventListener('click', closeDynamicSectionModal);
@@ -5908,26 +6049,6 @@ if ($editBlockId) {
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && dynamicSectionModal.classList.contains('active')) {
                 closeDynamicSectionModal();
-            }
-        });
-
-        // Update template description and preview when selection changes
-        templateCodeSelect?.addEventListener('change', () => {
-            const code = templateCodeSelect.value;
-            if (templateDescriptions && templateDescriptions[code]) {
-                templateDescription.textContent = templateDescriptions[code];
-            }
-
-            // Update the visual preview with animation
-            const previewMock = document.getElementById('sectionPreviewMock');
-            if (previewMock) {
-                previewMock.classList.add('switching');
-                setTimeout(() => {
-                    updateSectionPreview(code);
-                    setTimeout(() => {
-                        previewMock.classList.remove('switching');
-                    }, 50);
-                }, 150);
             }
         });
 
