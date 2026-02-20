@@ -36,8 +36,8 @@ seedContentSections();
 $message = '';
 $messageType = '';
 
-// Track if we should stay on sections tab after POST actions
-$stayOnSectionsTab = false;
+// Track which page tab to stay on after POST actions (null = don't force, string = page code)
+$stayOnPageTab = null;
 
 // Get current section from URL
 $currentSection = $_GET['section'] ?? null;
@@ -745,11 +745,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             case 'delete_dynamic_section':
                 $sectionCode = $_POST['section_code'] ?? '';
 
+                // Get the section's page before deleting so we can stay on that tab
+                $sectionToDelete = getContentSectionByCode($sectionCode);
+                $deletedSectionPage = $sectionToDelete['page'] ?? null;
+
                 if (deleteDynamicSection($sectionCode)) {
                     $message = 'Section supprimée.';
                     $messageType = 'success';
                     $currentSection = null;
-                    $stayOnSectionsTab = true; // Stay on sections tab after deletion
+                    $stayOnPageTab = $deletedSectionPage; // Stay on the same page tab after deletion
                 } else {
                     $message = 'Erreur lors de la suppression.';
                     $messageType = 'error';
@@ -807,16 +811,20 @@ if ($editBlockId) {
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Lato:wght@300;400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="admin-style.css">
     <style>
-        /* Content page tabs */
+        /* Content page tabs - Page-based navigation */
         .content-page-tabs {
             display: flex;
+            flex-wrap: wrap;
             gap: 0;
             margin-bottom: 2rem;
             border-bottom: 2px solid var(--admin-border);
+            background: var(--admin-card);
+            border-radius: var(--admin-radius) var(--admin-radius) 0 0;
+            padding: 0 0.5rem;
         }
         .content-tab {
-            padding: 1rem 1.5rem;
-            font-size: 0.95rem;
+            padding: 0.875rem 1.25rem;
+            font-size: 0.9rem;
             font-weight: 500;
             color: var(--admin-text-light);
             text-decoration: none;
@@ -826,17 +834,41 @@ if ($editBlockId) {
             display: flex;
             align-items: center;
             gap: 0.5rem;
+            white-space: nowrap;
         }
         .content-tab:hover {
             color: var(--admin-primary);
+            background: rgba(139, 111, 71, 0.05);
         }
         .content-tab.active {
             color: var(--admin-primary);
             border-bottom-color: var(--admin-primary);
+            background: rgba(139, 111, 71, 0.08);
         }
         .content-tab svg {
-            width: 18px;
-            height: 18px;
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+        }
+        @media (max-width: 768px) {
+            .content-page-tabs {
+                padding: 0.25rem;
+            }
+            .content-tab {
+                padding: 0.75rem 0.875rem;
+                font-size: 0.8rem;
+            }
+            .content-tab svg {
+                width: 14px;
+                height: 14px;
+            }
+        }
+
+        /* Page sections navigation - cleaner layout for single page */
+        .page-sections-nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
         }
 
         /* General content section */
@@ -3674,17 +3706,41 @@ if ($editBlockId) {
 
                 <?php
                 // Determine active tab
-                // If a section is currently selected (via GET or after form processing), stay on sections tab
-                // If we just performed an action that should stay on sections tab, respect that
-                // Otherwise, default to general/Global Site Settings
-                if ($currentSection || $editBlockId || $stayOnSectionsTab) {
-                    $activeTab = 'sections';
+                // Tab can be: 'general', or a page code ('home', 'services', 'activities', 'contact')
+                // If a section is currently selected, determine its page and use that as the active tab
+                // If we just performed an action that should stay on a page tab, respect that
+                $activeTab = 'general';
+                $activePageTab = null;
+
+                if ($currentSection && $currentSectionData) {
+                    // Determine which page this section belongs to
+                    $activePageTab = $currentSectionData['page'] ?? null;
+                    $activeTab = $activePageTab ?: 'general';
+                } elseif ($stayOnPageTab) {
+                    // After deleting a section, stay on the same page tab
+                    $activePageTab = $stayOnPageTab;
+                    $activeTab = $activePageTab;
+                } elseif ($editBlockId) {
+                    // Editing a block - find its section's page
+                    $activePageTab = $currentSectionData['page'] ?? null;
+                    $activeTab = $activePageTab ?: 'general';
                 } else {
                     $activeTab = $_GET['tab'] ?? 'general';
+                    if (array_key_exists($activeTab, $pageNames)) {
+                        $activePageTab = $activeTab;
+                    }
                 }
+
+                // Page icons for tabs
+                $pageIcons = [
+                    'home' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
+                    'services' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>',
+                    'activities' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>',
+                    'contact' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>'
+                ];
                 ?>
 
-                <!-- Content Page Tabs -->
+                <!-- Content Page Tabs - Page-based navigation -->
                 <div class="content-page-tabs">
                     <a href="?tab=general" class="content-tab <?= $activeTab === 'general' ? 'active' : '' ?>">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -3693,14 +3749,12 @@ if ($editBlockId) {
                         </svg>
                         Contenu général
                     </a>
-                    <a href="?tab=sections" class="content-tab <?= $activeTab === 'sections' ? 'active' : '' ?>">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                            <line x1="3" y1="9" x2="21" y2="9"/>
-                            <line x1="9" y1="21" x2="9" y2="9"/>
-                        </svg>
-                        Sections du site
+                    <?php foreach ($pageNames as $pageCode => $pageName): ?>
+                    <a href="?tab=<?= h($pageCode) ?>" class="content-tab <?= $activeTab === $pageCode ? 'active' : '' ?>">
+                        <?= $pageIcons[$pageCode] ?? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/></svg>' ?>
+                        <?= h($pageName) ?>
                     </a>
+                    <?php endforeach; ?>
                 </div>
 
                 <?php if ($activeTab === 'general'): ?>
@@ -4010,77 +4064,94 @@ if ($editBlockId) {
                         </div>
                     </div>
 
-                <?php else: ?>
-                    <!-- Section Selection and Content List -->
+                <?php elseif ($activePageTab && isset($pageNames[$activePageTab])): ?>
+                    <?php
+                    // Get sections for the active page tab only
+                    $currentPageSections = $sectionsByPage[$activePageTab] ?? [];
+                    $currentPageDynamicSections = getDynamicSections($activePageTab);
+                    $currentPageName = $pageNames[$activePageTab];
+                    ?>
+                    <!-- Page Sections - Single Page View -->
                     <div class="card">
                         <div class="card-header">
-                            <h2>Sections du site</h2>
+                            <h2>Sections - <?= h($currentPageName) ?></h2>
+                            <span class="page-section-count" style="color: var(--admin-text-light); font-size: 0.9rem; font-weight: normal;">
+                                <?php
+                                $totalSections = count($currentPageSections) + count($currentPageDynamicSections);
+                                echo $totalSections . ' section' . ($totalSections !== 1 ? 's' : '');
+                                ?>
+                            </span>
                         </div>
                         <div class="card-body">
-                            <?php foreach ($pageNames as $page => $pageName): ?>
-                            <?php if (!isset($sectionsByPage[$page])) continue; ?>
-                            <?php $pageDynamicSections = getDynamicSections($page); ?>
-                            <div class="page-group">
-                                <div class="page-group-title"><?= h($pageName) ?></div>
-                                <div class="sections-nav">
-                                    <?php
-                                    // Show static sections first (non-dynamic)
-                                    foreach ($sectionsByPage[$page] as $section):
-                                        if (!empty($section['is_dynamic'])) continue;
-                                    ?>
-                                    <a href="?section=<?= h($section['code']) ?>"
-                                       class="section-btn <?= $currentSection === $section['code'] ? 'active' : '' ?>">
-                                        <?= h($section['name']) ?>
-                                        <span class="image-mode-badge <?= getImageModeBadgeClass($section['image_mode']) ?>" style="margin-left: 0.5rem;">
-                                            <?php if ($section['image_mode'] === IMAGE_REQUIRED): ?>
-                                                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                                            <?php elseif ($section['image_mode'] === IMAGE_FORBIDDEN): ?>
-                                                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/></svg>
-                                            <?php else: ?>
-                                                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg>
-                                            <?php endif; ?>
-                                        </span>
-                                    </a>
-                                    <?php endforeach; ?>
+                            <div class="sections-nav page-sections-nav">
+                                <?php
+                                // Show static sections first (non-dynamic)
+                                foreach ($currentPageSections as $section):
+                                    if (!empty($section['is_dynamic'])) continue;
+                                ?>
+                                <a href="?section=<?= h($section['code']) ?>"
+                                   class="section-btn <?= $currentSection === $section['code'] ? 'active' : '' ?>">
+                                    <?= h($section['name']) ?>
+                                    <span class="image-mode-badge <?= getImageModeBadgeClass($section['image_mode']) ?>" style="margin-left: 0.5rem;">
+                                        <?php if ($section['image_mode'] === IMAGE_REQUIRED): ?>
+                                            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                                        <?php elseif ($section['image_mode'] === IMAGE_FORBIDDEN): ?>
+                                            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/></svg>
+                                        <?php else: ?>
+                                            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg>
+                                        <?php endif; ?>
+                                    </span>
+                                </a>
+                                <?php endforeach; ?>
 
-                                    <?php if (!empty($pageDynamicSections)): ?>
-                                    <div class="dynamic-sections-sortable" data-page="<?= h($page) ?>">
-                                    <?php
-                                    // Show dynamic sections with drag handles
-                                    foreach ($pageDynamicSections as $dynSection):
-                                    ?>
-                                    <div class="section-btn-wrapper" data-section-code="<?= h($dynSection['code']) ?>">
-                                        <span class="section-drag-handle" title="Glisser pour réordonner">
-                                            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2">
-                                                <line x1="8" y1="6" x2="16" y2="6"/>
-                                                <line x1="8" y1="12" x2="16" y2="12"/>
-                                                <line x1="8" y1="18" x2="16" y2="18"/>
-                                            </svg>
-                                        </span>
-                                        <a href="?section=<?= h($dynSection['code']) ?>"
-                                           class="section-btn <?= $currentSection === $dynSection['code'] ? 'active' : '' ?>"
-                                           style="border-style: dashed; flex: 1;">
-                                            <?= h($dynSection['custom_name'] ?: $dynSection['name']) ?>
-                                            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" style="margin-left: 0.5rem; opacity: 0.5;">
-                                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                                            </svg>
-                                        </a>
-                                    </div>
-                                    <?php endforeach; ?>
-                                    </div>
-                                    <?php endif; ?>
-
-                                    <button type="button" class="section-btn add-section-btn" data-page="<?= h($page) ?>" style="border-style: dashed; color: var(--admin-text-light);">
-                                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-                                            <line x1="12" y1="5" x2="12" y2="19"/>
-                                            <line x1="5" y1="12" x2="19" y2="12"/>
+                                <?php if (!empty($currentPageDynamicSections)): ?>
+                                <div class="dynamic-sections-sortable" data-page="<?= h($activePageTab) ?>">
+                                <?php
+                                // Show dynamic sections with drag handles
+                                foreach ($currentPageDynamicSections as $dynSection):
+                                ?>
+                                <div class="section-btn-wrapper" data-section-code="<?= h($dynSection['code']) ?>">
+                                    <span class="section-drag-handle" title="Glisser pour réordonner">
+                                        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2">
+                                            <line x1="8" y1="6" x2="16" y2="6"/>
+                                            <line x1="8" y1="12" x2="16" y2="12"/>
+                                            <line x1="8" y1="18" x2="16" y2="18"/>
                                         </svg>
-                                        Nouvelle section
-                                    </button>
+                                    </span>
+                                    <a href="?section=<?= h($dynSection['code']) ?>"
+                                       class="section-btn <?= $currentSection === $dynSection['code'] ? 'active' : '' ?>"
+                                       style="border-style: dashed; flex: 1;">
+                                        <?= h($dynSection['custom_name'] ?: $dynSection['name']) ?>
+                                        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" style="margin-left: 0.5rem; opacity: 0.5;">
+                                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                        </svg>
+                                    </a>
                                 </div>
+                                <?php endforeach; ?>
+                                </div>
+                                <?php endif; ?>
+
+                                <button type="button" class="section-btn add-section-btn" data-page="<?= h($activePageTab) ?>" style="border-style: dashed; color: var(--admin-text-light);">
+                                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                                        <line x1="12" y1="5" x2="12" y2="19"/>
+                                        <line x1="5" y1="12" x2="19" y2="12"/>
+                                    </svg>
+                                    Nouvelle section
+                                </button>
                             </div>
-                            <?php endforeach; ?>
+
+                            <?php if (empty($currentPageSections) && empty($currentPageDynamicSections)): ?>
+                            <div class="empty-state" style="margin-top: 1.5rem;">
+                                <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                    <line x1="3" y1="9" x2="21" y2="9"/>
+                                    <line x1="9" y1="21" x2="9" y2="9"/>
+                                </svg>
+                                <h3>Aucune section</h3>
+                                <p>Cette page n'a pas encore de sections. Cliquez sur "Nouvelle section" pour en créer une.</p>
+                            </div>
+                            <?php endif; ?>
                         </div>
                     </div>
 
