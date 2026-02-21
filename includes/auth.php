@@ -2,13 +2,194 @@
 /**
  * Authentication Functions
  * Hotel Corintel - Admin System
+ *
+ * Persistence Strategy:
+ * - Uses a database-stored persistent token ("remember me" token)
+ * - Token is stored in a long-lived cookie (10 years)
+ * - If PHP session is lost (server GC), the token auto-restores the session
+ * - Only manual logout destroys the token
+ * - No timeouts, no automatic logout, no session regeneration
  */
 
 require_once __DIR__ . '/../config/database.php';
 
-// Start session if not already started
+// Token configuration constants
+// 10 years in seconds - effectively indefinite
+define('AUTH_TOKEN_LIFETIME', 315360000);
+define('AUTH_TOKEN_NAME', 'hotel_admin_auth');
+define('SESSION_NAME', 'hotel_admin_session');
+
+// Configure session before starting
 if (session_status() === PHP_SESSION_NONE) {
+    session_name(SESSION_NAME);
+
+    // Try to set long session lifetime (may be ignored by shared hosting)
+    @ini_set('session.gc_maxlifetime', AUTH_TOKEN_LIFETIME);
+    @ini_set('session.gc_probability', 0); // Disable GC entirely if possible
+
+    $isSecure = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on';
+
+    session_set_cookie_params([
+        'lifetime' => AUTH_TOKEN_LIFETIME,
+        'path' => '/',
+        'domain' => '',
+        'secure' => $isSecure,
+        'httponly' => true,
+        'samesite' => 'Lax'
+    ]);
+
     session_start();
+
+    // If session exists, refresh the cookie
+    if (isset($_SESSION['admin_id'])) {
+        setcookie(
+            session_name(),
+            session_id(),
+            [
+                'expires' => time() + AUTH_TOKEN_LIFETIME,
+                'path' => '/',
+                'domain' => '',
+                'secure' => $isSecure,
+                'httponly' => true,
+                'samesite' => 'Lax'
+            ]
+        );
+    }
+    // If session is lost but persistent token exists, restore the session
+    elseif (isset($_COOKIE[AUTH_TOKEN_NAME])) {
+        restoreSessionFromToken($_COOKIE[AUTH_TOKEN_NAME]);
+    }
+}
+
+/**
+ * Ensure persistent_tokens table exists
+ */
+function ensurePersistentTokensTable(): void {
+    static $checked = false;
+    if ($checked) return;
+    $checked = true;
+
+    $pdo = getDatabase();
+    $pdo->exec('
+        CREATE TABLE IF NOT EXISTS persistent_tokens (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            admin_id INT NOT NULL,
+            token_hash VARCHAR(64) NOT NULL UNIQUE,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            last_used_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_admin (admin_id),
+            INDEX idx_token (token_hash)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    ');
+}
+
+/**
+ * Restore session from persistent token (auto-login)
+ */
+function restoreSessionFromToken(string $token): bool {
+    if (empty($token)) {
+        return false;
+    }
+
+    ensurePersistentTokensTable();
+    $pdo = getDatabase();
+
+    // Find valid token
+    $stmt = $pdo->prepare('
+        SELECT pt.admin_id, a.username
+        FROM persistent_tokens pt
+        JOIN admins a ON a.id = pt.admin_id
+        WHERE pt.token_hash = ?
+    ');
+    $stmt->execute([hash('sha256', $token)]);
+    $result = $stmt->fetch();
+
+    if ($result) {
+        // Restore session
+        $_SESSION['admin_id'] = $result['admin_id'];
+        $_SESSION['admin_username'] = $result['username'];
+        $_SESSION['restored_from_token'] = true;
+
+        // Update token last used time
+        $stmt = $pdo->prepare('UPDATE persistent_tokens SET last_used_at = NOW() WHERE token_hash = ?');
+        $stmt->execute([hash('sha256', $token)]);
+
+        return true;
+    }
+
+    // Invalid token - clear the cookie
+    clearPersistentTokenCookie();
+    return false;
+}
+
+/**
+ * Create a persistent token for the admin
+ */
+function createPersistentToken(int $adminId): string {
+    ensurePersistentTokensTable();
+    $pdo = getDatabase();
+
+    // Generate secure random token
+    $token = bin2hex(random_bytes(32));
+    $tokenHash = hash('sha256', $token);
+
+    // Remove any existing tokens for this admin (one token per admin)
+    $stmt = $pdo->prepare('DELETE FROM persistent_tokens WHERE admin_id = ?');
+    $stmt->execute([$adminId]);
+
+    // Store new token
+    $stmt = $pdo->prepare('
+        INSERT INTO persistent_tokens (admin_id, token_hash, created_at, last_used_at)
+        VALUES (?, ?, NOW(), NOW())
+    ');
+    $stmt->execute([$adminId, $tokenHash]);
+
+    // Set cookie
+    $isSecure = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on';
+    setcookie(
+        AUTH_TOKEN_NAME,
+        $token,
+        [
+            'expires' => time() + AUTH_TOKEN_LIFETIME,
+            'path' => '/',
+            'domain' => '',
+            'secure' => $isSecure,
+            'httponly' => true,
+            'samesite' => 'Lax'
+        ]
+    );
+
+    return $token;
+}
+
+/**
+ * Delete persistent token (on logout)
+ */
+function deletePersistentToken(int $adminId): void {
+    ensurePersistentTokensTable();
+    $pdo = getDatabase();
+    $stmt = $pdo->prepare('DELETE FROM persistent_tokens WHERE admin_id = ?');
+    $stmt->execute([$adminId]);
+    clearPersistentTokenCookie();
+}
+
+/**
+ * Clear the persistent token cookie
+ */
+function clearPersistentTokenCookie(): void {
+    $isSecure = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on';
+    setcookie(
+        AUTH_TOKEN_NAME,
+        '',
+        [
+            'expires' => time() - 3600,
+            'path' => '/',
+            'domain' => '',
+            'secure' => $isSecure,
+            'httponly' => true,
+            'samesite' => 'Lax'
+        ]
+    );
 }
 
 /**
@@ -115,8 +296,12 @@ function attemptLogin(string $username, string $password): array {
     $_SESSION['admin_username'] = $admin['username'];
     $_SESSION['login_time'] = time();
 
-    // Regenerate session ID for security
+    // Regenerate session ID for security (only on login, not periodically)
     session_regenerate_id(true);
+
+    // Create persistent token for automatic re-authentication
+    // This ensures the admin stays logged in even if PHP session is garbage collected
+    createPersistentToken($admin['id']);
 
     return [
         'success' => true,
@@ -128,6 +313,11 @@ function attemptLogin(string $username, string $password): array {
  * Log out the current user
  */
 function logout(): void {
+    // Delete persistent token from database and cookie
+    if (isset($_SESSION['admin_id'])) {
+        deletePersistentToken($_SESSION['admin_id']);
+    }
+
     $_SESSION = [];
 
     if (ini_get('session.use_cookies')) {

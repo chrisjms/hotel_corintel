@@ -59,22 +59,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 // Load content helper for dynamic content
 require_once __DIR__ . '/includes/content-helper.php';
 
+// Get dynamic sections for the contact page
+$dynamicSections = getDynamicSectionsWithData('contact');
+$dynamicSectionsTranslations = !empty($dynamicSections) ? getDynamicSectionsTranslations('contact') : [];
+
 // Get hero image from content system with fallback
 $heroImage = contentImage('contact_hero', 1, 'images/acceuil/dehors_nuit.jpg');
+
+$hotelName = getHotelName();
+$logoText = getLogoText();
+$contactInfo = getContactInfo();
 ?>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Contactez l'Hôtel Corintel près de Bordeaux. Adresse, téléphone, email et formulaire de contact. Situé à Tresses, Bordeaux Est, Gironde.">
+  <meta name="description" content="Contactez <?= h($hotelName) ?> près de Bordeaux. Adresse, téléphone, email et formulaire de contact. Situé à Tresses, <?= h($logoText) ?>, Gironde.">
   <meta name="keywords" content="contact hôtel bordeaux, adresse hôtel tresses, réservation hôtel gironde, hôtel bordeaux est">
-  <title>Contact | Hôtel Corintel - Bordeaux Est</title>
+  <title>Contact | <?= h($hotelName) ?> - <?= h($logoText) ?></title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Lato:wght@300;400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <?= getThemeCSS() ?>
+  <?= getHotelNameJS() ?>
   <style>
     /* Guest Message Section */
     .guest-message-section {
@@ -199,8 +208,8 @@ $heroImage = contentImage('contact_hero', 1, 'images/acceuil/dehors_nuit.jpg');
           <path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6M9 9h.01M15 9h.01M9 13h.01M15 13h.01"/>
         </svg>
         <div class="logo-text">
-          Hôtel Corintel
-          <span>Bordeaux Est</span>
+          <?= h($hotelName) ?>
+          <span><?= h($logoText) ?></span>
         </div>
       </a>
       <nav class="nav-menu" id="navMenu">
@@ -259,21 +268,23 @@ $heroImage = contentImage('contact_hero', 1, 'images/acceuil/dehors_nuit.jpg');
               <div class="contact-item-text">
                 <h4 data-i18n="contact.addressLabel">Adresse</h4>
                 <p>
-                  Hôtel Corintel<br>
-                  14 Avenue du Périgord<br>
-                  33370 TRESSES, France
+                  <?= h($hotelName) ?><br>
+                  <?= getFormattedAddress() ?>
                 </p>
               </div>
             </div>
+            <?php if (!empty($contactInfo['phone'])): ?>
             <div class="contact-item">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
               </svg>
               <div class="contact-item-text">
                 <h4 data-i18n="contact.phoneLabel">Téléphone</h4>
-                <p><a href="tel:+33557341395">+33 5 57 34 13 95</a></p>
+                <p><a href="tel:<?= h(getContactPhone(true)) ?>"><?= h($contactInfo['phone']) ?></a></p>
               </div>
             </div>
+            <?php endif; ?>
+            <?php if (!empty($contactInfo['email'])): ?>
             <div class="contact-item">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
@@ -281,9 +292,10 @@ $heroImage = contentImage('contact_hero', 1, 'images/acceuil/dehors_nuit.jpg');
               </svg>
               <div class="contact-item-text">
                 <h4>Email</h4>
-                <p><a href="mailto:hotel.bordeaux.tresses@gmail.com">hotel.bordeaux.tresses@gmail.com</a></p>
+                <p><a href="mailto:<?= h($contactInfo['email']) ?>"><?= h($contactInfo['email']) ?></a></p>
               </div>
             </div>
+            <?php endif; ?>
             <div class="contact-item">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <circle cx="12" cy="12" r="10"/>
@@ -307,7 +319,7 @@ $heroImage = contentImage('contact_hero', 1, 'images/acceuil/dehors_nuit.jpg');
               allowfullscreen=""
               loading="lazy"
               referrerpolicy="no-referrer-when-downgrade"
-              title="Localisation de l'Hôtel Corintel">
+              title="Localisation de <?= h($hotelName) ?>">
             </iframe>
           </div>
         </div>
@@ -425,16 +437,28 @@ $heroImage = contentImage('contact_hero', 1, 'images/acceuil/dehors_nuit.jpg');
     </div>
   </section>
 
+  <?php
+  // Render dynamic sections (if any exist)
+  if (!empty($dynamicSections)):
+      echo renderDynamicSectionsForPage('contact', 'fr');
+  ?>
+  <script>
+    window.dynamicSectionsTranslations = <?= json_encode($dynamicSectionsTranslations, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
+  </script>
+  <?php endif; ?>
+
   <!-- Footer -->
   <footer class="footer">
     <div class="container">
       <div class="footer-grid">
         <div class="footer-brand">
           <div class="logo-text">
-            Hôtel Corintel
-            <span>Bordeaux Est</span>
+            <?= h($hotelName) ?>
+            <span><?= h($logoText) ?></span>
           </div>
-          <p data-i18n="footer.description">Un havre de paix aux portes de Bordeaux, où charme et authenticité vous attendent pour un séjour inoubliable.</p>
+<?php $footerDescription = getHotelDescription(); if ($footerDescription): ?>
+          <p><?= h($footerDescription) ?></p>
+          <?php endif; ?>
         </div>
         <div class="footer-nav">
           <h4 class="footer-title" data-i18n="footer.navigation">Navigation</h4>
@@ -448,38 +472,44 @@ $heroImage = contentImage('contact_hero', 1, 'images/acceuil/dehors_nuit.jpg');
         <div class="footer-nav">
           <h4 class="footer-title" data-i18n="footer.services">Services</h4>
           <ul class="footer-links">
-            <li><a href="services.php#restaurant" data-i18n="footer.restaurant">Restaurant</a></li>
-            <li><a href="services.php#bar" data-i18n="footer.bar">Bar</a></li>
-            <li><a href="services.php#boulodrome" data-i18n="footer.boulodrome">Boulodrome</a></li>
-            <li><a href="services.php#parking" data-i18n="footer.parking">Parking</a></li>
+            <li><a href="services.php" data-i18n="footer.restaurant">Restaurant</a></li>
+            <li><a href="services.php" data-i18n="footer.bar">Bar</a></li>
+            <li><a href="services.php" data-i18n="footer.boulodrome">Boulodrome</a></li>
+            <li><a href="services.php" data-i18n="footer.parking">Parking</a></li>
           </ul>
         </div>
         <div class="footer-contact">
           <h4 class="footer-title" data-i18n="footer.contact">Contact</h4>
+          <?php if (hasContactInfo()): ?>
           <div class="footer-contact-item">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
               <circle cx="12" cy="10" r="3"/>
             </svg>
-            <span data-i18n="footer.address">14 Avenue du Périgord. 33370 TRESSES<br>Gironde, France</span>
+            <span><?= getFormattedAddress() ?></span>
           </div>
+          <?php endif; ?>
+          <?php if (!empty($contactInfo['phone'])): ?>
           <div class="footer-contact-item">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
             </svg>
-            <span>+33 5 57 34 13 95</span>
+            <span><?= h($contactInfo['phone']) ?></span>
           </div>
+          <?php endif; ?>
+          <?php if (!empty($contactInfo['email'])): ?>
           <div class="footer-contact-item">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
               <polyline points="22,6 12,13 2,6"/>
             </svg>
-            <span>hotel.bordeaux.tresses@gmail.com</span>
+            <span><?= h($contactInfo['email']) ?></span>
           </div>
+          <?php endif; ?>
         </div>
       </div>
       <div class="footer-bottom">
-        <p data-i18n="footer.copyright">&copy; 2024 Hôtel Corintel. Tous droits réservés.</p>
+        <p data-i18n="footer.copyright">&copy; <?= date('Y') ?> <?= h($hotelName) ?>. Tous droits réservés.</p>
       </div>
     </div>
   </footer>

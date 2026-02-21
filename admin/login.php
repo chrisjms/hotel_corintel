@@ -5,6 +5,7 @@
  */
 
 require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/functions.php';
 
 // Redirect if already logged in
 if (isLoggedIn()) {
@@ -14,6 +15,7 @@ if (isLoggedIn()) {
 
 $error = '';
 $csrfToken = generateCsrfToken();
+$hotelName = getHotelName();
 
 // Handle login form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -35,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
-    <title>Connexion Admin | Hôtel Corintel</title>
+    <title>Connexion Admin | <?= h($hotelName) ?></title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Lato:wght@300;400;500;700&display=swap" rel="stylesheet">
@@ -44,7 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body class="login-page">
     <div class="login-container">
         <div class="login-header">
-            <h1>Hôtel Corintel</h1>
+            <h1><?= h($hotelName) ?></h1>
             <p>Administration</p>
         </div>
 

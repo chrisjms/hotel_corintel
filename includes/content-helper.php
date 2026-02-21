@@ -12,7 +12,8 @@ require_once __DIR__ . '/functions.php';
 // Initialize content tables on first load
 try {
     initContentTables();
-    seedContentSections();
+    cleanupLegacyStaticSections(); // Remove old non-hero static sections
+    seedContentSections(); // Only seeds hero sections now
 } catch (Exception $e) {
     // Tables may already exist, continue silently
 }
@@ -181,6 +182,8 @@ function contentBgImage(string $sectionCode, int $position, string $fallback): s
 
 /**
  * Map old section/position to new content section
+ * Note: Only hero/header sections remain as fixed sections
+ * All other content sections are managed through the dynamic sections system
  */
 function mapOldToNewSection(string $section, int $position): array {
     $mapping = [
@@ -188,27 +191,12 @@ function mapOldToNewSection(string $section, int $position): array {
             1 => ['section' => 'home_hero', 'position' => 1],
             2 => ['section' => 'home_hero', 'position' => 2],
             3 => ['section' => 'home_hero', 'position' => 3],
-            4 => ['section' => 'home_intro', 'position' => 1],
         ],
         'services' => [
             1 => ['section' => 'services_hero', 'position' => 1],
-            2 => ['section' => 'services_restaurant', 'position' => 1],
-            3 => ['section' => 'services_restaurant_gallery', 'position' => 1],
-            4 => ['section' => 'services_restaurant_gallery', 'position' => 2],
-            5 => ['section' => 'services_restaurant_gallery', 'position' => 3],
-            6 => ['section' => 'services_bar', 'position' => 1],
-            7 => ['section' => 'services_boulodrome', 'position' => 1],
-            8 => ['section' => 'services_parking', 'position' => 1],
         ],
         'activities' => [
             1 => ['section' => 'activities_hero', 'position' => 1],
-            2 => ['section' => 'activities_bordeaux', 'position' => 1],
-            3 => ['section' => 'activities_saintemilion', 'position' => 1],
-            4 => ['section' => 'activities_wine', 'position' => 1],
-            5 => ['section' => 'activities_wine', 'position' => 2],
-            6 => ['section' => 'activities_wine', 'position' => 3],
-            7 => ['section' => 'activities_wine', 'position' => 4],
-            8 => ['section' => 'activities_countryside', 'position' => 1],
         ],
         'contact' => [
             1 => ['section' => 'contact_hero', 'position' => 1],

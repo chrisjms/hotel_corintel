@@ -1,5 +1,5 @@
 /**
- * Hotel Corintel - Translations
+ * Hotel - Translations
  * Supported languages: French (fr), English (en), Spanish (es), Italian (it)
  * To add a new language: add a new key to the translations object with all required keys
  */
@@ -53,7 +53,7 @@ const translations = {
     // Room Service page
     roomService: {
       // Hero
-      heroSubtitle: 'Hôtel Corintel',
+      heroSubtitle: '{hotelName}',
       heroTitle: 'Room Service',
       heroDescription: 'Commandez depuis votre chambre',
 
@@ -109,14 +109,14 @@ const translations = {
 
     // Home page
     home: {
-      heroSubtitle: 'Bienvenue à l\'Hôtel Corintel',
+      heroSubtitle: 'Bienvenue à {hotelName}',
       heroTitle: 'Un havre de paix<br>aux portes de Bordeaux',
       heroDescription: 'Découvrez notre hôtel de charme 3 étoiles, niché dans la campagne bordelaise, à quelques minutes de Bordeaux et Saint-Émilion.',
 
       // Introduction section
       introSubtitle: 'Notre philosophie',
       introTitle: 'Une atmosphère chaleureuse et conviviale',
-      introText1: 'L\'Hôtel Corintel vous accueille dans un cadre paisible et verdoyant, où se mêlent le charme de la campagne bordelaise et le confort d\'un établissement 3 étoiles.',
+      introText1: '{hotelName} vous accueille dans un cadre paisible et verdoyant, où se mêlent le charme de la campagne bordelaise et le confort d\'un établissement 3 étoiles.',
       introText2: 'Entouré de nature, notre hôtel offre une expérience de détente authentique. Profitez de notre jardin, de notre terrasse ombragée et de notre salon commun pour des moments de quiétude loin du tumulte de la ville.',
       featureGarden: 'Jardin paisible',
       featureTerrace: 'Terrasse ombragée',
@@ -144,13 +144,13 @@ const translations = {
 
     // Services page
     services: {
-      heroSubtitle: 'L\'Hôtel Corintel',
+      heroSubtitle: '{hotelName}',
       heroTitle: 'Nos Services',
       heroDescription: 'Tout pour un séjour inoubliable',
 
       introSubtitle: 'À votre service',
       introTitle: 'Une expérience complète',
-      introDescription: 'L\'Hôtel Corintel met à votre disposition une gamme de services pensés pour votre confort et votre détente. Découvrez tout ce qui rendra votre séjour mémorable.',
+      introDescription: '{hotelName} met à votre disposition une gamme de services pensés pour votre confort et votre détente. Découvrez tout ce qui rendra votre séjour mémorable.',
 
       // Restaurant
       restaurantSubtitle: 'Restauration',
@@ -181,7 +181,7 @@ const translations = {
       // Boulodrome
       boulodromeSubtitle: 'Loisirs',
       boulodromeTitle: 'Boulodrome',
-      boulodromeText1: 'À l\'Hôtel Corintel, nous cultivons l\'art de vivre à la française. Notre terrain de pétanque vous attend pour des parties mémorables, que vous soyez joueur aguerri ou simple amateur de moments conviviaux.',
+      boulodromeText1: 'À {hotelName}, nous cultivons l\'art de vivre à la française. Notre terrain de pétanque vous attend pour des parties mémorables, que vous soyez joueur aguerri ou simple amateur de moments conviviaux.',
       boulodromeText2: 'Sous le soleil de Gironde, lancez vos boules et profitez de l\'esprit détendu de la campagne bordelaise. Un apéritif à la main, en famille ou entre amis, c\'est le bonheur simple des vacances.',
       tagPetanque: 'Terrain de pétanque',
       tagBowlsAvailable: 'Boules disponibles',
@@ -190,7 +190,7 @@ const translations = {
       // Parking
       parkingSubtitle: 'Pratique',
       parkingTitle: 'Parking privé gratuit',
-      parkingText1: 'Votre tranquillité commence dès votre arrivée. L\'Hôtel Corintel dispose d\'un parking privé et sécurisé, entièrement gratuit pour tous nos clients.',
+      parkingText1: 'Votre tranquillité commence dès votre arrivée. {hotelName} dispose d\'un parking privé et sécurisé, entièrement gratuit pour tous nos clients.',
       parkingText2: 'Idéalement situé à l\'est de Bordeaux, notre établissement vous permet de rayonner facilement vers les vignobles, Bordeaux ou Saint-Émilion, tout en profitant du calme de la campagne pour votre repos.',
       tagFree: 'Gratuit',
       tagSecure: 'Privé et sécurisé',
@@ -208,7 +208,7 @@ const translations = {
       wifi: 'Wi-Fi gratuit',
       wifiDesc: 'Connexion internet haut débit disponible gratuitement dans tout l\'établissement.',
 
-      ctaTitle: 'Prêt à vivre l\'expérience Corintel ?',
+      ctaTitle: 'Prêt à vivre l\'expérience {hotelShortName} ?',
       ctaText: 'Contactez-nous pour plus d\'informations'
     },
 
@@ -220,7 +220,7 @@ const translations = {
 
       introSubtitle: 'Votre point de départ',
       introTitle: 'Au cœur d\'une région exceptionnelle',
-      introDescription: 'Idéalement situé entre Bordeaux et Saint-Émilion, l\'Hôtel Corintel est le point de départ parfait pour explorer les trésors de la Gironde. Vignobles prestigieux, patrimoine historique et douceur de vivre vous attendent.',
+      introDescription: 'Idéalement situé entre Bordeaux et Saint-Émilion, {hotelName} est le point de départ parfait pour explorer les trésors de la Gironde. Vignobles prestigieux, patrimoine historique et douceur de vivre vous attendent.',
 
       // Bordeaux
       bordeauxSubtitle: 'Patrimoine mondial UNESCO',
@@ -293,7 +293,7 @@ const translations = {
       // Contact info
       infoTitle: 'Nos coordonnées',
       addressLabel: 'Adresse',
-      addressValue: 'Hôtel Corintel<br>Tresses, Bordeaux Est<br>33370 Gironde, France',
+      addressValue: '{hotelName}<br>Tresses, Bordeaux Est<br>33370 Gironde, France',
       phoneLabel: 'Téléphone',
       emailLabel: 'Email',
       receptionLabel: 'Réception',
@@ -338,11 +338,10 @@ const translations = {
 
     // Footer
     footer: {
-      description: 'Un havre de paix aux portes de Bordeaux, où charme et authenticité vous attendent pour un séjour inoubliable.',
       navigation: 'Navigation',
       services: 'Services',
       contactTitle: 'Contact',
-      copyright: '© 2024 Hôtel Corintel. Tous droits réservés.',
+      copyright: '© 2024 {hotelName}. Tous droits réservés.',
       // Footer links
       home: 'Accueil',
       discover: 'À découvrir',
@@ -396,7 +395,7 @@ const translations = {
     // Room Service page
     roomService: {
       // Hero
-      heroSubtitle: 'Hôtel Corintel',
+      heroSubtitle: '{hotelName}',
       heroTitle: 'Room Service',
       heroDescription: 'Order from your room',
 
@@ -451,13 +450,13 @@ const translations = {
     },
 
     home: {
-      heroSubtitle: 'Welcome to Hôtel Corintel',
+      heroSubtitle: 'Welcome to {hotelName}',
       heroTitle: 'A peaceful retreat<br>at the gates of Bordeaux',
       heroDescription: 'Discover our charming 3-star hotel, nestled in the Bordeaux countryside, just minutes from Bordeaux and Saint-Émilion.',
 
       introSubtitle: 'Our philosophy',
       introTitle: 'A warm and friendly atmosphere',
-      introText1: 'Hôtel Corintel welcomes you in a peaceful and green setting, where the charm of the Bordeaux countryside meets the comfort of a 3-star establishment.',
+      introText1: '{hotelName} welcomes you in a peaceful and green setting, where the charm of the Bordeaux countryside meets the comfort of a 3-star establishment.',
       introText2: 'Surrounded by nature, our hotel offers an authentic relaxation experience. Enjoy our garden, shaded terrace, and common lounge for moments of tranquility away from the city bustle.',
       featureGarden: 'Peaceful garden',
       featureTerrace: 'Shaded terrace',
@@ -482,13 +481,13 @@ const translations = {
     },
 
     services: {
-      heroSubtitle: 'Hôtel Corintel',
+      heroSubtitle: '{hotelName}',
       heroTitle: 'Our Services',
       heroDescription: 'Everything for an unforgettable stay',
 
       introSubtitle: 'At your service',
       introTitle: 'A complete experience',
-      introDescription: 'Hôtel Corintel offers you a range of services designed for your comfort and relaxation. Discover everything that will make your stay memorable.',
+      introDescription: '{hotelName} offers you a range of services designed for your comfort and relaxation. Discover everything that will make your stay memorable.',
 
       restaurantSubtitle: 'Dining',
       restaurantTitle: 'Table d\'hôtes',
@@ -516,7 +515,7 @@ const translations = {
 
       boulodromeSubtitle: 'Leisure',
       boulodromeTitle: 'Pétanque Court',
-      boulodromeText1: 'At Hôtel Corintel, we cultivate the French art of living. Our pétanque court awaits you for memorable games, whether you\'re an experienced player or simply looking for convivial moments.',
+      boulodromeText1: 'At {hotelName}, we cultivate the French art of living. Our pétanque court awaits you for memorable games, whether you\'re an experienced player or simply looking for convivial moments.',
       boulodromeText2: 'Under the Gironde sun, throw your boules and enjoy the relaxed spirit of the Bordeaux countryside. With an aperitif in hand, with family or friends, it\'s the simple happiness of vacation.',
       tagPetanque: 'Pétanque court',
       tagBowlsAvailable: 'Bowls available',
@@ -524,7 +523,7 @@ const translations = {
 
       parkingSubtitle: 'Practical',
       parkingTitle: 'Free private parking',
-      parkingText1: 'Your peace of mind begins upon arrival. Hôtel Corintel has private and secure parking, completely free for all our guests.',
+      parkingText1: 'Your peace of mind begins upon arrival. {hotelName} has private and secure parking, completely free for all our guests.',
       parkingText2: 'Ideally located east of Bordeaux, our establishment allows you to easily explore the vineyards, Bordeaux, or Saint-Émilion, while enjoying the calm of the countryside for your rest.',
       tagFree: 'Free',
       tagSecure: 'Private and secure',
@@ -541,7 +540,7 @@ const translations = {
       wifi: 'Free Wi-Fi',
       wifiDesc: 'High-speed internet connection available for free throughout the property.',
 
-      ctaTitle: 'Ready for the Corintel experience?',
+      ctaTitle: 'Ready for the {hotelShortName} experience?',
       ctaText: 'Contact us for more information'
     },
 
@@ -552,7 +551,7 @@ const translations = {
 
       introSubtitle: 'Your starting point',
       introTitle: 'In the heart of an exceptional region',
-      introDescription: 'Ideally located between Bordeaux and Saint-Émilion, Hôtel Corintel is the perfect starting point to explore the treasures of Gironde. Prestigious vineyards, historical heritage, and the good life await you.',
+      introDescription: 'Ideally located between Bordeaux and Saint-Émilion, {hotelName} is the perfect starting point to explore the treasures of Gironde. Prestigious vineyards, historical heritage, and the good life await you.',
 
       bordeauxSubtitle: 'UNESCO World Heritage',
       bordeauxTitle: 'Bordeaux',
@@ -618,7 +617,7 @@ const translations = {
 
       infoTitle: 'Our contact details',
       addressLabel: 'Address',
-      addressValue: 'Hôtel Corintel<br>Tresses, Bordeaux East<br>33370 Gironde, France',
+      addressValue: '{hotelName}<br>Tresses, Bordeaux East<br>33370 Gironde, France',
       phoneLabel: 'Phone',
       emailLabel: 'Email',
       receptionLabel: 'Reception',
@@ -660,11 +659,10 @@ const translations = {
     },
 
     footer: {
-      description: 'A peaceful retreat at the gates of Bordeaux, where charm and authenticity await you for an unforgettable stay.',
       navigation: 'Navigation',
       services: 'Services',
       contactTitle: 'Contact',
-      copyright: '© 2024 Hôtel Corintel. All rights reserved.',
+      copyright: '© 2024 {hotelName}. All rights reserved.',
       // Footer links
       home: 'Home',
       discover: 'Discover',
@@ -717,7 +715,7 @@ const translations = {
     // Room Service page
     roomService: {
       // Hero
-      heroSubtitle: 'Hôtel Corintel',
+      heroSubtitle: '{hotelName}',
       heroTitle: 'Room Service',
       heroDescription: 'Pida desde su habitación',
 
@@ -772,13 +770,13 @@ const translations = {
     },
 
     home: {
-      heroSubtitle: 'Bienvenido al Hôtel Corintel',
+      heroSubtitle: 'Bienvenido a {hotelName}',
       heroTitle: 'Un remanso de paz<br>a las puertas de Burdeos',
       heroDescription: 'Descubra nuestro encantador hotel de 3 estrellas, enclavado en la campiña bordelesa, a pocos minutos de Burdeos y Saint-Émilion.',
 
       introSubtitle: 'Nuestra filosofía',
       introTitle: 'Un ambiente cálido y acogedor',
-      introText1: 'El Hôtel Corintel le da la bienvenida en un entorno tranquilo y verde, donde el encanto del campo bordelés se combina con el confort de un establecimiento de 3 estrellas.',
+      introText1: '{hotelName} le da la bienvenida en un entorno tranquilo y verde, donde el encanto del campo bordelés se combina con el confort de un establecimiento de 3 estrellas.',
       introText2: 'Rodeado de naturaleza, nuestro hotel ofrece una experiencia de relajación auténtica. Disfrute de nuestro jardín, terraza sombreada y salón común para momentos de tranquilidad lejos del bullicio de la ciudad.',
       featureGarden: 'Jardín tranquilo',
       featureTerrace: 'Terraza sombreada',
@@ -803,13 +801,13 @@ const translations = {
     },
 
     services: {
-      heroSubtitle: 'Hôtel Corintel',
+      heroSubtitle: '{hotelName}',
       heroTitle: 'Nuestros Servicios',
       heroDescription: 'Todo para una estancia inolvidable',
 
       introSubtitle: 'A su servicio',
       introTitle: 'Una experiencia completa',
-      introDescription: 'El Hôtel Corintel pone a su disposición una gama de servicios pensados para su comodidad y relajación. Descubra todo lo que hará de su estancia algo memorable.',
+      introDescription: '{hotelName} pone a su disposición una gama de servicios pensados para su comodidad y relajación. Descubra todo lo que hará de su estancia algo memorable.',
 
       restaurantSubtitle: 'Restauración',
       restaurantTitle: 'Mesa de huéspedes',
@@ -837,7 +835,7 @@ const translations = {
 
       boulodromeSubtitle: 'Ocio',
       boulodromeTitle: 'Cancha de petanca',
-      boulodromeText1: 'En el Hôtel Corintel cultivamos el arte de vivir a la francesa. Nuestra cancha de petanca le espera para partidas memorables, ya sea un jugador experimentado o simplemente busque momentos de convivencia.',
+      boulodromeText1: 'En {hotelName} cultivamos el arte de vivir a la francesa. Nuestra cancha de petanca le espera para partidas memorables, ya sea un jugador experimentado o simplemente busque momentos de convivencia.',
       boulodromeText2: 'Bajo el sol de Gironda, lance sus bolas y disfrute del espíritu relajado del campo bordelés. Con un aperitivo en la mano, en familia o entre amigos, es la felicidad simple de las vacaciones.',
       tagPetanque: 'Cancha de petanca',
       tagBowlsAvailable: 'Bolas disponibles',
@@ -845,7 +843,7 @@ const translations = {
 
       parkingSubtitle: 'Práctico',
       parkingTitle: 'Aparcamiento privado gratuito',
-      parkingText1: 'Su tranquilidad comienza desde su llegada. El Hôtel Corintel dispone de un aparcamiento privado y seguro, totalmente gratuito para todos nuestros clientes.',
+      parkingText1: 'Su tranquilidad comienza desde su llegada. {hotelName} dispone de un aparcamiento privado y seguro, totalmente gratuito para todos nuestros clientes.',
       parkingText2: 'Idealmente situado al este de Burdeos, nuestro establecimiento le permite explorar fácilmente los viñedos, Burdeos o Saint-Émilion, mientras disfruta de la calma del campo para su descanso.',
       tagFree: 'Gratuito',
       tagSecure: 'Privado y seguro',
@@ -862,7 +860,7 @@ const translations = {
       wifi: 'Wi-Fi gratuito',
       wifiDesc: 'Conexión a internet de alta velocidad disponible gratuitamente en todo el establecimiento.',
 
-      ctaTitle: '¿Listo para la experiencia Corintel?',
+      ctaTitle: '¿Listo para la experiencia {hotelShortName}?',
       ctaText: 'Contáctenos para más información'
     },
 
@@ -873,7 +871,7 @@ const translations = {
 
       introSubtitle: 'Su punto de partida',
       introTitle: 'En el corazón de una región excepcional',
-      introDescription: 'Idealmente situado entre Burdeos y Saint-Émilion, el Hôtel Corintel es el punto de partida perfecto para explorar los tesoros de Gironda. Viñedos prestigiosos, patrimonio histórico y la buena vida le esperan.',
+      introDescription: 'Idealmente situado entre Burdeos y Saint-Émilion, {hotelName} es el punto de partida perfecto para explorar los tesoros de Gironda. Viñedos prestigiosos, patrimonio histórico y la buena vida le esperan.',
 
       bordeauxSubtitle: 'Patrimonio Mundial UNESCO',
       bordeauxTitle: 'Burdeos',
@@ -939,7 +937,7 @@ const translations = {
 
       infoTitle: 'Nuestros datos de contacto',
       addressLabel: 'Dirección',
-      addressValue: 'Hôtel Corintel<br>Tresses, Burdeos Este<br>33370 Gironda, Francia',
+      addressValue: '{hotelName}<br>Tresses, Burdeos Este<br>33370 Gironda, Francia',
       phoneLabel: 'Teléfono',
       emailLabel: 'Email',
       receptionLabel: 'Recepción',
@@ -981,11 +979,10 @@ const translations = {
     },
 
     footer: {
-      description: 'Un remanso de paz a las puertas de Burdeos, donde el encanto y la autenticidad le esperan para una estancia inolvidable.',
       navigation: 'Navegación',
       services: 'Servicios',
       contactTitle: 'Contacto',
-      copyright: '© 2024 Hôtel Corintel. Todos los derechos reservados.',
+      copyright: '© 2024 {hotelName}. Todos los derechos reservados.',
       // Footer links
       home: 'Inicio',
       discover: 'Descubrir',
@@ -1038,7 +1035,7 @@ const translations = {
     // Room Service page
     roomService: {
       // Hero
-      heroSubtitle: 'Hôtel Corintel',
+      heroSubtitle: '{hotelName}',
       heroTitle: 'Room Service',
       heroDescription: 'Ordina dalla tua camera',
 
@@ -1093,13 +1090,13 @@ const translations = {
     },
 
     home: {
-      heroSubtitle: 'Benvenuti all\'Hôtel Corintel',
+      heroSubtitle: 'Benvenuti a {hotelName}',
       heroTitle: 'Un\'oasi di pace<br>alle porte di Bordeaux',
       heroDescription: 'Scoprite il nostro affascinante hotel 3 stelle, immerso nella campagna bordolese, a pochi minuti da Bordeaux e Saint-Émilion.',
 
       introSubtitle: 'La nostra filosofia',
       introTitle: 'Un\'atmosfera calda e accogliente',
-      introText1: 'L\'Hôtel Corintel vi accoglie in un ambiente tranquillo e verde, dove il fascino della campagna bordolese si unisce al comfort di una struttura 3 stelle.',
+      introText1: '{hotelName} vi accoglie in un ambiente tranquillo e verde, dove il fascino della campagna bordolese si unisce al comfort di una struttura 3 stelle.',
       introText2: 'Circondato dalla natura, il nostro hotel offre un\'esperienza di relax autentica. Godetevi il nostro giardino, la terrazza ombreggiata e il salotto comune per momenti di tranquillità lontano dal trambusto della città.',
       featureGarden: 'Giardino tranquillo',
       featureTerrace: 'Terrazza ombreggiata',
@@ -1124,13 +1121,13 @@ const translations = {
     },
 
     services: {
-      heroSubtitle: 'Hôtel Corintel',
+      heroSubtitle: '{hotelName}',
       heroTitle: 'I Nostri Servizi',
       heroDescription: 'Tutto per un soggiorno indimenticabile',
 
       introSubtitle: 'Al vostro servizio',
       introTitle: 'Un\'esperienza completa',
-      introDescription: 'L\'Hôtel Corintel mette a vostra disposizione una gamma di servizi pensati per il vostro comfort e relax. Scoprite tutto ciò che renderà il vostro soggiorno memorabile.',
+      introDescription: '{hotelName} mette a vostra disposizione una gamma di servizi pensati per il vostro comfort e relax. Scoprite tutto ciò che renderà il vostro soggiorno memorabile.',
 
       restaurantSubtitle: 'Ristorazione',
       restaurantTitle: 'Table d\'hôtes',
@@ -1158,7 +1155,7 @@ const translations = {
 
       boulodromeSubtitle: 'Svago',
       boulodromeTitle: 'Campo da bocce',
-      boulodromeText1: 'All\'Hôtel Corintel coltiviamo l\'arte del vivere alla francese. Il nostro campo da bocce vi aspetta per partite memorabili, che siate giocatori esperti o semplicemente alla ricerca di momenti conviviali.',
+      boulodromeText1: 'A {hotelName} coltiviamo l\'arte del vivere alla francese. Il nostro campo da bocce vi aspetta per partite memorabili, che siate giocatori esperti o semplicemente alla ricerca di momenti conviviali.',
       boulodromeText2: 'Sotto il sole della Gironda, lanciate le vostre bocce e godetevi lo spirito rilassato della campagna bordolese. Con un aperitivo in mano, in famiglia o tra amici, è la felicità semplice delle vacanze.',
       tagPetanque: 'Campo da bocce',
       tagBowlsAvailable: 'Bocce disponibili',
@@ -1166,7 +1163,7 @@ const translations = {
 
       parkingSubtitle: 'Pratico',
       parkingTitle: 'Parcheggio privato gratuito',
-      parkingText1: 'La vostra tranquillità inizia al vostro arrivo. L\'Hôtel Corintel dispone di un parcheggio privato e sicuro, completamente gratuito per tutti i nostri clienti.',
+      parkingText1: 'La vostra tranquillità inizia al vostro arrivo. {hotelName} dispone di un parcheggio privato e sicuro, completamente gratuito per tutti i nostri clienti.',
       parkingText2: 'Idealmente situato a est di Bordeaux, il nostro stabilimento vi permette di esplorare facilmente i vigneti, Bordeaux o Saint-Émilion, godendo della calma della campagna per il vostro riposo.',
       tagFree: 'Gratuito',
       tagSecure: 'Privato e sicuro',
@@ -1183,7 +1180,7 @@ const translations = {
       wifi: 'Wi-Fi gratuito',
       wifiDesc: 'Connessione internet ad alta velocità disponibile gratuitamente in tutta la struttura.',
 
-      ctaTitle: 'Pronti per l\'esperienza Corintel?',
+      ctaTitle: 'Pronti per l\'esperienza {hotelShortName}?',
       ctaText: 'Contattateci per maggiori informazioni'
     },
 
@@ -1194,7 +1191,7 @@ const translations = {
 
       introSubtitle: 'Il vostro punto di partenza',
       introTitle: 'Nel cuore di una regione eccezionale',
-      introDescription: 'Idealmente situato tra Bordeaux e Saint-Émilion, l\'Hôtel Corintel è il punto di partenza perfetto per esplorare i tesori della Gironda. Vigneti prestigiosi, patrimonio storico e dolce vita vi attendono.',
+      introDescription: 'Idealmente situato tra Bordeaux e Saint-Émilion, {hotelName} è il punto di partenza perfetto per esplorare i tesori della Gironda. Vigneti prestigiosi, patrimonio storico e dolce vita vi attendono.',
 
       bordeauxSubtitle: 'Patrimonio UNESCO',
       bordeauxTitle: 'Bordeaux',
@@ -1260,7 +1257,7 @@ const translations = {
 
       infoTitle: 'I nostri recapiti',
       addressLabel: 'Indirizzo',
-      addressValue: 'Hôtel Corintel<br>Tresses, Bordeaux Est<br>33370 Gironda, Francia',
+      addressValue: '{hotelName}<br>Tresses, Bordeaux Est<br>33370 Gironda, Francia',
       phoneLabel: 'Telefono',
       emailLabel: 'Email',
       receptionLabel: 'Reception',
@@ -1302,11 +1299,10 @@ const translations = {
     },
 
     footer: {
-      description: 'Un\'oasi di pace alle porte di Bordeaux, dove fascino e autenticità vi attendono per un soggiorno indimenticabile.',
       navigation: 'Navigazione',
       services: 'Servizi',
       contactTitle: 'Contatti',
-      copyright: '© 2024 Hôtel Corintel. Tutti i diritti riservati.',
+      copyright: '© 2024 {hotelName}. Tutti i diritti riservati.',
       // Footer links
       home: 'Home',
       discover: 'Da scoprire',

@@ -13,6 +13,7 @@ $admin = getCurrentAdmin();
 $unreadMessages = getUnreadMessagesCount();
 $pendingOrders = getPendingOrdersCount();
 $csrfToken = generateCsrfToken();
+$hotelName = getHotelName();
 
 // Handle POST requests
 $message = '';
@@ -61,6 +62,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                         }
                         saveCategoryTranslations($code, $translations);
 
+                        // Save custom VAT rate if specified
+                        $vatRate = isset($_POST['vat_rate']) && $_POST['vat_rate'] !== '' ? floatval($_POST['vat_rate']) : null;
+                        if ($vatRate !== null) {
+                            setCategoryVatRate($code, $vatRate);
+                        }
+
                         $message = 'Catégorie créée avec succès.';
                         $messageType = 'success';
                     } else {
@@ -103,6 +110,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                         }
                         saveCategoryTranslations($code, $translations);
 
+                        // Save custom VAT rate (empty = use default)
+                        $vatRate = isset($_POST['vat_rate']) && $_POST['vat_rate'] !== '' ? floatval($_POST['vat_rate']) : null;
+                        setCategoryVatRate($code, $vatRate);
+
                         $message = 'Catégorie mise à jour.';
                         $messageType = 'success';
                     } else {
@@ -135,10 +146,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
 }
 
-// Get all categories with translations and item counts
+// Get all categories with translations, item counts, and VAT rates
 $categories = getRoomServiceCategoriesAllWithTranslations();
+$defaultVatRate = getDefaultVatRate();
 foreach ($categories as &$cat) {
     $cat['items_count'] = getCategoryItemsCount($cat['code']);
+    $customVatRate = getSetting('vat_rate_' . $cat['code'], null);
+    $cat['vat_rate'] = $customVatRate !== null && $customVatRate !== '' ? (float)$customVatRate : null;
+    $cat['effective_vat_rate'] = $cat['vat_rate'] ?? $defaultVatRate;
 }
 unset($cat);
 
@@ -150,7 +165,7 @@ $nextPosition = getNextCategoryPosition();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
-    <title>Room Service - Catégories | Admin Hôtel Corintel</title>
+    <title>Room Service - Catégories | Admin <?= h($hotelName) ?></title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Lato:wght@300;400;500;700&display=swap" rel="stylesheet">
@@ -202,6 +217,23 @@ $nextPosition = getNextCategoryPosition();
             display: inline-flex;
             align-items: center;
             gap: 0.25rem;
+        }
+        .vat-rate {
+            font-weight: 600;
+            color: var(--admin-primary);
+        }
+        .vat-rate.vat-default {
+            color: var(--admin-text-light);
+            font-weight: 400;
+        }
+        .vat-rate small {
+            font-size: 0.7rem;
+            opacity: 0.7;
+        }
+        .vat-field-note {
+            font-size: 0.8rem;
+            color: var(--admin-text-light);
+            margin-top: 0.25rem;
         }
         .actions-cell {
             display: flex;
@@ -412,7 +444,7 @@ $nextPosition = getNextCategoryPosition();
                 </svg>
             </button>
             <div class="sidebar-header">
-                <h2>Hôtel Corintel</h2>
+                <h2><?= h($hotelName) ?></h2>
                 <span>Administration</span>
             </div>
 
@@ -424,32 +456,32 @@ $nextPosition = getNextCategoryPosition();
                     </svg>
                     Tableau de bord
                 </a>
-                <a href="content.php" class="nav-item">
+
+                <div class="nav-separator">Activité</div>
+                <a href="room-service-orders.php" class="nav-item">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                        <line x1="3" y1="9" x2="21" y2="9"/>
-                        <line x1="9" y1="21" x2="9" y2="9"/>
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                        <line x1="16" y1="13" x2="8" y2="13"/>
+                        <line x1="16" y1="17" x2="8" y2="17"/>
+                        <polyline points="10 9 9 9 8 9"/>
                     </svg>
-                    Gestion du contenu
+                    Commandes
+                    <?php if ($pendingOrders > 0): ?>
+                        <span class="badge" style="background: #E53E3E; color: white; margin-left: auto;"><?= $pendingOrders ?></span>
+                    <?php endif; ?>
                 </a>
-                <a href="room-service-stats.php" class="nav-item">
+                <a href="room-service-messages.php" class="nav-item">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="18" y1="20" x2="18" y2="10"/>
-                        <line x1="12" y1="20" x2="12" y2="4"/>
-                        <line x1="6" y1="20" x2="6" y2="14"/>
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                     </svg>
-                    Statistiques
+                    Messages
+                    <?php if ($unreadMessages > 0): ?>
+                        <span class="badge" style="background: #E53E3E; color: white; margin-left: auto;"><?= $unreadMessages ?></span>
+                    <?php endif; ?>
                 </a>
-                <a href="room-service-items.php" class="nav-item">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M18 8h1a4 4 0 0 1 0 8h-1"/>
-                        <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/>
-                        <line x1="6" y1="1" x2="6" y2="4"/>
-                        <line x1="10" y1="1" x2="10" y2="4"/>
-                        <line x1="14" y1="1" x2="14" y2="4"/>
-                    </svg>
-                    Room Service - Articles
-                </a>
+
+                <div class="nav-separator">Room Service</div>
                 <a href="room-service-categories.php" class="nav-item active">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <line x1="8" y1="6" x2="21" y2="6"/>
@@ -459,29 +491,42 @@ $nextPosition = getNextCategoryPosition();
                         <line x1="3" y1="12" x2="3.01" y2="12"/>
                         <line x1="3" y1="18" x2="3.01" y2="18"/>
                     </svg>
-                    Room Service - Catégories
+                    Catégories
                 </a>
-                <a href="room-service-orders.php" class="nav-item">
+                <a href="room-service-items.php" class="nav-item">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                        <polyline points="14 2 14 8 20 8"/>
-                        <line x1="16" y1="13" x2="8" y2="13"/>
-                        <line x1="16" y1="17" x2="8" y2="17"/>
-                        <polyline points="10 9 9 9 8 9"/>
+                        <path d="M18 8h1a4 4 0 0 1 0 8h-1"/>
+                        <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/>
+                        <line x1="6" y1="1" x2="6" y2="4"/>
+                        <line x1="10" y1="1" x2="10" y2="4"/>
+                        <line x1="14" y1="1" x2="14" y2="4"/>
                     </svg>
-                    Room Service - Commandes
-                    <?php if ($pendingOrders > 0): ?>
-                        <span class="badge" style="background: #E53E3E; color: white; margin-left: auto;"><?= $pendingOrders ?></span>
-                    <?php endif; ?>
+                    Articles
                 </a>
-                <a href="room-service-messages.php" class="nav-item">
+                <a href="room-service-stats.php" class="nav-item">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                        <line x1="18" y1="20" x2="18" y2="10"/>
+                        <line x1="12" y1="20" x2="12" y2="4"/>
+                        <line x1="6" y1="20" x2="6" y2="14"/>
                     </svg>
-                    Messages Clients
-                    <?php if ($unreadMessages > 0): ?>
-                        <span class="badge" style="background: #E53E3E; color: white; margin-left: auto;"><?= $unreadMessages ?></span>
-                    <?php endif; ?>
+                    Statistiques
+                </a>
+
+                <div class="nav-separator">Contenu</div>
+                <a href="content.php?tab=general" class="nav-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                    </svg>
+                    Général
+                </a>
+                <a href="content.php" class="nav-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                        <line x1="3" y1="9" x2="21" y2="9"/>
+                        <line x1="9" y1="21" x2="9" y2="9"/>
+                    </svg>
+                    Sections
                 </a>
                 <a href="theme.php" class="nav-item">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -489,7 +534,16 @@ $nextPosition = getNextCategoryPosition();
                         <path d="M12 2a10 10 0 0 0 0 20"/>
                         <path d="M12 2c-2.5 2.5-4 6-4 10s1.5 7.5 4 10"/>
                     </svg>
-                    Thème du site
+                    Thème
+                </a>
+
+                <div class="nav-separator">Administration</div>
+                <a href="rooms.php" class="nav-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                        <rect x="9" y="13" width="6" height="9"/>
+                    </svg>
+                    Chambres
                 </a>
                 <a href="settings.php" class="nav-item">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -557,6 +611,7 @@ $nextPosition = getNextCategoryPosition();
                                     <tr>
                                         <th>Position</th>
                                         <th>Catégorie</th>
+                                        <th>TVA</th>
                                         <th>Horaires</th>
                                         <th>Articles</th>
                                         <th>Statut</th>
@@ -577,6 +632,13 @@ $nextPosition = getNextCategoryPosition();
                                                     <strong><?= h($category['name']) ?></strong>
                                                     <small><?= h($category['code']) ?></small>
                                                 </div>
+                                            </td>
+                                            <td>
+                                                <?php if ($category['vat_rate'] !== null): ?>
+                                                    <span class="vat-rate"><?= number_format($category['vat_rate'], 1) ?>%</span>
+                                                <?php else: ?>
+                                                    <span class="vat-rate vat-default"><?= number_format($defaultVatRate, 1) ?>% <small>(défaut)</small></span>
+                                                <?php endif; ?>
                                             </td>
                                             <td>
                                                 <?php if ($timeStart && $timeEnd): ?>
@@ -699,6 +761,12 @@ $nextPosition = getNextCategoryPosition();
                     </div>
                     <p class="form-hint">Laissez vide pour une disponibilité 24h/24</p>
 
+                    <div class="form-group">
+                        <label for="createVatRate">Taux de TVA (%)</label>
+                        <input type="number" id="createVatRate" name="vat_rate" min="0" max="100" step="0.1" placeholder="<?= $defaultVatRate ?>">
+                        <p class="vat-field-note">Laissez vide pour utiliser le taux par défaut (<?= $defaultVatRate ?>%)</p>
+                    </div>
+
                     <div class="translation-section">
                         <h4>Traductions (optionnel)</h4>
                         <div class="translation-row">
@@ -761,6 +829,12 @@ $nextPosition = getNextCategoryPosition();
                         </div>
                     </div>
                     <p class="form-hint">Laissez vide pour une disponibilité 24h/24</p>
+
+                    <div class="form-group">
+                        <label for="editVatRate">Taux de TVA (%)</label>
+                        <input type="number" id="editVatRate" name="vat_rate" min="0" max="100" step="0.1" placeholder="<?= $defaultVatRate ?>">
+                        <p class="vat-field-note">Laissez vide pour utiliser le taux par défaut (<?= $defaultVatRate ?>%)</p>
+                    </div>
 
                     <div class="form-group">
                         <label class="checkbox-group">
@@ -844,6 +918,9 @@ $nextPosition = getNextCategoryPosition();
         document.getElementById('editTimeStart').value = category.time_start ? category.time_start.substring(0, 5) : '';
         document.getElementById('editTimeEnd').value = category.time_end ? category.time_end.substring(0, 5) : '';
         document.getElementById('editActive').checked = category.is_active == 1;
+
+        // Set VAT rate (empty if null/default)
+        document.getElementById('editVatRate').value = category.vat_rate !== null ? category.vat_rate : '';
 
         // Set translations
         const translations = category.translations || {};

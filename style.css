@@ -248,6 +248,25 @@ p {
   object-fit: cover;
 }
 
+/* Placeholder when no carousel images are configured */
+.hero-placeholder {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+}
+
+.hero-placeholder-content {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1;
+}
+
+.hero-placeholder-content svg {
+  width: 80px;
+  height: 80px;
+  color: rgba(255, 255, 255, 0.3);
+}
+
 .hero-overlay {
   position: absolute;
   top: 0;
@@ -415,7 +434,8 @@ p {
   padding: 5rem 0;
 }
 
-.section-light {
+.section-light,
+.section-white {
   background-color: var(--color-white);
 }
 
@@ -425,6 +445,108 @@ p {
 
 .section-beige {
   background-color: var(--color-beige);
+}
+
+.section-primary {
+  background-color: var(--color-primary);
+}
+
+.section-primary-dark {
+  background-color: var(--color-primary-dark);
+}
+
+.section-accent {
+  background-color: var(--color-accent);
+}
+
+/* Neutral hardcoded backgrounds */
+.section-neutral-gray {
+  background-color: #F5F5F5;
+}
+
+.section-neutral-blue {
+  background-color: #F0F4F8;
+}
+
+.section-neutral-sand {
+  background-color: #F8F6F1;
+}
+
+/* Light text for dark backgrounds */
+.section-primary,
+.section-primary-dark,
+.section-accent {
+  color: var(--color-white);
+}
+
+.section-primary .section-subtitle,
+.section-primary-dark .section-subtitle,
+.section-accent .section-subtitle {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.section-primary .section-title,
+.section-primary-dark .section-title,
+.section-accent .section-title {
+  color: var(--color-white);
+}
+
+.section-primary .section-description,
+.section-primary-dark .section-description,
+.section-accent .section-description {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.section-primary .intro-feature svg,
+.section-primary-dark .intro-feature svg,
+.section-accent .intro-feature svg {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.section-primary .intro-feature span,
+.section-primary-dark .intro-feature span,
+.section-accent .intro-feature span {
+  color: rgba(255, 255, 255, 0.95);
+}
+
+/* Service cards in dark sections */
+.section-primary .service-card,
+.section-primary-dark .service-card,
+.section-accent .service-card {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.section-primary .service-card h3,
+.section-primary-dark .service-card h3,
+.section-accent .service-card h3 {
+  color: var(--color-white);
+}
+
+.section-primary .service-card p,
+.section-primary-dark .service-card p,
+.section-accent .service-card p {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* Gallery items in dark sections */
+.section-primary .gallery-item figcaption,
+.section-primary-dark .gallery-item figcaption,
+.section-accent .gallery-item figcaption {
+  background-color: rgba(0, 0, 0, 0.7);
+}
+
+/* Checklist items in dark sections */
+.section-primary .detail-item,
+.section-primary-dark .detail-item,
+.section-accent .detail-item {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.section-primary .detail-item svg,
+.section-primary-dark .detail-item svg,
+.section-accent .detail-item svg {
+  color: rgba(255, 255, 255, 0.85);
 }
 
 .section-header {
@@ -457,6 +579,15 @@ p {
   grid-template-columns: 1fr 1fr;
   gap: 4rem;
   align-items: center;
+}
+
+/* Image position modifiers for intro-grid */
+.intro-grid.image-right {
+  direction: rtl;
+}
+
+.intro-grid.image-right > * {
+  direction: ltr;
 }
 
 .intro-image {
@@ -498,6 +629,34 @@ p {
   height: 24px;
   color: var(--color-accent);
   flex-shrink: 0;
+}
+
+/* Section CTA Button */
+.section-cta {
+  margin-top: 2rem;
+}
+
+.section-link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1.5rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+  text-decoration: none;
+  border-radius: 8px;
+  transition: var(--transition);
+}
+
+.section-link-btn svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.section-link-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-medium);
 }
 
 /* ---------- Services Grid ---------- */
@@ -566,11 +725,25 @@ p {
   margin-bottom: 4rem;
 }
 
-.service-detail:nth-child(even) {
+/* Legacy alternating layout (only when no explicit position is set) */
+.service-detail:not(.image-left):not(.image-right):nth-child(even) {
   direction: rtl;
 }
 
-.service-detail:nth-child(even) > * {
+.service-detail:not(.image-left):not(.image-right):nth-child(even) > * {
+  direction: ltr;
+}
+
+/* Image position modifiers for service-detail */
+.service-detail.image-left {
+  direction: ltr;
+}
+
+.service-detail.image-right {
+  direction: rtl;
+}
+
+.service-detail.image-right > * {
   direction: ltr;
 }
 
@@ -1049,6 +1222,9 @@ p {
     gap: 2rem;
   }
 
+  /* Reset direction for all layouts on mobile (stacked vertically) */
+  .intro-grid.image-right,
+  .service-detail.image-right,
   .service-detail:nth-child(even) {
     direction: ltr;
   }
@@ -2024,4 +2200,45 @@ p {
 /* Prevent body scroll when modal is open */
 body.modal-open {
   overflow: hidden;
+}
+
+/* ---------- Presentation Hero Section ---------- */
+/* Simple fullscreen hero: background image + centered text overlay */
+.presentation-hero {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.presentation-hero-overlay {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  color: #fff;
+  padding: 2rem;
+}
+
+.presentation-hero-title {
+  font-size: 3rem;
+  margin: 0 0 1rem 0;
+  color: #fff;
+}
+
+.presentation-hero-subtitle {
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  margin: 0 0 1rem 0;
+  opacity: 0.9;
+}
+
+.presentation-hero-description {
+  font-size: 1.2rem;
+  margin: 0;
+  opacity: 0.9;
 }

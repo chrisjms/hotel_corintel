@@ -88,14 +88,14 @@ a:hover {
 
 .sidebar-nav {
     flex: 1;
-    padding: 1rem 0;
+    padding: 0.5rem 0;
 }
 
 .nav-item {
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    padding: 0.875rem 1.5rem;
+    padding: 0.7rem 1.5rem;
     color: rgba(255,255,255,0.7);
     transition: all var(--admin-transition);
 }
@@ -115,6 +115,35 @@ a:hover {
     background: rgba(139, 90, 43, 0.3);
     color: #fff;
     border-right: 3px solid var(--admin-primary);
+}
+
+/* Sidebar group separators */
+.nav-separator {
+    padding: 0.4rem 1.5rem 0.15rem;
+    margin-top: 0.15rem;
+    font-size: 0.6rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: rgba(255,255,255,0.35);
+    user-select: none;
+    pointer-events: none;
+}
+
+.nav-separator:first-child {
+    margin-top: 0;
+}
+
+.nav-separator::before {
+    content: '';
+    display: block;
+    height: 1px;
+    background: rgba(255,255,255,0.08);
+    margin-bottom: 0.35rem;
+}
+
+.nav-separator:first-child::before {
+    display: none;
 }
 
 .sidebar-footer {

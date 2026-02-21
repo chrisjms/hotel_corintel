@@ -13,6 +13,7 @@ $admin = getCurrentAdmin();
 $unreadMessages = getUnreadMessagesCount();
 $pendingOrders = getPendingOrdersCount();
 $csrfToken = generateCsrfToken();
+$hotelName = getHotelName();
 $categories = getRoomServiceCategories();
 
 // Handle POST requests
@@ -196,7 +197,7 @@ foreach ($items as $item) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
-    <title>Room Service - Articles | Admin Hôtel Corintel</title>
+    <title>Room Service - Articles | Admin <?= h($hotelName) ?></title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Lato:wght@300;400;500;700&display=swap" rel="stylesheet">
@@ -258,6 +259,38 @@ foreach ($items as $item) {
         .price {
             font-weight: 600;
             color: var(--admin-primary);
+        }
+        .price-ttc {
+            font-weight: 600;
+            color: var(--admin-primary);
+        }
+        .price-ht {
+            font-size: 0.8rem;
+            color: var(--admin-text-light);
+            margin-top: 2px;
+        }
+        .price-cell {
+            white-space: nowrap;
+        }
+        .price-input-group {
+            position: relative;
+        }
+        .price-ht-display {
+            font-size: 0.85rem;
+            color: var(--admin-text-light);
+            margin-top: 0.25rem;
+            padding: 0.5rem 0.75rem;
+            background: var(--admin-bg);
+            border-radius: 4px;
+        }
+        .vat-badge {
+            display: inline-block;
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            background: rgba(66, 153, 225, 0.1);
+            color: #2B6CB0;
+            border-radius: 3px;
+            margin-left: 0.5rem;
         }
         .actions-cell {
             display: flex;
@@ -341,6 +374,70 @@ foreach ($items as $item) {
         .translation-note strong {
             color: #2B6CB0;
         }
+        /* Collapsible Categories */
+        .category-group {
+            margin-bottom: 0.5rem;
+            border: 1px solid var(--admin-border);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .category-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 1.25rem;
+            background: var(--admin-bg);
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.2s ease;
+        }
+        .category-header:hover {
+            background: #e8e4de;
+        }
+        .category-header-left {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .category-header h3 {
+            margin: 0;
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--admin-text);
+        }
+        .category-header .badge {
+            font-size: 0.75rem;
+        }
+        .category-toggle {
+            width: 24px;
+            height: 24px;
+            color: var(--admin-text-light);
+            transition: transform 0.3s ease;
+        }
+        .category-header.expanded .category-toggle {
+            transform: rotate(180deg);
+        }
+        .category-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+        .category-content.expanded {
+            max-height: 2000px;
+            transition: max-height 0.5s ease-in;
+        }
+        .category-content .items-table {
+            border-top: 1px solid var(--admin-border);
+        }
+        .category-content .items-table tr:last-child td {
+            border-bottom: none;
+        }
+        .empty-category {
+            padding: 1.5rem;
+            text-align: center;
+            color: var(--admin-text-light);
+            font-style: italic;
+        }
     </style>
 </head>
 <body>
@@ -357,7 +454,7 @@ foreach ($items as $item) {
                 </svg>
             </button>
             <div class="sidebar-header">
-                <h2>Hôtel Corintel</h2>
+                <h2><?= h($hotelName) ?></h2>
                 <span>Administration</span>
             </div>
 
@@ -369,21 +466,42 @@ foreach ($items as $item) {
                     </svg>
                     Tableau de bord
                 </a>
-                <a href="content.php" class="nav-item">
+
+                <div class="nav-separator">Activité</div>
+                <a href="room-service-orders.php" class="nav-item">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                        <line x1="3" y1="9" x2="21" y2="9"/>
-                        <line x1="9" y1="21" x2="9" y2="9"/>
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                        <line x1="16" y1="13" x2="8" y2="13"/>
+                        <line x1="16" y1="17" x2="8" y2="17"/>
+                        <polyline points="10 9 9 9 8 9"/>
                     </svg>
-                    Gestion du contenu
+                    Commandes
+                    <?php if ($pendingOrders > 0): ?>
+                        <span class="badge" style="background: #E53E3E; color: white; margin-left: auto;"><?= $pendingOrders ?></span>
+                    <?php endif; ?>
                 </a>
-                <a href="room-service-stats.php" class="nav-item">
+                <a href="room-service-messages.php" class="nav-item">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="18" y1="20" x2="18" y2="10"/>
-                        <line x1="12" y1="20" x2="12" y2="4"/>
-                        <line x1="6" y1="20" x2="6" y2="14"/>
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                     </svg>
-                    Statistiques
+                    Messages
+                    <?php if ($unreadMessages > 0): ?>
+                        <span class="badge" style="background: #E53E3E; color: white; margin-left: auto;"><?= $unreadMessages ?></span>
+                    <?php endif; ?>
+                </a>
+
+                <div class="nav-separator">Room Service</div>
+                <a href="room-service-categories.php" class="nav-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="8" y1="6" x2="21" y2="6"/>
+                        <line x1="8" y1="12" x2="21" y2="12"/>
+                        <line x1="8" y1="18" x2="21" y2="18"/>
+                        <line x1="3" y1="6" x2="3.01" y2="6"/>
+                        <line x1="3" y1="12" x2="3.01" y2="12"/>
+                        <line x1="3" y1="18" x2="3.01" y2="18"/>
+                    </svg>
+                    Catégories
                 </a>
                 <a href="room-service-items.php" class="nav-item active">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -393,36 +511,32 @@ foreach ($items as $item) {
                         <line x1="10" y1="1" x2="10" y2="4"/>
                         <line x1="14" y1="1" x2="14" y2="4"/>
                     </svg>
-                    Room Service - Articles
+                    Articles
                 </a>
-                <a href="room-service-categories.php" class="nav-item">
+                <a href="room-service-stats.php" class="nav-item">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10"/>
-                        <polyline points="12 6 12 12 16 14"/>
+                        <line x1="18" y1="20" x2="18" y2="10"/>
+                        <line x1="12" y1="20" x2="12" y2="4"/>
+                        <line x1="6" y1="20" x2="6" y2="14"/>
                     </svg>
-                    Room Service - Catégories
+                    Statistiques
                 </a>
-                <a href="room-service-orders.php" class="nav-item">
+
+                <div class="nav-separator">Contenu</div>
+                <a href="content.php?tab=general" class="nav-item">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                        <polyline points="14 2 14 8 20 8"/>
-                        <line x1="16" y1="13" x2="8" y2="13"/>
-                        <line x1="16" y1="17" x2="8" y2="17"/>
-                        <polyline points="10 9 9 9 8 9"/>
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
                     </svg>
-                    Room Service - Commandes
-                    <?php if ($pendingOrders > 0): ?>
-                        <span class="badge" style="background: #E53E3E; color: white; margin-left: auto;"><?= $pendingOrders ?></span>
-                    <?php endif; ?>
+                    Général
                 </a>
-                <a href="room-service-messages.php" class="nav-item">
+                <a href="content.php" class="nav-item">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                        <line x1="3" y1="9" x2="21" y2="9"/>
+                        <line x1="9" y1="21" x2="9" y2="9"/>
                     </svg>
-                    Messages Clients
-                    <?php if ($unreadMessages > 0): ?>
-                        <span class="badge" style="background: #E53E3E; color: white; margin-left: auto;"><?= $unreadMessages ?></span>
-                    <?php endif; ?>
+                    Sections
                 </a>
                 <a href="theme.php" class="nav-item">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -430,7 +544,16 @@ foreach ($items as $item) {
                         <path d="M12 2a10 10 0 0 0 0 20"/>
                         <path d="M12 2c-2.5 2.5-4 6-4 10s1.5 7.5 4 10"/>
                     </svg>
-                    Thème du site
+                    Thème
+                </a>
+
+                <div class="nav-separator">Administration</div>
+                <a href="rooms.php" class="nav-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                        <rect x="9" y="13" width="6" height="9"/>
+                    </svg>
+                    Chambres
                 </a>
                 <a href="settings.php" class="nav-item">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -522,106 +645,142 @@ foreach ($items as $item) {
                     </div>
                 </div>
 
-                <!-- Items Table -->
+                <!-- Items by Category -->
                 <div class="card">
                     <div class="card-header">
                         <h2>Liste des articles</h2>
                         <span class="badge"><?= count($items) ?> articles</span>
                     </div>
-                    <div class="card-body" style="padding: 0;">
+                    <div class="card-body">
                         <?php if (empty($items)): ?>
                             <p class="empty-state">Aucun article. Cliquez sur "Ajouter un article" pour commencer.</p>
                         <?php else: ?>
-                            <table class="items-table">
-                                <thead>
-                                    <tr>
-                                        <th>Article</th>
-                                        <th>Catégorie</th>
-                                        <th>Prix</th>
-                                        <th>Position</th>
-                                        <th>Statut</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php foreach ($items as $item): ?>
-                                        <tr>
-                                            <td>
-                                                <div class="item-info">
-                                                    <?php if ($item['image']): ?>
-                                                        <img src="../<?= h($item['image']) ?>" alt="<?= h($item['name']) ?>" class="item-image">
-                                                    <?php else: ?>
-                                                        <div class="item-image" style="display: flex; align-items: center; justify-content: center;">
-                                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 24px; height: 24px; color: var(--admin-text-light);">
-                                                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                                                                <circle cx="8.5" cy="8.5" r="1.5"/>
-                                                                <polyline points="21 15 16 10 5 21"/>
-                                                            </svg>
-                                                        </div>
-                                                    <?php endif; ?>
-                                                    <div class="item-details">
-                                                        <h4><?= h($item['name']) ?></h4>
-                                                        <p><?= h($item['description'] ?? '') ?></p>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td><?= h($categories[$item['category']] ?? $item['category']) ?></td>
-                                            <td><span class="price"><?= number_format($item['price'], 2, ',', ' ') ?> €</span></td>
-                                            <td><?= $item['position'] ?></td>
-                                            <td>
-                                                <span class="badge <?= $item['is_active'] ? 'badge-active' : 'badge-inactive' ?>">
-                                                    <?= $item['is_active'] ? 'Actif' : 'Inactif' ?>
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <div class="actions-cell">
-                                                    <button type="button" class="btn btn-sm btn-outline btn-icon" onclick="openEditModal(<?= htmlspecialchars(json_encode($item)) ?>)" title="Modifier">
-                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                                                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                                                        </svg>
-                                                    </button>
-                                                    <button type="button" class="btn btn-sm btn-outline btn-icon" onclick="openImageModal(<?= $item['id'] ?>)" title="Changer l'image">
-                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                                                            <circle cx="8.5" cy="8.5" r="1.5"/>
-                                                            <polyline points="21 15 16 10 5 21"/>
-                                                        </svg>
-                                                    </button>
-                                                    <form method="POST" style="display: inline;">
-                                                        <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
-                                                        <input type="hidden" name="action" value="toggle">
-                                                        <input type="hidden" name="id" value="<?= $item['id'] ?>">
-                                                        <button type="submit" class="btn btn-sm <?= $item['is_active'] ? 'btn-outline' : 'btn-success' ?> btn-icon" title="<?= $item['is_active'] ? 'Désactiver' : 'Activer' ?>">
-                                                            <?php if ($item['is_active']): ?>
-                                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                                    <path d="M18.36 6.64a9 9 0 1 1-12.73 0"/>
-                                                                    <line x1="12" y1="2" x2="12" y2="12"/>
-                                                                </svg>
-                                                            <?php else: ?>
-                                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                                    <polyline points="20 6 9 17 4 12"/>
-                                                                </svg>
-                                                            <?php endif; ?>
-                                                        </button>
-                                                    </form>
-                                                    <form method="POST" style="display: inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cet article ?');">
-                                                        <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
-                                                        <input type="hidden" name="action" value="delete">
-                                                        <input type="hidden" name="id" value="<?= $item['id'] ?>">
-                                                        <button type="submit" class="btn btn-sm btn-danger btn-icon" title="Supprimer">
-                                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                                <polyline points="3 6 5 6 21 6"/>
-                                                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                                                            </svg>
-                                                        </button>
-                                                    </form>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
-                            </table>
+                            <?php
+                            // Group items by category
+                            $itemsByCategory = [];
+                            foreach ($items as $item) {
+                                $cat = $item['category'] ?? 'general';
+                                if (!isset($itemsByCategory[$cat])) {
+                                    $itemsByCategory[$cat] = [];
+                                }
+                                $itemsByCategory[$cat][] = $item;
+                            }
+                            ?>
+                            <?php foreach ($categories as $catKey => $catLabel): ?>
+                                <?php $categoryItems = $itemsByCategory[$catKey] ?? []; ?>
+                                <div class="category-group">
+                                    <div class="category-header" onclick="toggleCategory(this)">
+                                        <div class="category-header-left">
+                                            <h3><?= h($catLabel) ?></h3>
+                                            <span class="badge"><?= count($categoryItems) ?> article<?= count($categoryItems) > 1 ? 's' : '' ?></span>
+                                        </div>
+                                        <svg class="category-toggle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <polyline points="6 9 12 15 18 9"/>
+                                        </svg>
+                                    </div>
+                                    <div class="category-content">
+                                        <?php if (empty($categoryItems)): ?>
+                                            <p class="empty-category">Aucun article dans cette catégorie</p>
+                                        <?php else: ?>
+                                            <table class="items-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Article</th>
+                                                        <th>Prix TTC / HT</th>
+                                                        <th>Position</th>
+                                                        <th>Statut</th>
+                                                        <th>Actions</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <?php foreach ($categoryItems as $item): ?>
+                                                        <tr>
+                                                            <td>
+                                                                <div class="item-info">
+                                                                    <?php if ($item['image']): ?>
+                                                                        <img src="../<?= h($item['image']) ?>" alt="<?= h($item['name']) ?>" class="item-image">
+                                                                    <?php else: ?>
+                                                                        <div class="item-image" style="display: flex; align-items: center; justify-content: center;">
+                                                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 24px; height: 24px; color: var(--admin-text-light);">
+                                                                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                                                                <circle cx="8.5" cy="8.5" r="1.5"/>
+                                                                                <polyline points="21 15 16 10 5 21"/>
+                                                                            </svg>
+                                                                        </div>
+                                                                    <?php endif; ?>
+                                                                    <div class="item-details">
+                                                                        <h4><?= h($item['name']) ?></h4>
+                                                                        <p><?= h($item['description'] ?? '') ?></p>
+                                                                    </div>
+                                                                </div>
+                                                            </td>
+                                                            <td class="price-cell">
+                                                                <?php
+                                                                $vatRate = getCategoryVatRate($catKey);
+                                                                $priceHT = calculatePriceHT($item['price'], $vatRate);
+                                                                ?>
+                                                                <div class="price-ttc"><?= number_format($item['price'], 2, ',', ' ') ?> € TTC</div>
+                                                                <div class="price-ht"><?= number_format($priceHT, 2, ',', ' ') ?> € HT</div>
+                                                            </td>
+                                                            <td><?= $item['position'] ?></td>
+                                                            <td>
+                                                                <span class="badge <?= $item['is_active'] ? 'badge-active' : 'badge-inactive' ?>">
+                                                                    <?= $item['is_active'] ? 'Actif' : 'Inactif' ?>
+                                                                </span>
+                                                            </td>
+                                                            <td>
+                                                                <div class="actions-cell">
+                                                                    <button type="button" class="btn btn-sm btn-outline btn-icon" onclick="openEditModal(<?= htmlspecialchars(json_encode($item)) ?>)" title="Modifier">
+                                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                                                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                                                        </svg>
+                                                                    </button>
+                                                                    <button type="button" class="btn btn-sm btn-outline btn-icon" onclick="openImageModal(<?= $item['id'] ?>)" title="Changer l'image">
+                                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                                                            <circle cx="8.5" cy="8.5" r="1.5"/>
+                                                                            <polyline points="21 15 16 10 5 21"/>
+                                                                        </svg>
+                                                                    </button>
+                                                                    <form method="POST" style="display: inline;">
+                                                                        <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
+                                                                        <input type="hidden" name="action" value="toggle">
+                                                                        <input type="hidden" name="id" value="<?= $item['id'] ?>">
+                                                                        <button type="submit" class="btn btn-sm <?= $item['is_active'] ? 'btn-outline' : 'btn-success' ?> btn-icon" title="<?= $item['is_active'] ? 'Désactiver' : 'Activer' ?>">
+                                                                            <?php if ($item['is_active']): ?>
+                                                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                                                    <path d="M18.36 6.64a9 9 0 1 1-12.73 0"/>
+                                                                                    <line x1="12" y1="2" x2="12" y2="12"/>
+                                                                                </svg>
+                                                                            <?php else: ?>
+                                                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                                                    <polyline points="20 6 9 17 4 12"/>
+                                                                                </svg>
+                                                                            <?php endif; ?>
+                                                                        </button>
+                                                                    </form>
+                                                                    <form method="POST" style="display: inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cet article ?');">
+                                                                        <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
+                                                                        <input type="hidden" name="action" value="delete">
+                                                                        <input type="hidden" name="id" value="<?= $item['id'] ?>">
+                                                                        <button type="submit" class="btn btn-sm btn-danger btn-icon" title="Supprimer">
+                                                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                                                <polyline points="3 6 5 6 21 6"/>
+                                                                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                                                            </svg>
+                                                                        </button>
+                                                                    </form>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    <?php endforeach; ?>
+                                                </tbody>
+                                            </table>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
                         <?php endif; ?>
                     </div>
                 </div>
@@ -719,16 +878,19 @@ foreach ($items as $item) {
 
                     <!-- Common fields (not translatable) -->
                     <div class="form-group">
-                        <label for="createPrice">Prix (€) *</label>
-                        <input type="number" id="createPrice" name="price" required min="0.01" step="0.01">
-                    </div>
-                    <div class="form-group">
                         <label for="createCategory">Catégorie</label>
-                        <select id="createCategory" name="category">
+                        <select id="createCategory" name="category" onchange="updateCreatePriceHT()">
                             <?php foreach ($categories as $key => $label): ?>
-                                <option value="<?= h($key) ?>"><?= h($label) ?></option>
+                                <option value="<?= h($key) ?>" data-vat="<?= getCategoryVatRate($key) ?>"><?= h($label) ?></option>
                             <?php endforeach; ?>
                         </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="createPrice">Prix TTC (€) * <span class="vat-badge" id="createVatBadge">TVA <?= getDefaultVatRate() ?>%</span></label>
+                        <div class="price-input-group">
+                            <input type="number" id="createPrice" name="price" required min="0.01" step="0.01" oninput="updateCreatePriceHT()">
+                            <div class="price-ht-display" id="createPriceHT">Prix HT : - €</div>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label for="createPosition">Position (ordre d'affichage)</label>
@@ -839,16 +1001,19 @@ foreach ($items as $item) {
 
                     <!-- Common fields (not translatable) -->
                     <div class="form-group">
-                        <label for="editPrice">Prix (€) *</label>
-                        <input type="number" id="editPrice" name="price" required min="0.01" step="0.01">
-                    </div>
-                    <div class="form-group">
                         <label for="editCategory">Catégorie</label>
-                        <select id="editCategory" name="category">
+                        <select id="editCategory" name="category" onchange="updateEditPriceHT()">
                             <?php foreach ($categories as $key => $label): ?>
-                                <option value="<?= h($key) ?>"><?= h($label) ?></option>
+                                <option value="<?= h($key) ?>" data-vat="<?= getCategoryVatRate($key) ?>"><?= h($label) ?></option>
                             <?php endforeach; ?>
                         </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="editPrice">Prix TTC (€) * <span class="vat-badge" id="editVatBadge">TVA <?= getDefaultVatRate() ?>%</span></label>
+                        <div class="price-input-group">
+                            <input type="number" id="editPrice" name="price" required min="0.01" step="0.01" oninput="updateEditPriceHT()">
+                            <div class="price-ht-display" id="editPriceHT">Prix HT : - €</div>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label for="editPosition">Position (ordre d'affichage)</label>
@@ -910,6 +1075,78 @@ foreach ($items as $item) {
     </script>
 
     <script>
+        // Category toggle functionality
+        function toggleCategory(header) {
+            header.classList.toggle('expanded');
+            const content = header.nextElementSibling;
+            content.classList.toggle('expanded');
+        }
+
+        // VAT rate data for categories
+        const categoryVatRates = <?= json_encode(getAllVatRates()) ?>;
+        const defaultVatRate = <?= getDefaultVatRate() ?>;
+
+        // Calculate HT price from TTC
+        function calculateHT(priceTTC, vatRate) {
+            if (vatRate <= 0) return priceTTC;
+            return priceTTC / (1 + (vatRate / 100));
+        }
+
+        // Format price for display (French format)
+        function formatPriceDisplay(price) {
+            return price.toFixed(2).replace('.', ',') + ' €';
+        }
+
+        // Get VAT rate for a category
+        function getVatRateForCategory(categoryCode) {
+            if (categoryVatRates[categoryCode] !== null && categoryVatRates[categoryCode] !== undefined) {
+                return categoryVatRates[categoryCode];
+            }
+            return defaultVatRate;
+        }
+
+        // Update Create modal HT price display
+        function updateCreatePriceHT() {
+            const priceInput = document.getElementById('createPrice');
+            const categorySelect = document.getElementById('createCategory');
+            const htDisplay = document.getElementById('createPriceHT');
+            const vatBadge = document.getElementById('createVatBadge');
+
+            const priceTTC = parseFloat(priceInput.value) || 0;
+            const selectedOption = categorySelect.options[categorySelect.selectedIndex];
+            const vatRate = parseFloat(selectedOption.dataset.vat) || defaultVatRate;
+
+            vatBadge.textContent = `TVA ${vatRate}%`;
+
+            if (priceTTC > 0) {
+                const priceHT = calculateHT(priceTTC, vatRate);
+                htDisplay.textContent = `Prix HT : ${formatPriceDisplay(priceHT)}`;
+            } else {
+                htDisplay.textContent = 'Prix HT : - €';
+            }
+        }
+
+        // Update Edit modal HT price display
+        function updateEditPriceHT() {
+            const priceInput = document.getElementById('editPrice');
+            const categorySelect = document.getElementById('editCategory');
+            const htDisplay = document.getElementById('editPriceHT');
+            const vatBadge = document.getElementById('editVatBadge');
+
+            const priceTTC = parseFloat(priceInput.value) || 0;
+            const selectedOption = categorySelect.options[categorySelect.selectedIndex];
+            const vatRate = parseFloat(selectedOption.dataset.vat) || defaultVatRate;
+
+            vatBadge.textContent = `TVA ${vatRate}%`;
+
+            if (priceTTC > 0) {
+                const priceHT = calculateHT(priceTTC, vatRate);
+                htDisplay.textContent = `Prix HT : ${formatPriceDisplay(priceHT)}`;
+            } else {
+                htDisplay.textContent = 'Prix HT : - €';
+            }
+        }
+
         // Language tab switching for Create modal
         function switchCreateTab(lang) {
             document.querySelectorAll('#createLangTabs .lang-tab').forEach(tab => {
@@ -935,6 +1172,8 @@ foreach ($items as $item) {
             document.querySelector('#createModal form').reset();
             // Reset tabs to French
             switchCreateTab('fr');
+            // Reset HT display
+            updateCreatePriceHT();
             document.getElementById('createModal').classList.add('active');
         }
 
@@ -965,10 +1204,13 @@ foreach ($items as $item) {
             document.getElementById('editDescription_it').value = itTrans.description || '';
 
             // Set common fields
-            document.getElementById('editPrice').value = item.price;
             document.getElementById('editCategory').value = item.category || 'general';
+            document.getElementById('editPrice').value = item.price;
             document.getElementById('editPosition').value = item.position || 0;
             document.getElementById('editActive').checked = item.is_active == 1;
+
+            // Update HT price display
+            updateEditPriceHT();
 
             // Reset tabs to French
             switchEditTab('fr');

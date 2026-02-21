@@ -12,27 +12,31 @@ $messageCategories = getGuestMessageCategories();
 // Load content helper for dynamic content
 require_once __DIR__ . '/includes/content-helper.php';
 
-// Get hero carousel images from content system
-$heroSlide1 = contentImage('home_hero', 1, 'images/acceuil/plan-large3.png');
-$heroSlide2 = contentImage('home_hero', 2, 'images/resto/restaurant-hotel-bordeaux-1.jpg');
-$heroSlide3 = contentImage('home_hero', 3, 'images/acceuil/bar.jpg');
+// Get hero carousel images from content system (all images, no limit)
+$heroSlides = content('home_hero');
 
-// Get intro section image
-$introImage = contentImage('home_intro', 1, 'images/acceuil/entree-hotel.jpeg');
+// Get hero overlay texts with all translations
+$heroOverlay = getSectionOverlayWithTranslations('home_hero');
+
+// Get dynamic sections for the home page
+$dynamicSections = getDynamicSectionsWithData('home');
+$dynamicSectionsTranslations = !empty($dynamicSections) ? getDynamicSectionsTranslations('home') : [];
 ?>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Hôtel Corintel - Hôtel 3 étoiles de charme près de Bordeaux et Saint-Émilion. Atmosphère chaleureuse, jardin, terrasse et cuisine régionale au cœur de la campagne bordelaise.">
+  <?php $hotelName = getHotelName(); $logoText = getLogoText(); $contactInfo = getContactInfo(); ?>
+  <meta name="description" content="<?= h($hotelName) ?> - Hôtel 3 étoiles de charme près de Bordeaux et Saint-Émilion. Atmosphère chaleureuse, jardin, terrasse et cuisine régionale au cœur de la campagne bordelaise.">
   <meta name="keywords" content="hôtel bordeaux, hôtel saint-émilion, hôtel campagne, hôtel 3 étoiles, oenotourisme, bordeaux est">
-  <title>Hôtel Corintel | Hôtel de charme près de Bordeaux et Saint-Émilion</title>
+  <title><?= h($hotelName) ?> | Hôtel de charme près de Bordeaux et Saint-Émilion</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Lato:wght@300;400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <?= getThemeCSS() ?>
+  <?= getHotelNameJS() ?>
 </head>
 <body>
   <!-- Header -->
@@ -43,8 +47,8 @@ $introImage = contentImage('home_intro', 1, 'images/acceuil/entree-hotel.jpeg');
           <path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6M9 9h.01M15 9h.01M9 13h.01M15 13h.01"/>
         </svg>
         <div class="logo-text">
-          Hôtel Corintel
-          <span data-i18n="header.logoSubtitle">Bordeaux Est</span>
+          <?= h($hotelName) ?>
+          <span><?= h($logoText) ?></span>
         </div>
       </a>
       <nav class="nav-menu" id="navMenu">
@@ -71,157 +75,118 @@ $introImage = contentImage('home_intro', 1, 'images/acceuil/entree-hotel.jpeg');
   <!-- Hero Section -->
   <section class="hero">
     <div class="hero-carousel" id="heroCarousel">
-      <div class="hero-slide active">
-        <img src="<?= htmlspecialchars($heroSlide1) ?>" alt="Vue panoramique de l'Hôtel Corintel">
-        <div class="hero-overlay"></div>
-      </div>
-      <div class="hero-slide">
-        <img src="<?= htmlspecialchars($heroSlide2) ?>" alt="Vue du restaurant">
-        <div class="hero-overlay"></div>
-      </div>
-      <div class="hero-slide">
-        <img src="<?= htmlspecialchars($heroSlide3) ?>" alt="Bar de l'Hôtel Corintel">
-        <div class="hero-overlay"></div>
-      </div>
+      <?php if (empty($heroSlides)): ?>
+        <!-- Placeholder when no images are configured -->
+        <div class="hero-slide active hero-placeholder">
+          <div class="hero-placeholder-content">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+              <circle cx="8.5" cy="8.5" r="1.5"/>
+              <polyline points="21 15 16 10 5 21"/>
+            </svg>
+          </div>
+          <div class="hero-overlay"></div>
+        </div>
+      <?php else: ?>
+        <?php foreach ($heroSlides as $index => $slide): ?>
+          <?php if (!empty($slide['image_filename'])): ?>
+            <div class="hero-slide<?= $index === 0 ? ' active' : '' ?>">
+              <img src="<?= htmlspecialchars($slide['image_filename']) ?>" alt="<?= htmlspecialchars($slide['image_alt'] ?? 'Image de ' . $hotelName) ?>">
+              <div class="hero-overlay"></div>
+            </div>
+          <?php endif; ?>
+        <?php endforeach; ?>
+      <?php endif; ?>
     </div>
     <div class="hero-content">
-      <p class="hero-subtitle" data-i18n="home.heroSubtitle">Bienvenue à l'Hôtel Corintel</p>
-      <h1 class="hero-title" data-i18n="home.heroTitle">Un havre de paix<br>aux portes de Bordeaux</h1>
-      <p class="hero-description" data-i18n="home.heroDescription">
-        Découvrez notre hôtel de charme 3 étoiles, niché dans la campagne bordelaise,
-        à quelques minutes de Bordeaux et Saint-Émilion.
-      </p>
+      <?php
+      // Default fallback texts (used if not configured in admin)
+      $defaultSubtitle = 'Bienvenue à ' . $hotelName;
+      $defaultTitle = 'Un havre de paix<br>aux portes de Bordeaux';
+      $defaultDescription = 'Découvrez notre hôtel de charme 3 étoiles, niché dans la campagne bordelaise, à quelques minutes de Bordeaux et Saint-Émilion.';
+
+      // Use database values if available, otherwise use defaults
+      $displaySubtitle = !empty($heroOverlay['subtitle']) ? $heroOverlay['subtitle'] : $defaultSubtitle;
+      $displayTitle = !empty($heroOverlay['title']) ? $heroOverlay['title'] : $defaultTitle;
+      $displayDescription = !empty($heroOverlay['description']) ? $heroOverlay['description'] : $defaultDescription;
+
+      // Check if database has overlay configured
+      $hasDbOverlay = !empty($heroOverlay['subtitle']) || !empty($heroOverlay['title']) || !empty($heroOverlay['description']);
+
+      // Prepare translations JSON for JavaScript i18n system
+      $overlayTranslations = [];
+      if ($hasDbOverlay) {
+          $overlayTranslations = [
+              'fr' => [
+                  'subtitle' => $displaySubtitle,
+                  'title' => $displayTitle,
+                  'description' => $displayDescription
+              ]
+          ];
+          foreach (['en', 'es', 'it'] as $lang) {
+              if (isset($heroOverlay['translations'][$lang])) {
+                  $trans = $heroOverlay['translations'][$lang];
+                  $overlayTranslations[$lang] = [
+                      'subtitle' => !empty($trans['subtitle']) ? $trans['subtitle'] : $displaySubtitle,
+                      'title' => !empty($trans['title']) ? $trans['title'] : $displayTitle,
+                      'description' => !empty($trans['description']) ? $trans['description'] : $displayDescription
+                  ];
+              } else {
+                  // Fallback to French
+                  $overlayTranslations[$lang] = $overlayTranslations['fr'];
+              }
+          }
+      }
+      ?>
+      <?php if ($hasDbOverlay): ?>
+      <p class="hero-subtitle" data-overlay-text="subtitle"><?= htmlspecialchars($displaySubtitle) ?></p>
+      <h1 class="hero-title" data-overlay-text="title"><?= $displayTitle ?></h1>
+      <p class="hero-description" data-overlay-text="description"><?= htmlspecialchars($displayDescription) ?></p>
+      <?php else: ?>
+      <p class="hero-subtitle" data-i18n="home.heroSubtitle"><?= $displaySubtitle ?></p>
+      <h1 class="hero-title" data-i18n="home.heroTitle"><?= $displayTitle ?></h1>
+      <p class="hero-description" data-i18n="home.heroDescription"><?= htmlspecialchars($displayDescription) ?></p>
+      <?php endif; ?>
       <div class="hero-buttons">
         <a href="services.php" class="btn btn-primary" data-i18n="home.discoverServices">Découvrir nos services</a>
       </div>
     </div>
+    <?php if ($hasDbOverlay): ?>
+    <script>
+      // Hero overlay translations from database
+      window.heroOverlayTranslations = <?= json_encode($overlayTranslations, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
+    </script>
+    <?php endif; ?>
+    <?php
+    // Count actual slides with images
+    $slideCount = 0;
+    if (!empty($heroSlides)) {
+        foreach ($heroSlides as $slide) {
+            if (!empty($slide['image_filename'])) {
+                $slideCount++;
+            }
+        }
+    }
+    ?>
+    <?php if ($slideCount > 1): ?>
     <div class="carousel-nav" id="carouselNav">
-      <span class="carousel-dot active" data-index="0"></span>
-      <span class="carousel-dot" data-index="1"></span>
-      <span class="carousel-dot" data-index="2"></span>
+      <?php for ($i = 0; $i < $slideCount; $i++): ?>
+        <span class="carousel-dot<?= $i === 0 ? ' active' : '' ?>" data-index="<?= $i ?>"></span>
+      <?php endfor; ?>
     </div>
+    <?php endif; ?>
   </section>
 
-  <!-- Introduction Section -->
-  <section class="section section-light">
-    <div class="container">
-      <div class="intro-grid">
-        <div class="intro-image">
-          <img src="<?= htmlspecialchars($introImage) ?>" alt="L'entrée accueillante de l'Hôtel Corintel">
-        </div>
-        <div class="intro-content">
-          <p class="section-subtitle" data-i18n="home.introSubtitle">Notre philosophie</p>
-          <h2 data-i18n="home.introTitle">Une atmosphère chaleureuse et conviviale</h2>
-          <p data-i18n="home.introText1">
-            L'Hôtel Corintel vous accueille dans un cadre paisible et verdoyant,
-            où se mêlent le charme de la campagne bordelaise et le confort d'un
-            établissement 3 étoiles.
-          </p>
-          <p data-i18n="home.introText2">
-            Entouré de nature, notre hôtel offre une expérience de détente authentique.
-            Profitez de notre jardin, de notre terrasse ombragée et de notre salon commun
-            pour des moments de quiétude loin du tumulte de la ville.
-          </p>
-          <div class="intro-features">
-            <div class="intro-feature">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/>
-                <circle cx="12" cy="10" r="3"/>
-              </svg>
-              <span data-i18n="home.featureGarden">Jardin paisible</span>
-            </div>
-            <div class="intro-feature">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M17 11h1a3 3 0 0 1 0 6h-1M2 11h14v7a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3v-7zM6 7v4M10 7v4M14 7v4M8 3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2 0z"/>
-              </svg>
-              <span data-i18n="home.featureTerrace">Terrasse ombragée</span>
-            </div>
-            <div class="intro-feature">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
-                <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
-              </svg>
-              <span data-i18n="home.featureLounge">Salon commun</span>
-            </div>
-            <div class="intro-feature">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="1" y="3" width="15" height="13" rx="2" ry="2"/>
-                <path d="M16 8h4a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-1"/>
-              </svg>
-              <span data-i18n="home.featureParking">Parking gratuit</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Services Preview Section -->
-  <section class="section section-cream">
-    <div class="container">
-      <div class="section-header">
-        <p class="section-subtitle" data-i18n="home.servicesSubtitle">Nos services</p>
-        <h2 class="section-title" data-i18n="home.servicesTitle">Tout pour votre confort</h2>
-        <p class="section-description" data-i18n="home.servicesDescription">
-          De la table d'hôtes au boulodrome, découvrez tous les services
-          qui rendront votre séjour inoubliable.
-        </p>
-      </div>
-      <div class="services-grid">
-        <div class="service-card">
-          <div class="service-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M18 8h1a4 4 0 0 1 0 8h-1M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/>
-              <line x1="6" y1="1" x2="6" y2="4"/>
-              <line x1="10" y1="1" x2="10" y2="4"/>
-              <line x1="14" y1="1" x2="14" y2="4"/>
-            </svg>
-          </div>
-          <h3 data-i18n="home.serviceRestaurant">Table d'hôtes</h3>
-          <p data-i18n="home.serviceRestaurantDesc">Savourez une cuisine régionale authentique pour le petit-déjeuner et le dîner, préparée avec des produits locaux.</p>
-        </div>
-        <div class="service-card">
-          <div class="service-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M8 21h8M12 17v4M17 5a7 7 0 1 1-10 0"/>
-              <path d="M12 8v4"/>
-            </svg>
-          </div>
-          <h3 data-i18n="home.serviceBar">Bar</h3>
-          <p data-i18n="home.serviceBarDesc">Détendez-vous dans notre bar chaleureux et dégustez une sélection de vins de Bordeaux et de cocktails.</p>
-        </div>
-        <div class="service-card">
-          <div class="service-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"/>
-              <circle cx="12" cy="12" r="3"/>
-            </svg>
-          </div>
-          <h3 data-i18n="home.serviceBoulodrome">Boulodrome</h3>
-          <p data-i18n="home.serviceBoulodromeDesc">Profitez de notre terrain de pétanque pour des moments conviviaux entre amis ou en famille.</p>
-        </div>
-        <div class="service-card">
-          <div class="service-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="1" y="3" width="15" height="13" rx="2" ry="2"/>
-              <path d="M16 8h4a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-1"/>
-            </svg>
-          </div>
-          <h3 data-i18n="home.serviceParkingTitle">Parking gratuit</h3>
-          <p data-i18n="home.serviceParkingDesc">Stationnement privé et sécurisé offert à tous nos clients, pour un séjour en toute tranquillité.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- CTA Section -->
-  <section class="cta-section">
-    <div class="container">
-      <h2 data-i18n="home.ctaTitle">Découvrez notre hôtel</h2>
-      <p data-i18n="home.ctaText">Offrez-vous un séjour ressourçant au cœur de la campagne bordelaise</p>
-      <a href="services.php" class="btn btn-primary" data-i18n="home.discoverServices">Découvrir nos services</a>
-    </div>
-  </section>
+  <?php
+  // Render dynamic sections for the home page
+  // All content sections are now managed through the admin panel
+  echo renderDynamicSectionsForPage('home', 'fr');
+  if (!empty($dynamicSections)):
+  ?>
+  <script>
+    window.dynamicSectionsTranslations = <?= json_encode($dynamicSectionsTranslations, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
+  </script>
+  <?php endif; ?>
 
   <!-- Footer -->
   <footer class="footer">
@@ -229,10 +194,12 @@ $introImage = contentImage('home_intro', 1, 'images/acceuil/entree-hotel.jpeg');
       <div class="footer-grid">
         <div class="footer-brand">
           <div class="logo-text">
-            Hôtel Corintel
-            <span data-i18n="header.logoSubtitle">Bordeaux Est</span>
+            <?= h($hotelName) ?>
+            <span><?= h($logoText) ?></span>
           </div>
-          <p data-i18n="footer.description">Un havre de paix aux portes de Bordeaux, où charme et authenticité vous attendent pour un séjour inoubliable.</p>
+<?php $footerDescription = getHotelDescription(); if ($footerDescription): ?>
+          <p><?= h($footerDescription) ?></p>
+          <?php endif; ?>
         </div>
         <div class="footer-nav">
           <h4 class="footer-title" data-i18n="footer.navigation">Navigation</h4>
@@ -245,38 +212,44 @@ $introImage = contentImage('home_intro', 1, 'images/acceuil/entree-hotel.jpeg');
         <div class="footer-nav">
           <h4 class="footer-title" data-i18n="footer.services">Services</h4>
           <ul class="footer-links">
-            <li><a href="services.php#restaurant">Restaurant</a></li>
-            <li><a href="services.php#bar">Bar</a></li>
-            <li><a href="services.php#boulodrome">Boulodrome</a></li>
-            <li><a href="services.php#parking">Parking</a></li>
+            <li><a href="services.php">Restaurant</a></li>
+            <li><a href="services.php">Bar</a></li>
+            <li><a href="services.php">Boulodrome</a></li>
+            <li><a href="services.php">Parking</a></li>
           </ul>
         </div>
         <div class="footer-contact">
           <h4 class="footer-title" data-i18n="footer.contactTitle">Contact</h4>
+          <?php if (hasContactInfo()): ?>
           <div class="footer-contact-item">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
               <circle cx="12" cy="10" r="3"/>
             </svg>
-            <span>14 Avenue du Périgord. 33370 TRESSES<br>Gironde, France</span>
+            <span><?= getFormattedAddress() ?></span>
           </div>
+          <?php endif; ?>
+          <?php if (!empty($contactInfo['phone'])): ?>
           <div class="footer-contact-item">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
             </svg>
-            <span>+33 5 57 34 13 95</span>
+            <span><?= h($contactInfo['phone']) ?></span>
           </div>
+          <?php endif; ?>
+          <?php if (!empty($contactInfo['email'])): ?>
           <div class="footer-contact-item">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
               <polyline points="22,6 12,13 2,6"/>
             </svg>
-            <span>hotel.bordeaux.tresses@gmail.com</span>
+            <span><?= h($contactInfo['email']) ?></span>
           </div>
+          <?php endif; ?>
         </div>
       </div>
       <div class="footer-bottom">
-        <p data-i18n="footer.copyright">&copy; 2024 Hôtel Corintel. Tous droits réservés.</p>
+        <p data-i18n="footer.copyright">&copy; <?= date('Y') ?> <?= h($hotelName) ?>. Tous droits réservés.</p>
       </div>
     </div>
   </footer>
@@ -381,37 +354,45 @@ $introImage = contentImage('home_intro', 1, 'images/acceuil/entree-hotel.jpeg');
       }
     });
 
-    // Hero carousel
+    // Hero carousel (dynamic - handles any number of slides)
     const slides = document.querySelectorAll('.hero-slide');
     const dots = document.querySelectorAll('.carousel-dot');
     let currentSlide = 0;
+    let slideInterval = null;
 
-    function showSlide(index) {
-      slides.forEach((slide, i) => {
-        slide.classList.remove('active');
-        dots[i].classList.remove('active');
-      });
-      slides[index].classList.add('active');
-      dots[index].classList.add('active');
-    }
+    // Only run carousel if there are multiple slides
+    if (slides.length > 1) {
+      function showSlide(index) {
+        slides.forEach((slide, i) => {
+          slide.classList.remove('active');
+        });
+        dots.forEach((dot, i) => {
+          dot.classList.remove('active');
+        });
+        slides[index].classList.add('active');
+        if (dots[index]) {
+          dots[index].classList.add('active');
+        }
+      }
 
-    function nextSlide() {
-      currentSlide = (currentSlide + 1) % slides.length;
-      showSlide(currentSlide);
-    }
-
-    // Auto-advance carousel
-    let slideInterval = setInterval(nextSlide, 5000);
-
-    // Dot navigation
-    dots.forEach((dot, index) => {
-      dot.addEventListener('click', () => {
-        currentSlide = index;
+      function nextSlide() {
+        currentSlide = (currentSlide + 1) % slides.length;
         showSlide(currentSlide);
-        clearInterval(slideInterval);
-        slideInterval = setInterval(nextSlide, 5000);
+      }
+
+      // Auto-advance carousel
+      slideInterval = setInterval(nextSlide, 5000);
+
+      // Dot navigation
+      dots.forEach((dot, index) => {
+        dot.addEventListener('click', () => {
+          currentSlide = index;
+          showSlide(currentSlide);
+          clearInterval(slideInterval);
+          slideInterval = setInterval(nextSlide, 5000);
+        });
       });
-    });
+    }
 
     // Scroll to top button
     const scrollTop = document.getElementById('scrollTop');

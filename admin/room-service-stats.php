@@ -12,10 +12,11 @@ requireAuth();
 $admin = getCurrentAdmin();
 $unreadMessages = getUnreadMessagesCount();
 $pendingOrders = getPendingOrdersCount();
+$hotelName = getHotelName();
 
 // Get selected period from query params
 $period = $_GET['period'] ?? 'day';
-$validPeriods = ['day', 'week', 'month'];
+$validPeriods = ['day', 'week', 'month', 'year'];
 if (!in_array($period, $validPeriods)) {
     $period = 'day';
 }
@@ -23,9 +24,11 @@ if (!in_array($period, $validPeriods)) {
 // Fetch all statistics
 try {
     $periodStats = getRoomServicePeriodStats($period);
+    $financialStats = getRoomServiceFinancialStats($period);
     $dailyRevenue = getRoomServiceDailyRevenue(30);
     $weeklyRevenue = getRoomServiceWeeklyRevenue(12);
     $monthlyRevenue = getRoomServiceMonthlyRevenue(12);
+    $yearlyRevenue = getRoomServiceYearlyRevenue(); // Current year monthly breakdown
     $peakHours = getRoomServicePeakHours(30);
     $peakDays = getRoomServicePeakDays(8);
     $topItems = getRoomServiceTopItems(10, 30);
@@ -36,6 +39,7 @@ try {
     $bestDay = getRoomServiceBestPeriod('day', 30);
     $bestWeek = getRoomServiceBestPeriod('week', 12);
     $bestMonth = getRoomServiceBestPeriod('month', 12);
+    $defaultVatRate = getDefaultVatRate();
     $statsEnabled = true;
 } catch (PDOException $e) {
     $statsEnabled = false;
@@ -107,13 +111,15 @@ $msgCategoryLabels = [
 $periodLabels = [
     'day' => "Aujourd'hui",
     'week' => 'Cette semaine',
-    'month' => 'Ce mois'
+    'month' => 'Ce mois',
+    'year' => 'Cette année'
 ];
 
 $comparisonLabels = [
     'day' => 'vs hier',
     'week' => 'vs semaine dernière',
-    'month' => 'vs mois dernier'
+    'month' => 'vs mois dernier',
+    'year' => 'vs année dernière'
 ];
 ?>
 <!DOCTYPE html>
@@ -122,7 +128,7 @@ $comparisonLabels = [
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
-    <title>Statistiques Room Service | Admin Hôtel Corintel</title>
+    <title>Statistiques Room Service | Admin <?= h($hotelName) ?></title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Lato:wght@300;400;500;700&display=swap" rel="stylesheet">
@@ -373,9 +379,91 @@ $comparisonLabels = [
             gap: 1rem;
             margin-bottom: 1.5rem;
         }
+        /* Financial Stats Styles */
+        .financial-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            padding: 1.5rem;
+            color: white;
+        }
+        .financial-card h3 {
+            font-size: 0.875rem;
+            font-weight: 500;
+            opacity: 0.9;
+            margin-bottom: 0.75rem;
+        }
+        .financial-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+        }
+        .financial-item {
+            text-align: center;
+        }
+        .financial-item .label {
+            font-size: 0.75rem;
+            opacity: 0.85;
+            margin-bottom: 0.25rem;
+        }
+        .financial-item .value {
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+        .financial-item .value.small {
+            font-size: 1rem;
+        }
+        .vat-breakdown-card {
+            background: white;
+            border: 1px solid var(--admin-border);
+            border-radius: 8px;
+            padding: 1.25rem;
+        }
+        .vat-breakdown-card h4 {
+            font-size: 0.875rem;
+            color: var(--admin-text);
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+        .vat-breakdown-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--admin-bg);
+        }
+        .vat-breakdown-row:last-child {
+            border-bottom: none;
+        }
+        .vat-breakdown-row .category {
+            font-size: 0.875rem;
+            color: var(--admin-text);
+        }
+        .vat-breakdown-row .rate {
+            font-size: 0.75rem;
+            color: var(--admin-text-light);
+            padding: 2px 6px;
+            background: var(--admin-bg);
+            border-radius: 3px;
+        }
+        .vat-breakdown-row .amounts {
+            text-align: right;
+            font-size: 0.875rem;
+        }
+        .vat-breakdown-row .ttc {
+            font-weight: 600;
+            color: var(--admin-primary);
+        }
+        .vat-breakdown-row .ht-vat {
+            font-size: 0.75rem;
+            color: var(--admin-text-light);
+        }
         @media (max-width: 768px) {
             .stats-grid-3 {
                 grid-template-columns: 1fr;
+            }
+            .financial-grid {
+                grid-template-columns: 1fr;
+                gap: 0.75rem;
             }
             .section-divider {
                 flex-direction: column;
@@ -399,7 +487,7 @@ $comparisonLabels = [
                 </svg>
             </button>
             <div class="sidebar-header">
-                <h2>Hôtel Corintel</h2>
+                <h2><?= h($hotelName) ?></h2>
                 <span>Administration</span>
             </div>
 
@@ -411,21 +499,42 @@ $comparisonLabels = [
                     </svg>
                     Tableau de bord
                 </a>
-                <a href="content.php" class="nav-item">
+
+                <div class="nav-separator">Activité</div>
+                <a href="room-service-orders.php" class="nav-item">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                        <line x1="3" y1="9" x2="21" y2="9"/>
-                        <line x1="9" y1="21" x2="9" y2="9"/>
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                        <line x1="16" y1="13" x2="8" y2="13"/>
+                        <line x1="16" y1="17" x2="8" y2="17"/>
+                        <polyline points="10 9 9 9 8 9"/>
                     </svg>
-                    Gestion du contenu
+                    Commandes
+                    <?php if ($pendingOrders > 0): ?>
+                        <span class="badge" style="background: #E53E3E; color: white; margin-left: auto;"><?= $pendingOrders ?></span>
+                    <?php endif; ?>
                 </a>
-                <a href="room-service-stats.php" class="nav-item active">
+                <a href="room-service-messages.php" class="nav-item">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="18" y1="20" x2="18" y2="10"/>
-                        <line x1="12" y1="20" x2="12" y2="4"/>
-                        <line x1="6" y1="20" x2="6" y2="14"/>
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                     </svg>
-                    Statistiques
+                    Messages
+                    <?php if ($unreadMessages > 0): ?>
+                        <span class="badge" style="background: #E53E3E; color: white; margin-left: auto;"><?= $unreadMessages ?></span>
+                    <?php endif; ?>
+                </a>
+
+                <div class="nav-separator">Room Service</div>
+                <a href="room-service-categories.php" class="nav-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="8" y1="6" x2="21" y2="6"/>
+                        <line x1="8" y1="12" x2="21" y2="12"/>
+                        <line x1="8" y1="18" x2="21" y2="18"/>
+                        <line x1="3" y1="6" x2="3.01" y2="6"/>
+                        <line x1="3" y1="12" x2="3.01" y2="12"/>
+                        <line x1="3" y1="18" x2="3.01" y2="18"/>
+                    </svg>
+                    Catégories
                 </a>
                 <a href="room-service-items.php" class="nav-item">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -435,36 +544,32 @@ $comparisonLabels = [
                         <line x1="10" y1="1" x2="10" y2="4"/>
                         <line x1="14" y1="1" x2="14" y2="4"/>
                     </svg>
-                    Room Service - Articles
+                    Articles
                 </a>
-                <a href="room-service-categories.php" class="nav-item">
+                <a href="room-service-stats.php" class="nav-item active">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10"/>
-                        <polyline points="12 6 12 12 16 14"/>
+                        <line x1="18" y1="20" x2="18" y2="10"/>
+                        <line x1="12" y1="20" x2="12" y2="4"/>
+                        <line x1="6" y1="20" x2="6" y2="14"/>
                     </svg>
-                    Room Service - Catégories
+                    Statistiques
                 </a>
-                <a href="room-service-orders.php" class="nav-item">
+
+                <div class="nav-separator">Contenu</div>
+                <a href="content.php?tab=general" class="nav-item">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                        <polyline points="14 2 14 8 20 8"/>
-                        <line x1="16" y1="13" x2="8" y2="13"/>
-                        <line x1="16" y1="17" x2="8" y2="17"/>
-                        <polyline points="10 9 9 9 8 9"/>
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
                     </svg>
-                    Room Service - Commandes
-                    <?php if ($pendingOrders > 0): ?>
-                        <span class="badge" style="background: #E53E3E; color: white; margin-left: auto;"><?= $pendingOrders ?></span>
-                    <?php endif; ?>
+                    Général
                 </a>
-                <a href="room-service-messages.php" class="nav-item">
+                <a href="content.php" class="nav-item">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                        <line x1="3" y1="9" x2="21" y2="9"/>
+                        <line x1="9" y1="21" x2="9" y2="9"/>
                     </svg>
-                    Messages Clients
-                    <?php if ($unreadMessages > 0): ?>
-                        <span class="badge" style="background: #E53E3E; color: white; margin-left: auto;"><?= $unreadMessages ?></span>
-                    <?php endif; ?>
+                    Sections
                 </a>
                 <a href="theme.php" class="nav-item">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -472,7 +577,16 @@ $comparisonLabels = [
                         <path d="M12 2a10 10 0 0 0 0 20"/>
                         <path d="M12 2c-2.5 2.5-4 6-4 10s1.5 7.5 4 10"/>
                     </svg>
-                    Thème du site
+                    Thème
+                </a>
+
+                <div class="nav-separator">Administration</div>
+                <a href="rooms.php" class="nav-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                        <rect x="9" y="13" width="6" height="9"/>
+                    </svg>
+                    Chambres
                 </a>
                 <a href="settings.php" class="nav-item">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -536,6 +650,7 @@ $comparisonLabels = [
                     <a href="?period=day" class="period-btn <?= $period === 'day' ? 'active' : '' ?>">Aujourd'hui</a>
                     <a href="?period=week" class="period-btn <?= $period === 'week' ? 'active' : '' ?>">Cette semaine</a>
                     <a href="?period=month" class="period-btn <?= $period === 'month' ? 'active' : '' ?>">Ce mois</a>
+                    <a href="?period=year" class="period-btn <?= $period === 'year' ? 'active' : '' ?>">Cette année</a>
                 </div>
 
                 <!-- Main KPIs -->
@@ -583,6 +698,50 @@ $comparisonLabels = [
                     </div>
                 </div>
 
+                <!-- Financial Breakdown -->
+                <div class="charts-grid" style="margin-bottom: 1.5rem;">
+                    <div class="financial-card">
+                        <h3>Détail financier (<?= $periodLabels[$period] ?? $period ?>)</h3>
+                        <div class="financial-grid">
+                            <div class="financial-item">
+                                <div class="label">CA TTC</div>
+                                <div class="value"><?= number_format($financialStats['current']['revenue_ttc'], 2, ',', ' ') ?> €</div>
+                            </div>
+                            <div class="financial-item">
+                                <div class="label">CA HT</div>
+                                <div class="value"><?= number_format($financialStats['current']['revenue_ht'], 2, ',', ' ') ?> €</div>
+                            </div>
+                            <div class="financial-item">
+                                <div class="label">TVA collectée</div>
+                                <div class="value"><?= number_format($financialStats['current']['vat_collected'], 2, ',', ' ') ?> €</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="vat-breakdown-card">
+                        <h4>TVA par catégorie</h4>
+                        <?php if (empty($financialStats['current']['by_category'])): ?>
+                            <p style="color: var(--admin-text-light); font-size: 0.875rem;">Aucune donnée pour cette période</p>
+                        <?php else: ?>
+                            <?php
+                            $categories = getRoomServiceCategories();
+                            foreach ($financialStats['current']['by_category'] as $catData):
+                            ?>
+                            <div class="vat-breakdown-row">
+                                <div>
+                                    <span class="category"><?= h($categories[$catData['category']] ?? ucfirst($catData['category'])) ?></span>
+                                    <span class="rate"><?= number_format($catData['vat_rate'], 1) ?>%</span>
+                                </div>
+                                <div class="amounts">
+                                    <div class="ttc"><?= number_format($catData['total_ttc'], 2, ',', ' ') ?> € TTC</div>
+                                    <div class="ht-vat"><?= number_format($catData['total_ht'], 2, ',', ' ') ?> € HT / <?= number_format($catData['total_vat'], 2, ',', ' ') ?> € TVA</div>
+                                </div>
+                            </div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </div>
+                </div>
+
                 <!-- Insights -->
                 <div class="insight-cards">
                     <?php if ($bestDay): ?>
@@ -614,6 +773,7 @@ $comparisonLabels = [
                             <button class="chart-tab active" data-chart="daily">Quotidien</button>
                             <button class="chart-tab" data-chart="weekly">Hebdomadaire</button>
                             <button class="chart-tab" data-chart="monthly">Mensuel</button>
+                            <button class="chart-tab" data-chart="yearly">Annuel</button>
                         </div>
                         <div class="chart-container">
                             <canvas id="revenueChart"></canvas>
@@ -899,6 +1059,7 @@ $comparisonLabels = [
         const dailyData = <?= json_encode($dailyRevenue) ?>;
         const weeklyData = <?= json_encode($weeklyRevenue) ?>;
         const monthlyData = <?= json_encode($monthlyRevenue) ?>;
+        const yearlyData = <?= json_encode($yearlyRevenue) ?>;
 
         // Revenue Chart
         const revenueCtx = document.getElementById('revenueChart').getContext('2d');
@@ -958,7 +1119,12 @@ $comparisonLabels = [
                 } else if (chartType === 'weekly') {
                     labels = weeklyData.map(d => d.label);
                     data = weeklyData.map(d => d.revenue);
+                } else if (chartType === 'yearly') {
+                    // Yearly view: 12 months (Jan-Dec) for current year
+                    labels = yearlyData.map(d => d.label);
+                    data = yearlyData.map(d => d.revenue);
                 } else {
+                    // Monthly (default)
                     labels = monthlyData.map(d => d.label);
                     data = monthlyData.map(d => d.revenue);
                 }

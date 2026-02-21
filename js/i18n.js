@@ -219,9 +219,12 @@
       // Translate elements with data-i18n attribute
       document.querySelectorAll('[data-i18n]').forEach(el => {
         const key = el.dataset.i18n;
-        const value = this.getNestedValue(t, key);
+        let value = this.getNestedValue(t, key);
 
         if (value !== undefined) {
+          // Replace hotel name placeholders
+          value = this.replacePlaceholders(value);
+
           // Check if it's an input placeholder
           if (el.hasAttribute('placeholder') && el.dataset.i18nAttr === 'placeholder') {
             el.placeholder = value;
@@ -269,8 +272,153 @@
       if (pageTitleKey) {
         const pageTitle = this.getNestedValue(t, pageTitleKey);
         if (pageTitle) {
-          document.title = pageTitle + ' | Hôtel Corintel';
+          const hotelName = window.hotelIdentity?.full_name || 'Hôtel Corintel';
+          document.title = pageTitle + ' | ' + hotelName;
         }
+      }
+
+      // Handle database-driven overlay translations
+      this.applyOverlayTranslations();
+    },
+
+    /**
+     * Apply overlay translations from database for dynamic content sections
+     */
+    applyOverlayTranslations() {
+      // Hero section overlay (data-overlay-text)
+      if (window.heroOverlayTranslations) {
+        const heroTrans = window.heroOverlayTranslations[this.currentLang] || window.heroOverlayTranslations['fr'];
+        if (heroTrans) {
+          document.querySelectorAll('[data-overlay-text]').forEach(el => {
+            const field = el.dataset.overlayText;
+            if (heroTrans[field]) {
+              el.innerHTML = heroTrans[field];
+            }
+          });
+        }
+      }
+
+      // Intro section overlay (data-overlay-intro)
+      if (window.introOverlayTranslations) {
+        const introTrans = window.introOverlayTranslations[this.currentLang] || window.introOverlayTranslations['fr'];
+        if (introTrans) {
+          document.querySelectorAll('[data-overlay-intro]').forEach(el => {
+            const field = el.dataset.overlayIntro;
+            if (introTrans[field]) {
+              if (field === 'description') {
+                // Split description into paragraphs and render
+                const paragraphs = introTrans[field].split(/\n\s*\n/).filter(p => p.trim());
+                el.innerHTML = paragraphs.map(p => '<p>' + p.replace(/\n/g, '<br>') + '</p>').join('');
+              } else {
+                el.innerHTML = introTrans[field];
+              }
+            }
+          });
+        }
+      }
+
+      // Feature translations (data-feature-id)
+      if (window.introFeatureTranslations) {
+        document.querySelectorAll('[data-feature-id]').forEach(el => {
+          const featureId = el.dataset.featureId;
+          const featureTrans = window.introFeatureTranslations[featureId];
+          if (featureTrans) {
+            const label = featureTrans[this.currentLang] || featureTrans['fr'];
+            if (label) {
+              el.textContent = label;
+            }
+          }
+        });
+      }
+
+      // Dynamic sections translations (data-dynamic-text and data-dynamic-feature)
+      if (window.dynamicSectionsTranslations) {
+        // Handle dynamic section texts (data-dynamic-text="sectionCode:field")
+        document.querySelectorAll('[data-dynamic-text]').forEach(el => {
+          const [sectionCode, field] = el.dataset.dynamicText.split(':');
+          const sectionTrans = window.dynamicSectionsTranslations[sectionCode];
+          if (sectionTrans) {
+            const langTrans = sectionTrans[this.currentLang] || sectionTrans['fr'];
+            if (langTrans && langTrans[field]) {
+              if (field === 'description') {
+                // Split description into paragraphs
+                const paragraphs = langTrans[field].split(/\n\s*\n/).filter(p => p.trim());
+                el.innerHTML = paragraphs.map(p => '<p>' + p.replace(/\n/g, '<br>') + '</p>').join('');
+              } else {
+                el.textContent = langTrans[field];
+              }
+            }
+          }
+        });
+
+        // Handle dynamic section features (data-dynamic-feature="featureId")
+        document.querySelectorAll('[data-dynamic-feature]').forEach(el => {
+          const featureId = el.dataset.dynamicFeature;
+          // Find the section this feature belongs to
+          for (const sectionCode in window.dynamicSectionsTranslations) {
+            const section = window.dynamicSectionsTranslations[sectionCode];
+            if (section.features && section.features[featureId]) {
+              const featureTrans = section.features[featureId];
+              const label = featureTrans[this.currentLang] || featureTrans['fr'];
+              if (label) {
+                el.textContent = label;
+              }
+              break;
+            }
+          }
+        });
+
+        // Handle dynamic section services (data-dynamic-service="serviceId:field")
+        document.querySelectorAll('[data-dynamic-service]').forEach(el => {
+          const [serviceId, field] = el.dataset.dynamicService.split(':');
+          // Find the section this service belongs to
+          for (const sectionCode in window.dynamicSectionsTranslations) {
+            const section = window.dynamicSectionsTranslations[sectionCode];
+            if (section.services && section.services[serviceId]) {
+              const serviceTrans = section.services[serviceId];
+              const langData = serviceTrans[this.currentLang] || serviceTrans['fr'];
+              if (langData && langData[field]) {
+                el.textContent = langData[field];
+              }
+              break;
+            }
+          }
+        });
+
+        // Handle dynamic section gallery items (data-dynamic-gallery="itemId:field")
+        document.querySelectorAll('[data-dynamic-gallery]').forEach(el => {
+          const [itemId, field] = el.dataset.dynamicGallery.split(':');
+          // Find the section this gallery item belongs to
+          for (const sectionCode in window.dynamicSectionsTranslations) {
+            const section = window.dynamicSectionsTranslations[sectionCode];
+            if (section.gallery && section.gallery[itemId]) {
+              const itemTrans = section.gallery[itemId];
+              const langData = itemTrans[this.currentLang] || itemTrans['fr'];
+              if (langData && langData[field]) {
+                el.textContent = langData[field];
+              }
+              break;
+            }
+          }
+        });
+
+        // Handle dynamic section link buttons (data-dynamic-link="sectionCode")
+        document.querySelectorAll('[data-dynamic-link]').forEach(el => {
+          const sectionCode = el.dataset.dynamicLink;
+          const sectionTrans = window.dynamicSectionsTranslations[sectionCode];
+          if (sectionTrans && sectionTrans.link) {
+            const linkText = sectionTrans.link[this.currentLang] || sectionTrans.link['fr'];
+            if (linkText) {
+              // Get the SVG if present to preserve it
+              const svg = el.querySelector('svg');
+              el.textContent = linkText;
+              if (svg) {
+                el.appendChild(document.createTextNode(' '));
+                el.appendChild(svg);
+              }
+            }
+          }
+        });
       }
     },
 
@@ -285,11 +433,29 @@
     },
 
     /**
+     * Replace placeholders in a string with hotel identity values
+     * Supports: {hotelName}, {hotelShortName}
+     */
+    replacePlaceholders(str) {
+      if (typeof str !== 'string') return str;
+
+      const identity = window.hotelIdentity || {
+        full_name: 'Hôtel Corintel',
+        short_name: 'Corintel'
+      };
+
+      return str
+        .replace(/\{hotelName\}/g, identity.full_name)
+        .replace(/\{hotelShortName\}/g, identity.short_name);
+    },
+
+    /**
      * Get a translation value programmatically
      */
     t(key) {
       const t = window.translations[this.currentLang];
-      return this.getNestedValue(t, key) || key;
+      const value = this.getNestedValue(t, key) || key;
+      return this.replacePlaceholders(value);
     }
   };
 
