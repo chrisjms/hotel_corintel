@@ -1,1 +1,36 @@
-DirectoryIndex index.html index.php
+# =====================================================
+# URL Rewriting for Dynamic Pages System
+# Hotel Corintel
+# =====================================================
+
+DirectoryIndex index.php index.html
+
+RewriteEngine On
+RewriteBase /
+
+# Security: Block access to sensitive directories
+RewriteRule ^config/ - [F,L]
+RewriteRule ^includes/ - [F,L]
+
+# Don't rewrite existing files or directories
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Skip rewriting for admin, api, uploads, js, css, images, setup
+RewriteRule ^admin/ - [L]
+RewriteRule ^api/ - [L]
+RewriteRule ^uploads/ - [L]
+RewriteRule ^js/ - [L]
+RewriteRule ^css/ - [L]
+RewriteRule ^images/ - [L]
+RewriteRule ^setup/ - [L]
+
+# Skip room-service (special page with its own functionality)
+RewriteRule ^room-service\.php$ - [L]
+RewriteRule ^room-service$ room-service.php [L]
+
+# Rewrite dynamic page URLs to page.php
+# /services -> page.php?slug=services
+# /experiences -> page.php?slug=experiences
+RewriteRule ^([a-z0-9-]+)/?$ page.php?slug=$1 [L,QSA]

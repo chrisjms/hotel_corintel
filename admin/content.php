@@ -807,6 +807,107 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     exit;
                 }
                 break;
+
+            // =====================================================
+            // Page Management Actions
+            // =====================================================
+
+            case 'create_page':
+                $pageData = [
+                    'title' => trim($_POST['page_title'] ?? ''),
+                    'nav_title' => trim($_POST['page_nav_title'] ?? '') ?: null,
+                    'slug' => trim($_POST['page_slug'] ?? ''),
+                    'meta_title' => trim($_POST['page_meta_title'] ?? '') ?: null,
+                    'meta_description' => trim($_POST['page_meta_description'] ?? '') ?: null,
+                    'show_in_nav' => isset($_POST['page_show_in_nav']) ? 1 : 0
+                ];
+
+                $createError = '';
+                $newPageId = createPage($pageData, $createError);
+
+                if ($newPageId) {
+                    // Get the new page to redirect to its tab
+                    $newPage = getPageById($newPageId);
+                    $message = 'Page "' . h($pageData['title']) . '" créée avec succès.';
+                    $messageType = 'success';
+                    // Redirect to the new page tab
+                    header('Location: content.php?tab=' . urlencode($newPage['code']) . '&page_created=1');
+                    exit;
+                } else {
+                    $message = $createError ?: 'Erreur lors de la création de la page.';
+                    $messageType = 'error';
+                }
+                break;
+
+            case 'update_page':
+                $pageId = (int)($_POST['page_id'] ?? 0);
+                $pageData = [
+                    'title' => trim($_POST['page_title'] ?? ''),
+                    'nav_title' => trim($_POST['page_nav_title'] ?? '') ?: null,
+                    'slug' => trim($_POST['page_slug'] ?? ''),
+                    'meta_title' => trim($_POST['page_meta_title'] ?? '') ?: null,
+                    'meta_description' => trim($_POST['page_meta_description'] ?? '') ?: null,
+                    'show_in_nav' => isset($_POST['page_show_in_nav']) ? 1 : 0
+                ];
+
+                $updateError = '';
+                if (updatePage($pageId, $pageData, $updateError)) {
+                    $updatedPage = getPageById($pageId);
+                    $message = 'Page mise à jour.';
+                    $messageType = 'success';
+                    // Stay on the updated page tab
+                    header('Location: content.php?tab=' . urlencode($updatedPage['code']) . '&page_updated=1');
+                    exit;
+                } else {
+                    $message = $updateError ?: 'Erreur lors de la mise à jour.';
+                    $messageType = 'error';
+                }
+                break;
+
+            case 'delete_page':
+                $pageId = (int)($_POST['page_id'] ?? 0);
+                $deleteError = '';
+
+                if (deletePage($pageId, $deleteError)) {
+                    $message = 'Page supprimée.';
+                    $messageType = 'success';
+                    // Redirect to first page
+                    header('Location: content.php?page_deleted=1');
+                    exit;
+                } else {
+                    $message = $deleteError ?: 'Erreur lors de la suppression.';
+                    $messageType = 'error';
+                }
+                break;
+
+            case 'reorder_pages':
+                $pageIds = json_decode($_POST['page_ids'] ?? '[]', true);
+                if (is_array($pageIds) && !empty($pageIds)) {
+                    reorderPages($pageIds);
+                    header('Content-Type: application/json');
+                    echo json_encode(['success' => true]);
+                    exit;
+                }
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'error' => 'Invalid page IDs']);
+                exit;
+
+            case 'toggle_page_nav':
+                $pageId = (int)($_POST['page_id'] ?? 0);
+                $showInNav = (int)($_POST['show_in_nav'] ?? 0);
+                $page = getPageById($pageId);
+
+                if ($page) {
+                    $pdo = getDatabase();
+                    $stmt = $pdo->prepare("UPDATE pages SET show_in_nav = ? WHERE id = ?");
+                    $stmt->execute([$showInNav, $pageId]);
+                    header('Content-Type: application/json');
+                    echo json_encode(['success' => true]);
+                    exit;
+                }
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false]);
+                exit;
         }
     }
 }
@@ -814,6 +915,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 // Get sections grouped by page
 $sectionsByPage = getContentSectionsByPage();
 $pageNames = getContentPageNames();
+
+// Get all pages from database for management (includes inactive)
+initPagesTable();
+$allPages = getPages(false, false); // All pages, not just active/nav
 
 // Get blocks for current section if selected
 $blocks = [];
@@ -3743,6 +3848,347 @@ if ($editBlockId) {
             border-radius: 2px;
             opacity: 0.6;
         }
+
+        /* =====================================================
+           Page Management Styles
+           ===================================================== */
+
+        .page-tabs-container {
+            background: var(--admin-card);
+            border-radius: var(--admin-radius);
+            margin-bottom: 2rem;
+            border: 1px solid var(--admin-border);
+            overflow: hidden;
+        }
+
+        .page-tabs-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem 1rem;
+            background: var(--admin-bg);
+            border-bottom: 1px solid var(--admin-border);
+        }
+
+        .page-tabs-header h3 {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--admin-text-light);
+            margin: 0;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .page-tabs-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn-add-page {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.4rem 0.75rem;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: #fff;
+            background: var(--admin-primary);
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-add-page:hover {
+            background: var(--admin-primary-dark);
+        }
+
+        .btn-add-page svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        .page-tabs-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0;
+            border-bottom: 2px solid var(--admin-border);
+            padding: 0 0.5rem;
+        }
+
+        .page-tab-item {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.875rem 1rem;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--admin-text-light);
+            text-decoration: none;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .page-tab-item:hover {
+            color: var(--admin-primary);
+            background: rgba(139, 111, 71, 0.05);
+        }
+
+        .page-tab-item.active {
+            color: var(--admin-primary);
+            border-bottom-color: var(--admin-primary);
+            background: rgba(139, 111, 71, 0.08);
+        }
+
+        .page-tab-item svg {
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+        }
+
+        .page-tab-item .page-tab-actions {
+            display: none;
+            margin-left: auto;
+            gap: 0.25rem;
+        }
+
+        .page-tab-item:hover .page-tab-actions,
+        .page-tab-item.active .page-tab-actions {
+            display: flex;
+        }
+
+        .page-tab-action {
+            padding: 0.25rem;
+            color: var(--admin-text-light);
+            background: transparent;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            opacity: 0.6;
+            transition: all 0.15s;
+        }
+
+        .page-tab-action:hover {
+            opacity: 1;
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .page-tab-action.delete:hover {
+            color: var(--admin-danger);
+            background: rgba(220, 53, 69, 0.1);
+        }
+
+        .page-tab-action svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        .page-tab-badge {
+            font-size: 0.7rem;
+            padding: 0.15rem 0.4rem;
+            border-radius: 3px;
+            font-weight: 500;
+        }
+
+        .page-tab-badge.system {
+            background: rgba(139, 111, 71, 0.15);
+            color: var(--admin-primary);
+        }
+
+        .page-tab-badge.hidden {
+            background: rgba(108, 117, 125, 0.15);
+            color: #6c757d;
+        }
+
+        /* Page Modal */
+        .page-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        .page-modal-overlay.active {
+            display: flex;
+        }
+
+        .page-modal {
+            background: var(--admin-card);
+            border-radius: var(--admin-radius);
+            width: 100%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .page-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid var(--admin-border);
+        }
+
+        .page-modal-header h3 {
+            margin: 0;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .page-modal-close {
+            padding: 0.35rem;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            color: var(--admin-text-light);
+            border-radius: 4px;
+        }
+
+        .page-modal-close:hover {
+            background: var(--admin-bg);
+        }
+
+        .page-modal-close svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        .page-modal-body {
+            padding: 1.25rem;
+        }
+
+        .page-form-group {
+            margin-bottom: 1rem;
+        }
+
+        .page-form-group label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 500;
+            margin-bottom: 0.35rem;
+            color: var(--admin-text);
+        }
+
+        .page-form-group label small {
+            font-weight: normal;
+            color: var(--admin-text-light);
+        }
+
+        .page-form-group input,
+        .page-form-group textarea {
+            width: 100%;
+            padding: 0.6rem 0.75rem;
+            border: 1px solid var(--admin-border);
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-family: inherit;
+        }
+
+        .page-form-group input:focus,
+        .page-form-group textarea:focus {
+            outline: none;
+            border-color: var(--admin-primary);
+        }
+
+        .page-form-group .slug-preview {
+            font-size: 0.8rem;
+            color: var(--admin-text-light);
+            margin-top: 0.25rem;
+        }
+
+        .page-form-group .slug-preview code {
+            background: var(--admin-bg);
+            padding: 0.1rem 0.35rem;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+
+        .page-form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .page-form-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .page-form-checkbox input {
+            width: auto;
+        }
+
+        .page-modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.75rem;
+            padding: 1rem 1.25rem;
+            border-top: 1px solid var(--admin-border);
+            background: var(--admin-bg);
+        }
+
+        .page-modal-footer .btn-cancel {
+            padding: 0.6rem 1rem;
+            background: transparent;
+            border: 1px solid var(--admin-border);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .page-modal-footer .btn-save {
+            padding: 0.6rem 1.25rem;
+            background: var(--admin-primary);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .page-modal-footer .btn-save:hover {
+            background: var(--admin-primary-dark);
+        }
+
+        .page-modal-footer .btn-delete {
+            margin-right: auto;
+            padding: 0.6rem 1rem;
+            background: transparent;
+            color: var(--admin-danger);
+            border: 1px solid var(--admin-danger);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .page-modal-footer .btn-delete:hover {
+            background: var(--admin-danger);
+            color: #fff;
+        }
+
+        @media (max-width: 768px) {
+            .page-tabs-header {
+                flex-direction: column;
+                gap: 0.75rem;
+                align-items: flex-start;
+            }
+            .page-form-row {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body>
@@ -3963,14 +4409,59 @@ if ($editBlockId) {
                 ?>
 
                 <?php if ($activeTab !== 'general'): ?>
-                <!-- Page Tabs - Only shown when on Sections (not on Général) -->
-                <div class="content-page-tabs">
-                    <?php foreach ($pageNames as $pageCode => $pageName): ?>
-                    <a href="?tab=<?= h($pageCode) ?>" class="content-tab <?= $activeTab === $pageCode ? 'active' : '' ?>">
-                        <?= $pageIcons[$pageCode] ?? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/></svg>' ?>
-                        <?= h($pageName) ?>
-                    </a>
-                    <?php endforeach; ?>
+                <!-- Page Tabs with Management - Only shown when on Sections (not on Général) -->
+                <div class="page-tabs-container">
+                    <div class="page-tabs-header">
+                        <h3>Pages du site</h3>
+                        <div class="page-tabs-actions">
+                            <button type="button" class="btn-add-page" onclick="openPageModal()">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="12" y1="5" x2="12" y2="19"/>
+                                    <line x1="5" y1="12" x2="19" y2="12"/>
+                                </svg>
+                                Nouvelle page
+                            </button>
+                        </div>
+                    </div>
+                    <div class="page-tabs-list" id="pageTabsList">
+                        <?php foreach ($allPages as $page): ?>
+                        <?php
+                            $isSystemPage = in_array($page['page_type'], ['home', 'contact']);
+                            $isHidden = !$page['show_in_nav'];
+                            $isInactive = !$page['is_active'];
+                        ?>
+                        <div class="page-tab-item <?= $activeTab === $page['code'] ? 'active' : '' ?>"
+                             data-page-id="<?= $page['id'] ?>"
+                             data-page-code="<?= h($page['code']) ?>">
+                            <a href="?tab=<?= h($page['code']) ?>" style="display: contents; color: inherit; text-decoration: none;">
+                                <?= $pageIcons[$page['code']] ?? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>' ?>
+                                <span><?= h($page['nav_title'] ?: $page['title']) ?></span>
+                            </a>
+                            <?php if ($isSystemPage): ?>
+                            <span class="page-tab-badge system">Système</span>
+                            <?php endif; ?>
+                            <?php if ($isHidden): ?>
+                            <span class="page-tab-badge hidden">Masquée</span>
+                            <?php endif; ?>
+                            <div class="page-tab-actions">
+                                <button type="button" class="page-tab-action" onclick="event.stopPropagation(); openPageModal(<?= $page['id'] ?>)" title="Modifier">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                    </svg>
+                                </button>
+                                <?php if (!$isSystemPage): ?>
+                                <button type="button" class="page-tab-action delete" onclick="event.stopPropagation(); confirmDeletePage(<?= $page['id'] ?>, '<?= h(addslashes($page['title'])) ?>')" title="Supprimer">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="3 6 5 6 21 6"/>
+                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                    </svg>
+                                </button>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
                 </div>
                 <?php endif; ?>
 
@@ -6550,6 +7041,199 @@ if ($editBlockId) {
             console.error('Error saving section order:', error);
         });
     }
+
+    // =====================================================
+    // Page Management Functions
+    // =====================================================
+
+    const pagesData = <?= json_encode(array_map(function($p) {
+        return [
+            'id' => $p['id'],
+            'slug' => $p['slug'],
+            'code' => $p['code'],
+            'title' => $p['title'],
+            'nav_title' => $p['nav_title'],
+            'meta_title' => $p['meta_title'],
+            'meta_description' => $p['meta_description'],
+            'page_type' => $p['page_type'],
+            'show_in_nav' => (bool)$p['show_in_nav'],
+            'is_active' => (bool)$p['is_active']
+        ];
+    }, $allPages), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
+
+    function openPageModal(pageId = null) {
+        const modal = document.getElementById('pageModal');
+        const form = document.getElementById('pageForm');
+        const title = document.getElementById('pageModalTitle');
+        const deleteBtn = document.getElementById('pageDeleteBtn');
+        const slugInput = document.getElementById('pageSlug');
+        const titleInput = document.getElementById('pageTitle');
+
+        // Reset form
+        form.reset();
+        document.getElementById('pageId').value = '';
+        document.getElementById('pageAction').value = 'create_page';
+
+        if (pageId) {
+            // Edit mode
+            const page = pagesData.find(p => p.id === pageId);
+            if (page) {
+                title.textContent = 'Modifier la page';
+                document.getElementById('pageId').value = page.id;
+                document.getElementById('pageAction').value = 'update_page';
+                document.getElementById('pageTitle').value = page.title;
+                document.getElementById('pageNavTitle').value = page.nav_title || '';
+                document.getElementById('pageSlug').value = page.slug;
+                document.getElementById('pageMetaTitle').value = page.meta_title || '';
+                document.getElementById('pageMetaDescription').value = page.meta_description || '';
+                document.getElementById('pageShowInNav').checked = page.show_in_nav;
+
+                // Show/hide delete button based on page type
+                const isSystemPage = ['home', 'contact'].includes(page.page_type);
+                deleteBtn.style.display = isSystemPage ? 'none' : 'block';
+
+                // Disable slug editing for home page
+                slugInput.disabled = page.page_type === 'home';
+            }
+        } else {
+            // Create mode
+            title.textContent = 'Nouvelle page';
+            deleteBtn.style.display = 'none';
+            slugInput.disabled = false;
+            document.getElementById('pageShowInNav').checked = true;
+        }
+
+        modal.classList.add('active');
+        titleInput.focus();
+    }
+
+    function closePageModal() {
+        document.getElementById('pageModal').classList.remove('active');
+    }
+
+    function confirmDeletePage(pageId, pageTitle) {
+        if (confirm('Supprimer la page "' + pageTitle + '" ?\n\nToutes les sections de cette page seront également supprimées.')) {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.innerHTML = `
+                <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
+                <input type="hidden" name="action" value="delete_page">
+                <input type="hidden" name="page_id" value="${pageId}">
+            `;
+            document.body.appendChild(form);
+            form.submit();
+        }
+    }
+
+    // Auto-generate slug from title
+    document.getElementById('pageTitle').addEventListener('input', function() {
+        const slugInput = document.getElementById('pageSlug');
+        const pageId = document.getElementById('pageId').value;
+
+        // Only auto-generate for new pages
+        if (!pageId) {
+            const slug = this.value
+                .toLowerCase()
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '') // Remove accents
+                .replace(/[^a-z0-9\s-]/g, '') // Remove special chars
+                .replace(/\s+/g, '-') // Replace spaces with -
+                .replace(/-+/g, '-') // Remove duplicate -
+                .replace(/^-|-$/g, ''); // Trim -
+            slugInput.value = slug;
+            updateSlugPreview();
+        }
+    });
+
+    document.getElementById('pageSlug').addEventListener('input', updateSlugPreview);
+
+    function updateSlugPreview() {
+        const slug = document.getElementById('pageSlug').value;
+        const preview = document.getElementById('slugPreview');
+        if (slug) {
+            preview.innerHTML = 'URL: <code>/' + slug + '</code>';
+        } else {
+            preview.innerHTML = 'URL: <code>/</code> (page d\'accueil)';
+        }
+    }
+
+    // Close modal on overlay click
+    document.getElementById('pageModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closePageModal();
+        }
+    });
+
+    // Close modal on escape
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closePageModal();
+        }
+    });
     </script>
+
+    <!-- Page Management Modal -->
+    <div class="page-modal-overlay" id="pageModal">
+        <div class="page-modal">
+            <div class="page-modal-header">
+                <h3 id="pageModalTitle">Nouvelle page</h3>
+                <button type="button" class="page-modal-close" onclick="closePageModal()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <form method="POST" id="pageForm">
+                <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
+                <input type="hidden" name="action" value="create_page" id="pageAction">
+                <input type="hidden" name="page_id" value="" id="pageId">
+
+                <div class="page-modal-body">
+                    <div class="page-form-row">
+                        <div class="page-form-group">
+                            <label for="pageTitle">Titre de la page *</label>
+                            <input type="text" id="pageTitle" name="page_title" required placeholder="Ex: Services">
+                        </div>
+                        <div class="page-form-group">
+                            <label for="pageNavTitle">Titre navigation <small>(optionnel)</small></label>
+                            <input type="text" id="pageNavTitle" name="page_nav_title" placeholder="Ex: Nos services">
+                        </div>
+                    </div>
+
+                    <div class="page-form-group">
+                        <label for="pageSlug">Slug URL *</label>
+                        <input type="text" id="pageSlug" name="page_slug" placeholder="ex: services" pattern="[a-z0-9-]*">
+                        <div class="slug-preview" id="slugPreview">URL: <code>/</code></div>
+                    </div>
+
+                    <div class="page-form-group">
+                        <label for="pageMetaTitle">Titre SEO <small>(optionnel)</small></label>
+                        <input type="text" id="pageMetaTitle" name="page_meta_title" placeholder="Titre pour les moteurs de recherche">
+                    </div>
+
+                    <div class="page-form-group">
+                        <label for="pageMetaDescription">Description SEO <small>(optionnel)</small></label>
+                        <textarea id="pageMetaDescription" name="page_meta_description" rows="2" placeholder="Description pour les moteurs de recherche"></textarea>
+                    </div>
+
+                    <div class="page-form-group">
+                        <label class="page-form-checkbox">
+                            <input type="checkbox" id="pageShowInNav" name="page_show_in_nav" value="1" checked>
+                            Afficher dans la navigation
+                        </label>
+                    </div>
+                </div>
+
+                <div class="page-modal-footer">
+                    <button type="button" class="btn-delete" id="pageDeleteBtn" style="display: none;" onclick="confirmDeletePage(document.getElementById('pageId').value, document.getElementById('pageTitle').value)">
+                        Supprimer
+                    </button>
+                    <button type="button" class="btn-cancel" onclick="closePageModal()">Annuler</button>
+                    <button type="submit" class="btn-save">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
 </body>
 </html>

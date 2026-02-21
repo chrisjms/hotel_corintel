@@ -6,6 +6,12 @@
 
 require_once __DIR__ . '/includes/functions.php';
 
+// Initialize pages table if needed (for dynamic navigation)
+initPagesTable();
+
+// Get navigation pages for dynamic menu
+$navPages = getNavigationPages();
+
 // Get message categories for the contact reception modal
 $messageCategories = getGuestMessageCategories();
 
@@ -546,11 +552,14 @@ $contactInfo = getContactInfo();
         </div>
       </a>
       <nav class="nav-menu" id="navMenu">
-        <a href="index.php" class="nav-link" data-i18n="nav.home">Accueil</a>
-        <a href="services.php" class="nav-link" data-i18n="nav.services">Services</a>
+        <?php foreach ($navPages as $navPage): ?>
+        <?php
+            $navUrl = $navPage['slug'] === '' ? 'index.php' : '/' . $navPage['slug'];
+            $navI18nKey = $navPage['i18n_nav_key'] ?: '';
+        ?>
+        <a href="<?= h($navUrl) ?>" class="nav-link"<?= $navI18nKey ? ' data-i18n="' . h($navI18nKey) . '"' : '' ?>><?= h($navPage['nav_title'] ?: $navPage['title']) ?></a>
+        <?php endforeach; ?>
         <a href="room-service.php" class="nav-link active" data-i18n="nav.roomService">Room Service</a>
-        <a href="activites.php" class="nav-link" data-i18n="nav.activities">À découvrir</a>
-        <a href="contact.php" class="nav-link" data-i18n="nav.contact">Contact</a>
         <button type="button" class="btn-contact-reception" id="btnContactReception" data-i18n="header.contactReception">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
@@ -778,18 +787,18 @@ $contactInfo = getContactInfo();
         <div class="footer-nav">
           <h4 class="footer-title" data-i18n="footer.navigation">Navigation</h4>
           <ul class="footer-links">
-            <li><a href="index.php" data-i18n="footer.home">Accueil</a></li>
-            <li><a href="services.php" data-i18n="footer.services">Services</a></li>
-            <li><a href="activites.php" data-i18n="footer.discover">À découvrir</a></li>
+            <?php foreach ($navPages as $navPage): ?>
+            <?php $navUrl = $navPage['slug'] === '' ? 'index.php' : '/' . $navPage['slug']; ?>
+            <li><a href="<?= h($navUrl) ?>"<?= $navPage['i18n_nav_key'] ? ' data-i18n="' . h($navPage['i18n_nav_key']) . '"' : '' ?>><?= h($navPage['nav_title'] ?: $navPage['title']) ?></a></li>
+            <?php endforeach; ?>
           </ul>
         </div>
         <div class="footer-nav">
           <h4 class="footer-title" data-i18n="footer.services">Services</h4>
           <ul class="footer-links">
-            <li><a href="services.php" data-i18n="footer.restaurant">Restaurant</a></li>
-            <li><a href="services.php" data-i18n="footer.bar">Bar</a></li>
-            <li><a href="room-service.php" data-i18n="footer.roomService">Room Service</a></li>
-            <li><a href="services.php" data-i18n="footer.parking">Parking</a></li>
+            <li><a href="/services" data-i18n="footer.restaurant">Restaurant</a></li>
+            <li><a href="/services" data-i18n="footer.bar">Bar</a></li>
+            <li><a href="room-service.php" data-i18n="nav.roomService">Room Service</a></li>
           </ul>
         </div>
         <div class="footer-contact">
