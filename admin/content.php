@@ -300,6 +300,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             case 'update_section_settings':
                 $sectionCode = $_POST['section_code'] ?? '';
                 $section = getContentSection($sectionCode);
+                $linkOnly = isset($_POST['link_only']) && $_POST['link_only'] === '1';
 
                 if (!$section) {
                     $message = 'Section invalide.';
@@ -307,23 +308,58 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     break;
                 }
 
-                $bgColor = $_POST['background_color'] ?? 'cream';
-                $success = setSectionBackgroundColor($sectionCode, $bgColor);
+                $success = true;
 
-                // Save image position if this section type supports it
-                if (isset($_POST['image_position']) && sectionSupportsImagePosition($section['template_type'] ?? '')) {
-                    $imagePosition = $_POST['image_position'];
-                    $success = setSectionImagePosition($sectionCode, $imagePosition) && $success;
+                // Only update appearance settings if not in link_only mode
+                if (!$linkOnly) {
+                    $bgColor = $_POST['background_color'] ?? 'cream';
+                    $success = setSectionBackgroundColor($sectionCode, $bgColor);
+
+                    // Save image position if this section type supports it
+                    if (isset($_POST['image_position']) && sectionSupportsImagePosition($section['template_type'] ?? '')) {
+                        $imagePosition = $_POST['image_position'];
+                        $success = setSectionImagePosition($sectionCode, $imagePosition) && $success;
+                    }
+
+                    // Save text alignment if this section type supports it
+                    if (isset($_POST['text_alignment']) && sectionSupportsTextAlignment($section['template_type'] ?? '')) {
+                        $textAlignment = $_POST['text_alignment'];
+                        $success = setSectionTextAlignment($sectionCode, $textAlignment) && $success;
+                    }
                 }
 
-                // Save text alignment if this section type supports it
-                if (isset($_POST['text_alignment']) && sectionSupportsTextAlignment($section['template_type'] ?? '')) {
-                    $textAlignment = $_POST['text_alignment'];
-                    $success = setSectionTextAlignment($sectionCode, $textAlignment) && $success;
+                // Save section link if this section type supports it
+                if (sectionSupportsLinks($section['template_type'] ?? '')) {
+                    $linkUrl = trim($_POST['section_link_url'] ?? '');
+                    $linkText = trim($_POST['section_link_text'] ?? '');
+                    $linkNewTab = isset($_POST['section_link_new_tab']) ? 1 : 0;
+
+                    if (!empty($linkUrl)) {
+                        // Validate and sanitize URL
+                        $validatedUrl = validateSectionLinkUrl($linkUrl);
+                        if (!empty($validatedUrl)) {
+                            $success = saveSectionLink($sectionCode, $validatedUrl, $linkText, $linkNewTab) && $success;
+
+                            // Save link text translations
+                            $linkTranslations = [];
+                            foreach (['en', 'es', 'it'] as $lang) {
+                                $transText = trim($_POST["section_link_text_$lang"] ?? '');
+                                if (!empty($transText)) {
+                                    $linkTranslations[$lang] = $transText;
+                                }
+                            }
+                            if (!empty($linkTranslations)) {
+                                $success = saveSectionLinkTranslations($sectionCode, $linkTranslations) && $success;
+                            }
+                        }
+                    } else {
+                        // Clear link if URL is empty
+                        clearSectionLink($sectionCode);
+                    }
                 }
 
                 if ($success) {
-                    $message = 'Apparence de la section mise à jour.';
+                    $message = $linkOnly ? 'Lien externe mis à jour.' : 'Apparence de la section mise à jour.';
                     $messageType = 'success';
                     $currentSection = $sectionCode;
                 } else {
@@ -1712,6 +1748,128 @@ if ($editBlockId) {
             font-weight: 500;
         }
 
+        /* External link panel */
+        .external-link-panel {
+            margin-top: 1rem;
+        }
+        .section-link-fields {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .link-field-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+        .link-field-group label {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--admin-text);
+        }
+        .link-field-group input[type="url"],
+        .link-field-group input[type="text"] {
+            padding: 0.6rem 0.75rem;
+            border: 1px solid var(--admin-border);
+            border-radius: 6px;
+            font-size: 0.9rem;
+            background: var(--admin-card);
+            transition: border-color 0.15s;
+        }
+        .link-field-group input:focus {
+            outline: none;
+            border-color: var(--admin-primary);
+        }
+        .link-field-hint {
+            font-size: 0.75rem;
+            color: var(--admin-text-light);
+            margin: 0.25rem 0 0 0;
+        }
+        .link-field-checkbox {
+            display: flex;
+            align-items: center;
+        }
+        .link-field-checkbox label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.85rem;
+            cursor: pointer;
+            color: var(--admin-text);
+        }
+        .link-field-checkbox input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+        .link-translations {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px dashed var(--admin-border);
+        }
+        .link-translations-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            padding: 0.5rem 0;
+            color: var(--admin-text-light);
+            font-size: 0.85rem;
+        }
+        .link-translations-header:hover {
+            color: var(--admin-text);
+        }
+        .link-translations-header svg {
+            width: 16px;
+            height: 16px;
+            transition: transform 0.2s;
+        }
+        .link-translations-header.expanded svg {
+            transform: rotate(180deg);
+        }
+        .link-translations-header h5 {
+            margin: 0;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        .link-translations-content {
+            display: none;
+            flex-direction: column;
+            gap: 0.75rem;
+            padding-top: 0.75rem;
+        }
+        .link-translations-content.expanded {
+            display: flex;
+        }
+        .link-translation-field {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .link-lang-label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            min-width: 90px;
+            font-size: 0.8rem;
+            color: var(--admin-text);
+        }
+        .link-lang-label .flag {
+            font-size: 1rem;
+        }
+        .link-translation-field input {
+            flex: 1;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid var(--admin-border);
+            border-radius: 6px;
+            font-size: 0.85rem;
+            background: var(--admin-card);
+        }
+        .link-translation-field input:focus {
+            outline: none;
+            border-color: var(--admin-primary);
+        }
+
         /* Features panel */
         .features-panel {
             background: var(--admin-bg);
@@ -2435,6 +2593,7 @@ if ($editBlockId) {
             z-index: 1000;
             align-items: center;
             justify-content: center;
+            padding: 2rem;
             background: rgba(0, 0, 0, 0.5);
         }
         .dynamic-section-modal.active {
@@ -2445,7 +2604,18 @@ if ($editBlockId) {
             border-radius: var(--admin-radius);
             width: 90%;
             max-width: 500px;
+            max-height: calc(100vh - 4rem);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+        }
+        .dynamic-section-modal-content > form {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
         }
         .dynamic-section-modal-header {
             display: flex;
@@ -2453,6 +2623,7 @@ if ($editBlockId) {
             justify-content: space-between;
             padding: 1rem 1.5rem;
             border-bottom: 1px solid var(--admin-border);
+            flex-shrink: 0;
         }
         .dynamic-section-modal-header h3 {
             margin: 0;
@@ -2474,6 +2645,9 @@ if ($editBlockId) {
         }
         .dynamic-section-modal-body {
             padding: 1.5rem;
+            overflow-y: auto;
+            flex: 1;
+            min-height: 0;
         }
         .dynamic-section-form-group {
             margin-bottom: 1.25rem;
@@ -2514,6 +2688,7 @@ if ($editBlockId) {
             gap: 0.75rem;
             padding: 1rem 1.5rem;
             border-top: 1px solid var(--admin-border);
+            flex-shrink: 0;
         }
 
         @media (max-width: 600px) {
@@ -2522,6 +2697,12 @@ if ($editBlockId) {
             }
             .icon-grid {
                 grid-template-columns: repeat(5, 1fr);
+            }
+            .dynamic-section-modal {
+                padding: 1rem;
+            }
+            .dynamic-section-modal-content {
+                max-height: calc(100vh - 2rem);
             }
         }
 
@@ -2884,6 +3065,7 @@ if ($editBlockId) {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             gap: 1rem;
+            padding-bottom: 0.5rem;
         }
 
         @media (min-width: 600px) {
@@ -4326,6 +4508,91 @@ if ($editBlockId) {
                             <?php endif; ?>
 
                             <?php
+                            // External Link panel - separate from appearance settings
+                            if ($showSettingsPanel && sectionSupportsLinks($templateType)):
+                                $linkData = getSectionLinkWithTranslations($currentSection);
+                            ?>
+                            <div class="section-settings-panel external-link-panel">
+                                <div class="section-settings-header">
+                                    <h4>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                                            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                                        </svg>
+                                        Lien externe
+                                    </h4>
+                                </div>
+
+                                <form method="POST" id="sectionLinkForm">
+                                    <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
+                                    <input type="hidden" name="action" value="update_section_settings">
+                                    <input type="hidden" name="section_code" value="<?= h($currentSection) ?>">
+                                    <input type="hidden" name="link_only" value="1">
+
+                                    <div class="section-link-fields">
+                                        <div class="link-field-group">
+                                            <label for="section_link_url">URL du lien</label>
+                                            <input type="url" id="section_link_url" name="section_link_url" value="<?= h($linkData['url'] ?? '') ?>" placeholder="https://exemple.com/page">
+                                            <p class="link-field-hint">Laissez vide pour ne pas afficher de bouton</p>
+                                        </div>
+
+                                        <div class="link-field-group">
+                                            <label for="section_link_text">Texte du bouton (FR)</label>
+                                            <input type="text" id="section_link_text" name="section_link_text" value="<?= h($linkData['text'] ?? '') ?>" placeholder="Ex: En savoir plus">
+                                        </div>
+
+                                        <div class="link-field-checkbox">
+                                            <label>
+                                                <input type="checkbox" name="section_link_new_tab" value="1" <?= ($linkData['new_tab'] ?? 1) ? 'checked' : '' ?>>
+                                                Ouvrir dans un nouvel onglet
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div class="link-translations">
+                                        <div class="link-translations-header" id="linkTranslationsToggle">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <polyline points="6 9 12 15 18 9"/>
+                                            </svg>
+                                            <h5>Traductions du bouton</h5>
+                                        </div>
+
+                                        <div class="link-translations-content" id="linkTranslationsContent">
+                                            <?php
+                                            $linkLanguages = [
+                                                'en' => ['flag' => '🇬🇧', 'name' => 'English', 'placeholder' => 'Learn more'],
+                                                'es' => ['flag' => '🇪🇸', 'name' => 'Español', 'placeholder' => 'Saber más'],
+                                                'it' => ['flag' => '🇮🇹', 'name' => 'Italiano', 'placeholder' => 'Scopri di più']
+                                            ];
+                                            foreach ($linkLanguages as $langCode => $langInfo):
+                                                $transText = $linkData['translations'][$langCode] ?? '';
+                                            ?>
+                                            <div class="link-translation-field">
+                                                <span class="link-lang-label">
+                                                    <span class="flag"><?= $langInfo['flag'] ?></span>
+                                                    <?= $langInfo['name'] ?>
+                                                </span>
+                                                <input type="text" name="section_link_text_<?= $langCode ?>" value="<?= h($transText) ?>" placeholder="<?= h($langInfo['placeholder']) ?>">
+                                            </div>
+                                            <?php endforeach; ?>
+                                        </div>
+                                    </div>
+
+                                    <div class="overlay-actions">
+                                        <button type="submit" class="btn btn-primary">
+                                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                                                <polyline points="17 21 17 13 7 13 7 21"/>
+                                                <polyline points="7 3 7 8 15 8"/>
+                                            </svg>
+                                            Enregistrer le lien
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                            <?php endif; ?>
+
+                            <?php
                             // Show overlay text panel for sections that support it (static or dynamic with has_overlay)
                             $sectionsWithOverlay = ['home_hero'];
                             $showOverlayPanel = in_array($currentSection, $sectionsWithOverlay) || (!empty($currentSectionData['has_overlay']) && !empty($currentSectionData['is_dynamic']));
@@ -5386,6 +5653,17 @@ if ($editBlockId) {
         translationsToggle.addEventListener('click', () => {
             translationsToggle.classList.toggle('collapsed');
             translationsContent.classList.toggle('hidden');
+        });
+    }
+
+    // Link translations toggle
+    const linkTranslationsToggle = document.getElementById('linkTranslationsToggle');
+    const linkTranslationsContent = document.getElementById('linkTranslationsContent');
+
+    if (linkTranslationsToggle && linkTranslationsContent) {
+        linkTranslationsToggle.addEventListener('click', () => {
+            linkTranslationsToggle.classList.toggle('expanded');
+            linkTranslationsContent.classList.toggle('expanded');
         });
     }
 

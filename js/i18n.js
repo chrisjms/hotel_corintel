@@ -401,6 +401,24 @@
             }
           }
         });
+
+        // Handle dynamic section link buttons (data-dynamic-link="sectionCode")
+        document.querySelectorAll('[data-dynamic-link]').forEach(el => {
+          const sectionCode = el.dataset.dynamicLink;
+          const sectionTrans = window.dynamicSectionsTranslations[sectionCode];
+          if (sectionTrans && sectionTrans.link) {
+            const linkText = sectionTrans.link[this.currentLang] || sectionTrans.link['fr'];
+            if (linkText) {
+              // Get the SVG if present to preserve it
+              const svg = el.querySelector('svg');
+              el.textContent = linkText;
+              if (svg) {
+                el.appendChild(document.createTextNode(' '));
+                el.appendChild(svg);
+              }
+            }
+          }
+        });
       }
     },
 

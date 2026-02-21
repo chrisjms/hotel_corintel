@@ -2725,6 +2725,31 @@ function initContentTables(): void {
         $pdo->exec("ALTER TABLE content_sections ADD COLUMN text_alignment VARCHAR(10) DEFAULT 'center'");
     } catch (PDOException $e) { /* Column may already exist */ }
 
+    // Add section link columns for external CTA links
+    try {
+        $pdo->exec("ALTER TABLE content_sections ADD COLUMN section_link_url VARCHAR(500) DEFAULT NULL");
+    } catch (PDOException $e) { /* Column may already exist */ }
+
+    try {
+        $pdo->exec("ALTER TABLE content_sections ADD COLUMN section_link_text VARCHAR(100) DEFAULT NULL");
+    } catch (PDOException $e) { /* Column may already exist */ }
+
+    try {
+        $pdo->exec("ALTER TABLE content_sections ADD COLUMN section_link_new_tab TINYINT(1) DEFAULT 1");
+    } catch (PDOException $e) { /* Column may already exist */ }
+
+    // Section link text translations table
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS section_link_translations (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            section_code VARCHAR(50) NOT NULL,
+            language_code VARCHAR(5) NOT NULL,
+            link_text VARCHAR(100) NOT NULL,
+            UNIQUE KEY unique_section_lang (section_code, language_code),
+            FOREIGN KEY (section_code) REFERENCES content_sections(code) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    ");
+
     // Section services table (reusable service cards for any section)
     $pdo->exec("
         CREATE TABLE IF NOT EXISTS section_services (
@@ -3549,6 +3574,25 @@ function renderServicesIndicatorsSection(array $section, string $currentLang, st
                         <?php endforeach; ?>
                     </div>
                     <?php endif; ?>
+
+                    <?php
+                    // Render CTA button if section has a link configured
+                    $linkData = getSectionLinkWithTranslations($sectionCode, $currentLang);
+                    if (!empty($linkData['url'])):
+                        $linkText = $linkData['text'] ?: 'En savoir plus';
+                        $linkTarget = $linkData['new_tab'] ? ' target="_blank" rel="noopener noreferrer"' : '';
+                    ?>
+                    <div class="section-cta">
+                        <a href="<?= h($linkData['url']) ?>" class="btn btn-primary section-link-btn"<?= $linkTarget ?> data-dynamic-link="<?= h($sectionCode) ?>">
+                            <?= h($linkText) ?>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                                <polyline points="15 3 21 3 21 9"/>
+                                <line x1="10" y1="14" x2="21" y2="3"/>
+                            </svg>
+                        </a>
+                    </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
@@ -3844,6 +3888,25 @@ function renderServicesChecklistSection(array $section, string $currentLang, str
                         <?php endforeach; ?>
                     </div>
                     <?php endif; ?>
+
+                    <?php
+                    // Render CTA button if section has a link configured
+                    $linkData = getSectionLinkWithTranslations($sectionCode, $currentLang);
+                    if (!empty($linkData['url'])):
+                        $linkText = $linkData['text'] ?: 'En savoir plus';
+                        $linkTarget = $linkData['new_tab'] ? ' target="_blank" rel="noopener noreferrer"' : '';
+                    ?>
+                    <div class="section-cta">
+                        <a href="<?= h($linkData['url']) ?>" class="btn btn-primary section-link-btn"<?= $linkTarget ?> data-dynamic-link="<?= h($sectionCode) ?>">
+                            <?= h($linkText) ?>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                                <polyline points="15 3 21 3 21 9"/>
+                                <line x1="10" y1="14" x2="21" y2="3"/>
+                            </svg>
+                        </a>
+                    </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
@@ -4001,6 +4064,21 @@ function getDynamicSectionsTranslations(string $page): array {
                         'title' => $item['translations']['it']['title'] ?? $item['title'],
                         'description' => $item['translations']['it']['description'] ?? ($item['description'] ?? '')
                     ]
+                ];
+            }
+        }
+
+        // Build translations for section links (CTA buttons)
+        if (sectionSupportsLinks($section['template_type'] ?? '')) {
+            $linkData = getSectionLinkWithTranslations($sectionCode);
+            if (!empty($linkData['url'])) {
+                $translations[$sectionCode]['link'] = [
+                    'url' => $linkData['url'],
+                    'new_tab' => $linkData['new_tab'],
+                    'fr' => $linkData['text'] ?? 'En savoir plus',
+                    'en' => $linkData['translations']['en'] ?? $linkData['text'] ?? 'Learn more',
+                    'es' => $linkData['translations']['es'] ?? $linkData['text'] ?? 'Saber más',
+                    'it' => $linkData['translations']['it'] ?? $linkData['text'] ?? 'Scopri di più'
                 ];
             }
         }
@@ -5049,6 +5127,199 @@ function setSectionTextAlignment(string $sectionCode, string $alignment): bool {
     $pdo = getDatabase();
     $stmt = $pdo->prepare('UPDATE content_sections SET text_alignment = ? WHERE code = ?');
     return $stmt->execute([$alignment, $sectionCode]);
+}
+
+// =====================================================
+// SECTION LINKS (Optional CTA Links)
+// =====================================================
+
+/**
+ * Get section types that support optional links
+ */
+function getSectionTypesWithLinks(): array {
+    return ['services_indicators', 'services_checklist'];
+}
+
+/**
+ * Check if a section type supports optional links
+ */
+function sectionSupportsLinks(string $templateType): bool {
+    return in_array($templateType, getSectionTypesWithLinks());
+}
+
+/**
+ * Get the section link data
+ */
+function getSectionLink(string $sectionCode): array {
+    $pdo = getDatabase();
+    $stmt = $pdo->prepare('SELECT section_link_url, section_link_text, section_link_new_tab FROM content_sections WHERE code = ?');
+    $stmt->execute([$sectionCode]);
+    $result = $stmt->fetch();
+
+    return [
+        'url' => $result['section_link_url'] ?? '',
+        'text' => $result['section_link_text'] ?? '',
+        'new_tab' => (bool)($result['section_link_new_tab'] ?? true)
+    ];
+}
+
+/**
+ * Get section link with translations
+ */
+function getSectionLinkWithTranslations(string $sectionCode, string $lang = 'fr'): array {
+    $link = getSectionLink($sectionCode);
+
+    if (empty($link['url'])) {
+        return $link;
+    }
+
+    // Get translation if not French
+    if ($lang !== 'fr') {
+        $pdo = getDatabase();
+        $stmt = $pdo->prepare('SELECT link_text FROM section_link_translations WHERE section_code = ? AND language_code = ?');
+        $stmt->execute([$sectionCode, $lang]);
+        $translation = $stmt->fetchColumn();
+
+        if ($translation) {
+            $link['text'] = $translation;
+        }
+    }
+
+    return $link;
+}
+
+/**
+ * Get all section link translations
+ */
+function getSectionLinkTranslations(string $sectionCode): array {
+    $pdo = getDatabase();
+    $stmt = $pdo->prepare('SELECT language_code, link_text FROM section_link_translations WHERE section_code = ?');
+    $stmt->execute([$sectionCode]);
+    $rows = $stmt->fetchAll();
+
+    $translations = [];
+    foreach ($rows as $row) {
+        $translations[$row['language_code']] = $row['link_text'];
+    }
+
+    return $translations;
+}
+
+/**
+ * Validate a URL for section links
+ * Returns sanitized URL or empty string if invalid
+ */
+function validateSectionLinkUrl(string $url): string {
+    $url = trim($url);
+
+    if (empty($url)) {
+        return '';
+    }
+
+    // Add https:// if no protocol specified
+    if (!preg_match('/^https?:\/\//i', $url)) {
+        $url = 'https://' . $url;
+    }
+
+    // Validate URL format
+    if (!filter_var($url, FILTER_VALIDATE_URL)) {
+        return '';
+    }
+
+    // Only allow http and https protocols
+    $parsed = parse_url($url);
+    if (!in_array(strtolower($parsed['scheme'] ?? ''), ['http', 'https'])) {
+        return '';
+    }
+
+    return $url;
+}
+
+/**
+ * Save section link data
+ */
+function saveSectionLink(string $sectionCode, string $url, string $text, bool $newTab = true): bool {
+    $pdo = getDatabase();
+
+    // Validate and sanitize URL
+    $url = validateSectionLinkUrl($url);
+
+    // Sanitize text
+    $text = trim($text);
+    if (strlen($text) > 100) {
+        $text = substr($text, 0, 100);
+    }
+
+    $stmt = $pdo->prepare('
+        UPDATE content_sections
+        SET section_link_url = ?, section_link_text = ?, section_link_new_tab = ?
+        WHERE code = ?
+    ');
+
+    return $stmt->execute([
+        $url ?: null,
+        $text ?: null,
+        $newTab ? 1 : 0,
+        $sectionCode
+    ]);
+}
+
+/**
+ * Save section link translations
+ */
+function saveSectionLinkTranslations(string $sectionCode, array $translations): bool {
+    $pdo = getDatabase();
+
+    // Delete existing translations
+    $stmt = $pdo->prepare('DELETE FROM section_link_translations WHERE section_code = ?');
+    $stmt->execute([$sectionCode]);
+
+    // Insert new translations
+    $stmt = $pdo->prepare('
+        INSERT INTO section_link_translations (section_code, language_code, link_text)
+        VALUES (?, ?, ?)
+    ');
+
+    foreach ($translations as $lang => $text) {
+        $text = trim($text);
+        if (!empty($text)) {
+            if (strlen($text) > 100) {
+                $text = substr($text, 0, 100);
+            }
+            $stmt->execute([$sectionCode, $lang, $text]);
+        }
+    }
+
+    return true;
+}
+
+/**
+ * Clear section link
+ */
+function clearSectionLink(string $sectionCode): bool {
+    $pdo = getDatabase();
+
+    // Clear link data
+    $stmt = $pdo->prepare('
+        UPDATE content_sections
+        SET section_link_url = NULL, section_link_text = NULL, section_link_new_tab = 1
+        WHERE code = ?
+    ');
+    $stmt->execute([$sectionCode]);
+
+    // Clear translations
+    $stmt = $pdo->prepare('DELETE FROM section_link_translations WHERE section_code = ?');
+    $stmt->execute([$sectionCode]);
+
+    return true;
+}
+
+/**
+ * Check if a section has a link configured
+ */
+function sectionHasLink(string $sectionCode): bool {
+    $link = getSectionLink($sectionCode);
+    return !empty($link['url']);
 }
 
 /**
