@@ -6284,3 +6284,545 @@ function getRoomServiceFinancialStats(string $period = 'day', ?string $date = nu
         ]
     ];
 }
+
+// =====================================================
+// HOTEL ROOMS MANAGEMENT SYSTEM
+// =====================================================
+
+/**
+ * Room status constants
+ * Defines the operational status of a room
+ */
+define('ROOM_STATUS_AVAILABLE', 'available');
+define('ROOM_STATUS_OCCUPIED', 'occupied');
+define('ROOM_STATUS_MAINTENANCE', 'maintenance');
+define('ROOM_STATUS_OUT_OF_ORDER', 'out_of_order');
+
+/**
+ * Housekeeping status constants
+ * Defines the cleaning state of a room
+ */
+define('HOUSEKEEPING_PENDING', 'pending');
+define('HOUSEKEEPING_IN_PROGRESS', 'in_progress');
+define('HOUSEKEEPING_CLEANED', 'cleaned');
+define('HOUSEKEEPING_INSPECTED', 'inspected');
+
+/**
+ * Room type constants
+ */
+define('ROOM_TYPE_SINGLE', 'single');
+define('ROOM_TYPE_DOUBLE', 'double');
+define('ROOM_TYPE_TWIN', 'twin');
+define('ROOM_TYPE_SUITE', 'suite');
+define('ROOM_TYPE_FAMILY', 'family');
+define('ROOM_TYPE_ACCESSIBLE', 'accessible');
+
+/**
+ * Get all room statuses with labels
+ * @return array Associative array of status => label
+ */
+function getRoomStatuses(): array {
+    return [
+        ROOM_STATUS_AVAILABLE => 'Disponible',
+        ROOM_STATUS_OCCUPIED => 'Occupée',
+        ROOM_STATUS_MAINTENANCE => 'Maintenance',
+        ROOM_STATUS_OUT_OF_ORDER => 'Hors service'
+    ];
+}
+
+/**
+ * Get all housekeeping statuses with labels
+ * @return array Associative array of status => label
+ */
+function getHousekeepingStatuses(): array {
+    return [
+        HOUSEKEEPING_PENDING => 'En attente',
+        HOUSEKEEPING_IN_PROGRESS => 'En cours',
+        HOUSEKEEPING_CLEANED => 'Nettoyée',
+        HOUSEKEEPING_INSPECTED => 'Inspectée'
+    ];
+}
+
+/**
+ * Get all room types with labels
+ * @return array Associative array of type => label
+ */
+function getRoomTypes(): array {
+    return [
+        ROOM_TYPE_SINGLE => 'Chambre Simple',
+        ROOM_TYPE_DOUBLE => 'Chambre Double',
+        ROOM_TYPE_TWIN => 'Chambre Twin',
+        ROOM_TYPE_SUITE => 'Suite',
+        ROOM_TYPE_FAMILY => 'Chambre Familiale',
+        ROOM_TYPE_ACCESSIBLE => 'Chambre Accessible'
+    ];
+}
+
+/**
+ * Get status badge CSS class
+ * @param string $status Room status
+ * @return string CSS class
+ */
+function getRoomStatusBadgeClass(string $status): string {
+    return match($status) {
+        ROOM_STATUS_AVAILABLE => 'badge-success',
+        ROOM_STATUS_OCCUPIED => 'badge-info',
+        ROOM_STATUS_MAINTENANCE => 'badge-warning',
+        ROOM_STATUS_OUT_OF_ORDER => 'badge-error',
+        default => 'badge-default'
+    };
+}
+
+/**
+ * Get housekeeping status badge CSS class
+ * @param string $status Housekeeping status
+ * @return string CSS class
+ */
+function getHousekeepingStatusBadgeClass(string $status): string {
+    return match($status) {
+        HOUSEKEEPING_PENDING => 'badge-warning',
+        HOUSEKEEPING_IN_PROGRESS => 'badge-info',
+        HOUSEKEEPING_CLEANED => 'badge-success',
+        HOUSEKEEPING_INSPECTED => 'badge-primary',
+        default => 'badge-default'
+    };
+}
+
+/**
+ * Get all rooms with optional filtering
+ * @param array $filters Optional filters: status, housekeeping_status, floor, room_type, is_active
+ * @param string $orderBy Order by column
+ * @param string $orderDir Order direction (ASC/DESC)
+ * @return array List of rooms
+ */
+function getRooms(array $filters = [], string $orderBy = 'room_number', string $orderDir = 'ASC'): array {
+    $pdo = getDatabase();
+
+    $sql = "SELECT * FROM rooms WHERE 1=1";
+    $params = [];
+
+    if (isset($filters['status'])) {
+        $sql .= " AND status = ?";
+        $params[] = $filters['status'];
+    }
+
+    if (isset($filters['housekeeping_status'])) {
+        $sql .= " AND housekeeping_status = ?";
+        $params[] = $filters['housekeeping_status'];
+    }
+
+    if (isset($filters['floor'])) {
+        $sql .= " AND floor = ?";
+        $params[] = $filters['floor'];
+    }
+
+    if (isset($filters['room_type'])) {
+        $sql .= " AND room_type = ?";
+        $params[] = $filters['room_type'];
+    }
+
+    if (isset($filters['is_active'])) {
+        $sql .= " AND is_active = ?";
+        $params[] = $filters['is_active'] ? 1 : 0;
+    } else {
+        // Default: only show active rooms
+        $sql .= " AND is_active = 1";
+    }
+
+    if (isset($filters['search']) && !empty($filters['search'])) {
+        $sql .= " AND (room_number LIKE ? OR notes LIKE ?)";
+        $searchTerm = '%' . $filters['search'] . '%';
+        $params[] = $searchTerm;
+        $params[] = $searchTerm;
+    }
+
+    // Validate order by column
+    $allowedColumns = ['room_number', 'floor', 'room_type', 'status', 'housekeeping_status', 'created_at', 'updated_at'];
+    if (!in_array($orderBy, $allowedColumns)) {
+        $orderBy = 'room_number';
+    }
+    $orderDir = strtoupper($orderDir) === 'DESC' ? 'DESC' : 'ASC';
+
+    $sql .= " ORDER BY $orderBy $orderDir";
+
+    try {
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        $rooms = $stmt->fetchAll();
+
+        // Decode JSON amenities
+        foreach ($rooms as &$room) {
+            $room['amenities'] = $room['amenities'] ? json_decode($room['amenities'], true) : [];
+        }
+
+        return $rooms;
+    } catch (PDOException $e) {
+        error_log('Error fetching rooms: ' . $e->getMessage());
+        return [];
+    }
+}
+
+/**
+ * Get a single room by ID
+ * @param int $id Room ID
+ * @return array|null Room data or null if not found
+ */
+function getRoomById(int $id): ?array {
+    $pdo = getDatabase();
+
+    try {
+        $stmt = $pdo->prepare("SELECT * FROM rooms WHERE id = ?");
+        $stmt->execute([$id]);
+        $room = $stmt->fetch();
+
+        if ($room) {
+            $room['amenities'] = $room['amenities'] ? json_decode($room['amenities'], true) : [];
+        }
+
+        return $room ?: null;
+    } catch (PDOException $e) {
+        error_log('Error fetching room: ' . $e->getMessage());
+        return null;
+    }
+}
+
+/**
+ * Get a single room by room number
+ * @param string $roomNumber Room number
+ * @return array|null Room data or null if not found
+ */
+function getRoomByNumber(string $roomNumber): ?array {
+    $pdo = getDatabase();
+
+    try {
+        $stmt = $pdo->prepare("SELECT * FROM rooms WHERE room_number = ?");
+        $stmt->execute([$roomNumber]);
+        $room = $stmt->fetch();
+
+        if ($room) {
+            $room['amenities'] = $room['amenities'] ? json_decode($room['amenities'], true) : [];
+        }
+
+        return $room ?: null;
+    } catch (PDOException $e) {
+        error_log('Error fetching room: ' . $e->getMessage());
+        return null;
+    }
+}
+
+/**
+ * Create a new room
+ * @param array $data Room data
+ * @param string|null $error Error message reference
+ * @return int|false Room ID on success, false on failure
+ */
+function createRoom(array $data, ?string &$error = null): int|false {
+    $pdo = getDatabase();
+
+    $sql = "INSERT INTO rooms (
+        room_number, floor, room_type, capacity, bed_count, surface_area,
+        status, housekeeping_status, amenities, notes, is_active
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+    try {
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([
+            $data['room_number'],
+            $data['floor'] ?? null,
+            $data['room_type'] ?? ROOM_TYPE_DOUBLE,
+            $data['capacity'] ?? 2,
+            $data['bed_count'] ?? 1,
+            $data['surface_area'] ?? null,
+            $data['status'] ?? ROOM_STATUS_AVAILABLE,
+            $data['housekeeping_status'] ?? HOUSEKEEPING_CLEANED,
+            isset($data['amenities']) ? json_encode($data['amenities']) : null,
+            $data['notes'] ?? null,
+            $data['is_active'] ?? 1
+        ]);
+
+        return (int) $pdo->lastInsertId();
+    } catch (PDOException $e) {
+        error_log('Error creating room: ' . $e->getMessage());
+        if (strpos($e->getMessage(), "doesn't exist") !== false || strpos($e->getMessage(), "Table") !== false) {
+            $error = "La table 'rooms' n'existe pas. Veuillez exécuter la migration 005_create_rooms_table.sql";
+        } else {
+            $error = $e->getMessage();
+        }
+        return false;
+    }
+}
+
+/**
+ * Update a room
+ * @param int $id Room ID
+ * @param array $data Room data to update
+ * @return bool Success status
+ */
+function updateRoom(int $id, array $data): bool {
+    $pdo = getDatabase();
+
+    $fields = [];
+    $params = [];
+
+    $allowedFields = [
+        'room_number', 'floor', 'room_type', 'capacity', 'bed_count',
+        'surface_area', 'status', 'housekeeping_status', 'notes', 'is_active'
+    ];
+
+    foreach ($allowedFields as $field) {
+        if (array_key_exists($field, $data)) {
+            $fields[] = "$field = ?";
+            $params[] = $data[$field];
+        }
+    }
+
+    // Handle amenities separately (JSON)
+    if (array_key_exists('amenities', $data)) {
+        $fields[] = "amenities = ?";
+        $params[] = is_array($data['amenities']) ? json_encode($data['amenities']) : $data['amenities'];
+    }
+
+    // Handle timestamp updates
+    if (isset($data['housekeeping_status'])) {
+        if ($data['housekeeping_status'] === HOUSEKEEPING_CLEANED) {
+            $fields[] = "last_cleaned_at = NOW()";
+        } elseif ($data['housekeeping_status'] === HOUSEKEEPING_INSPECTED) {
+            $fields[] = "last_inspection_at = NOW()";
+        }
+    }
+
+    if (empty($fields)) {
+        return false;
+    }
+
+    $sql = "UPDATE rooms SET " . implode(', ', $fields) . " WHERE id = ?";
+    $params[] = $id;
+
+    try {
+        $stmt = $pdo->prepare($sql);
+        return $stmt->execute($params);
+    } catch (PDOException $e) {
+        error_log('Error updating room: ' . $e->getMessage());
+        return false;
+    }
+}
+
+/**
+ * Delete a room (soft delete by setting is_active = 0)
+ * @param int $id Room ID
+ * @param bool $hardDelete If true, permanently delete the room
+ * @return bool Success status
+ */
+function deleteRoom(int $id, bool $hardDelete = false): bool {
+    $pdo = getDatabase();
+
+    try {
+        if ($hardDelete) {
+            $stmt = $pdo->prepare("DELETE FROM rooms WHERE id = ?");
+        } else {
+            $stmt = $pdo->prepare("UPDATE rooms SET is_active = 0 WHERE id = ?");
+        }
+        return $stmt->execute([$id]);
+    } catch (PDOException $e) {
+        error_log('Error deleting room: ' . $e->getMessage());
+        return false;
+    }
+}
+
+/**
+ * Update room status
+ * @param int $id Room ID
+ * @param string $status New status
+ * @return bool Success status
+ */
+function updateRoomStatus(int $id, string $status): bool {
+    $validStatuses = array_keys(getRoomStatuses());
+    if (!in_array($status, $validStatuses)) {
+        return false;
+    }
+
+    return updateRoom($id, ['status' => $status]);
+}
+
+/**
+ * Update room housekeeping status
+ * @param int $id Room ID
+ * @param string $status New housekeeping status
+ * @return bool Success status
+ */
+function updateRoomHousekeepingStatus(int $id, string $status): bool {
+    $validStatuses = array_keys(getHousekeepingStatuses());
+    if (!in_array($status, $validStatuses)) {
+        return false;
+    }
+
+    return updateRoom($id, ['housekeeping_status' => $status]);
+}
+
+/**
+ * Get room statistics summary
+ * @return array Statistics including counts by status
+ */
+function getRoomStatistics(): array {
+    $pdo = getDatabase();
+
+    try {
+        // Total rooms
+        $stmt = $pdo->query("SELECT COUNT(*) as total FROM rooms WHERE is_active = 1");
+        $total = $stmt->fetch()['total'];
+
+        // By status
+        $stmt = $pdo->query("
+            SELECT status, COUNT(*) as count
+            FROM rooms
+            WHERE is_active = 1
+            GROUP BY status
+        ");
+        $byStatus = [];
+        while ($row = $stmt->fetch()) {
+            $byStatus[$row['status']] = (int) $row['count'];
+        }
+
+        // By housekeeping status
+        $stmt = $pdo->query("
+            SELECT housekeeping_status, COUNT(*) as count
+            FROM rooms
+            WHERE is_active = 1
+            GROUP BY housekeeping_status
+        ");
+        $byHousekeeping = [];
+        while ($row = $stmt->fetch()) {
+            $byHousekeeping[$row['housekeeping_status']] = (int) $row['count'];
+        }
+
+        // By floor
+        $stmt = $pdo->query("
+            SELECT COALESCE(floor, 0) as floor, COUNT(*) as count
+            FROM rooms
+            WHERE is_active = 1
+            GROUP BY floor
+            ORDER BY floor
+        ");
+        $byFloor = [];
+        while ($row = $stmt->fetch()) {
+            $byFloor[$row['floor']] = (int) $row['count'];
+        }
+
+        // By room type
+        $stmt = $pdo->query("
+            SELECT room_type, COUNT(*) as count
+            FROM rooms
+            WHERE is_active = 1
+            GROUP BY room_type
+        ");
+        $byType = [];
+        while ($row = $stmt->fetch()) {
+            $byType[$row['room_type']] = (int) $row['count'];
+        }
+
+        return [
+            'total' => (int) $total,
+            'by_status' => $byStatus,
+            'by_housekeeping' => $byHousekeeping,
+            'by_floor' => $byFloor,
+            'by_type' => $byType
+        ];
+    } catch (PDOException $e) {
+        error_log('Error getting room statistics: ' . $e->getMessage());
+        return [
+            'total' => 0,
+            'by_status' => [],
+            'by_housekeeping' => [],
+            'by_floor' => [],
+            'by_type' => []
+        ];
+    }
+}
+
+/**
+ * Get list of unique floors
+ * @return array List of floor numbers
+ */
+function getRoomFloors(): array {
+    $pdo = getDatabase();
+
+    try {
+        $stmt = $pdo->query("
+            SELECT DISTINCT COALESCE(floor, 0) as floor
+            FROM rooms
+            WHERE is_active = 1
+            ORDER BY floor
+        ");
+        return $stmt->fetchAll(PDO::FETCH_COLUMN);
+    } catch (PDOException $e) {
+        error_log('Error fetching floors: ' . $e->getMessage());
+        return [];
+    }
+}
+
+/**
+ * Check if room number exists
+ * @param string $roomNumber Room number to check
+ * @param int|null $excludeId Room ID to exclude (for updates)
+ * @return bool True if exists
+ */
+function roomNumberExists(string $roomNumber, ?int $excludeId = null): bool {
+    $pdo = getDatabase();
+
+    try {
+        if ($excludeId) {
+            $stmt = $pdo->prepare("SELECT COUNT(*) FROM rooms WHERE room_number = ? AND id != ?");
+            $stmt->execute([$roomNumber, $excludeId]);
+        } else {
+            $stmt = $pdo->prepare("SELECT COUNT(*) FROM rooms WHERE room_number = ?");
+            $stmt->execute([$roomNumber]);
+        }
+        return $stmt->fetchColumn() > 0;
+    } catch (PDOException $e) {
+        return false;
+    }
+}
+
+/**
+ * Log housekeeping activity
+ * @param int $roomId Room ID
+ * @param string $action Action type
+ * @param array $data Additional data
+ * @return bool Success status
+ */
+function logHousekeepingActivity(int $roomId, string $action, array $data = []): bool {
+    $pdo = getDatabase();
+
+    $sql = "INSERT INTO housekeeping_logs (room_id, action, previous_status, new_status, performed_by, notes)
+            VALUES (?, ?, ?, ?, ?, ?)";
+
+    try {
+        $stmt = $pdo->prepare($sql);
+        return $stmt->execute([
+            $roomId,
+            $action,
+            $data['previous_status'] ?? null,
+            $data['new_status'] ?? null,
+            $data['performed_by'] ?? null,
+            $data['notes'] ?? null
+        ]);
+    } catch (PDOException $e) {
+        error_log('Error logging housekeeping activity: ' . $e->getMessage());
+        return false;
+    }
+}
+
+/**
+ * Get total room count (for sidebar badge)
+ * @return int Total active rooms
+ */
+function getTotalRoomCount(): int {
+    $pdo = getDatabase();
+
+    try {
+        $stmt = $pdo->query("SELECT COUNT(*) FROM rooms WHERE is_active = 1");
+        return (int) $stmt->fetchColumn();
+    } catch (PDOException $e) {
+        return 0;
+    }
+}

@@ -321,6 +321,13 @@ $msgStatusLabels = [
                 </a>
 
                 <div class="nav-separator">Administration</div>
+                <a href="rooms.php" class="nav-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                        <rect x="9" y="13" width="6" height="9"/>
+                    </svg>
+                    Chambres
+                </a>
                 <a href="settings.php" class="nav-item">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>

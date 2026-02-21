@@ -3765,14 +3765,11 @@ if ($editBlockId) {
 
             <?php
             // Early determination of active tab for sidebar highlighting
+            // "Général" is only active when explicitly ?tab=general
+            // "Sections" is active for everything else (no param, page tabs, section editing)
             $sidebarTab = $_GET['tab'] ?? null;
-            $isSectionsActive = $sidebarTab !== null && $sidebarTab !== 'general';
-            $isGeneralActive = $sidebarTab === 'general' || $sidebarTab === null;
-            // If viewing/editing a section, Sections should be active
-            if (isset($_GET['section']) || isset($_GET['edit_block'])) {
-                $isSectionsActive = true;
-                $isGeneralActive = false;
-            }
+            $isGeneralActive = $sidebarTab === 'general';
+            $isSectionsActive = !$isGeneralActive;
             ?>
 
             <nav class="sidebar-nav">
@@ -3861,6 +3858,13 @@ if ($editBlockId) {
                 </a>
 
                 <div class="nav-separator">Administration</div>
+                <a href="rooms.php" class="nav-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                        <rect x="9" y="13" width="6" height="9"/>
+                    </svg>
+                    Chambres
+                </a>
                 <a href="settings.php" class="nav-item">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="3"/>
@@ -3916,15 +3920,16 @@ if ($editBlockId) {
                 <?php
                 // Determine active tab
                 // Tab can be: 'general', or a page code ('home', 'services', 'activities', 'contact')
-                // If a section is currently selected, determine its page and use that as the active tab
-                // If we just performed an action that should stay on a page tab, respect that
-                $activeTab = 'general';
+                // 'general' is ONLY accessible via explicit ?tab=general (from "Général" sidebar)
+                // "Sections" sidebar (no param) defaults to first page tab
+                $activeTab = null;
                 $activePageTab = null;
+                $firstPageCode = array_key_first($pageNames) ?: 'home';
 
                 if ($currentSection && $currentSectionData) {
                     // Determine which page this section belongs to
                     $activePageTab = $currentSectionData['page'] ?? null;
-                    $activeTab = $activePageTab ?: 'general';
+                    $activeTab = $activePageTab ?: $firstPageCode;
                 } elseif ($stayOnPageTab) {
                     // After deleting a section, stay on the same page tab
                     $activePageTab = $stayOnPageTab;
@@ -3932,11 +3937,19 @@ if ($editBlockId) {
                 } elseif ($editBlockId) {
                     // Editing a block - find its section's page
                     $activePageTab = $currentSectionData['page'] ?? null;
-                    $activeTab = $activePageTab ?: 'general';
+                    $activeTab = $activePageTab ?: $firstPageCode;
                 } else {
-                    $activeTab = $_GET['tab'] ?? 'general';
-                    if (array_key_exists($activeTab, $pageNames)) {
-                        $activePageTab = $activeTab;
+                    // Explicit tab parameter or default to first page
+                    $requestedTab = $_GET['tab'] ?? null;
+                    if ($requestedTab === 'general') {
+                        $activeTab = 'general';
+                    } elseif ($requestedTab && array_key_exists($requestedTab, $pageNames)) {
+                        $activeTab = $requestedTab;
+                        $activePageTab = $requestedTab;
+                    } else {
+                        // No tab param or invalid tab: default to first page
+                        $activeTab = $firstPageCode;
+                        $activePageTab = $firstPageCode;
                     }
                 }
 
@@ -3949,15 +3962,9 @@ if ($editBlockId) {
                 ];
                 ?>
 
-                <!-- Content Page Tabs - Page-based navigation -->
+                <?php if ($activeTab !== 'general'): ?>
+                <!-- Page Tabs - Only shown when on Sections (not on Général) -->
                 <div class="content-page-tabs">
-                    <a href="?tab=general" class="content-tab <?= $activeTab === 'general' ? 'active' : '' ?>">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="12" r="3"/>
-                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-                        </svg>
-                        Contenu général
-                    </a>
                     <?php foreach ($pageNames as $pageCode => $pageName): ?>
                     <a href="?tab=<?= h($pageCode) ?>" class="content-tab <?= $activeTab === $pageCode ? 'active' : '' ?>">
                         <?= $pageIcons[$pageCode] ?? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/></svg>' ?>
@@ -3965,6 +3972,7 @@ if ($editBlockId) {
                     </a>
                     <?php endforeach; ?>
                 </div>
+                <?php endif; ?>
 
                 <?php if ($activeTab === 'general'): ?>
                 <!-- General Content Tab -->
