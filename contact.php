@@ -215,8 +215,8 @@ $contactInfo = getContactInfo();
       <nav class="nav-menu" id="navMenu">
         <a href="index.php" class="nav-link" data-i18n="nav.home">Accueil</a>
         <a href="services.php" class="nav-link" data-i18n="nav.services">Services</a>
-        <a href="room-service.php" class="nav-link" data-i18n="nav.roomService">Room Service</a>
         <a href="activites.php" class="nav-link" data-i18n="nav.activities">À découvrir</a>
+        <a href="room-service.php" class="nav-link nav-link-room-service" data-i18n="nav.roomService">Room Service <span class="nav-qr-badge" data-i18n="footer.qrOnly">QR</span></a>
         <a href="contact.php" class="nav-link active" data-i18n="nav.contact">Contact</a>
         <button type="button" class="btn-contact-reception" id="btnContactReception" data-i18n="header.contactReception">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -476,6 +476,10 @@ $contactInfo = getContactInfo();
             <li><a href="services.php" data-i18n="footer.bar">Bar</a></li>
             <li><a href="services.php" data-i18n="footer.boulodrome">Boulodrome</a></li>
             <li><a href="services.php" data-i18n="footer.parking">Parking</a></li>
+            <li class="room-service-item">
+              <a href="room-service.php" data-i18n="footer.roomService">Room Service</a>
+              <span class="qr-badge" data-i18n="footer.qrOnly">QR code</span>
+            </li>
           </ul>
         </div>
         <div class="footer-contact">

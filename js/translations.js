@@ -348,7 +348,8 @@ const translations = {
       restaurant: 'Restaurant',
       bar: 'Bar',
       roomService: 'Room Service',
-      parking: 'Parking'
+      parking: 'Parking',
+      qrOnly: 'QR code'
     },
 
     // Common
@@ -669,7 +670,8 @@ const translations = {
       restaurant: 'Restaurant',
       bar: 'Bar',
       roomService: 'Room Service',
-      parking: 'Parking'
+      parking: 'Parking',
+      qrOnly: 'QR code'
     },
 
     common: {
@@ -989,7 +991,8 @@ const translations = {
       restaurant: 'Restaurante',
       bar: 'Bar',
       roomService: 'Room Service',
-      parking: 'Aparcamiento'
+      parking: 'Aparcamiento',
+      qrOnly: 'Código QR'
     },
 
     common: {
@@ -1309,7 +1312,8 @@ const translations = {
       restaurant: 'Ristorante',
       bar: 'Bar',
       roomService: 'Room Service',
-      parking: 'Parcheggio'
+      parking: 'Parcheggio',
+      qrOnly: 'Codice QR'
     },
 
     common: {
