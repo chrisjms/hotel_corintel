@@ -567,6 +567,10 @@ $contactInfo = getContactInfo();
         .category-tabs::-webkit-scrollbar {
             display: none;
         }
+        /* R1: Overflow fade on right edge */
+        .category-tabs.show-overflow-fade {
+            box-shadow: inset -48px 0 24px -16px #fff;
+        }
         .category-tab {
             flex-shrink: 0;
             padding: 0.625rem 1rem;
@@ -738,8 +742,8 @@ $contactInfo = getContactInfo();
             padding: 0.25rem;
         }
         .quantity-btn {
-            width: 36px;
-            height: 36px;
+            width: 44px;
+            height: 44px;
             border: none;
             background: #fff;
             border-radius: 6px;
@@ -1323,6 +1327,26 @@ $contactInfo = getContactInfo();
                 justify-content: center;
                 gap: 2rem;
             }
+
+            /* M1: Banner hide-on-scroll */
+            .room-banner {
+                transition: transform 0.25s ease;
+            }
+            .room-banner.hidden {
+                transform: translateY(-100%);
+            }
+            .rs-header {
+                transition: top 0.25s ease;
+            }
+            .rs-header.no-banner {
+                top: 0;
+            }
+            .category-tabs {
+                transition: top 0.25s ease;
+            }
+            .category-tabs.no-banner {
+                top: var(--rs-header-height);
+            }
         }
 
         /* Hide footer on room service for cleaner mobile experience */
@@ -1376,12 +1400,12 @@ $contactInfo = getContactInfo();
             <h2 data-i18n="roomService.orderConfirmed">Commande confirmée !</h2>
             <p data-i18n="roomService.orderSuccessMessage">Votre commande a été enregistrée. Notre équipe va la préparer et vous la livrer dans les meilleurs délais.</p>
             <div class="order-id">Commande #<?= $orderId ?></div>
-            <a href="room-service.php" class="btn-new-order">
+            <a href="room-service.php" class="btn-new-order" data-i18n="roomService.backToMenu">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="12" y1="5" x2="12" y2="19"/>
                     <line x1="5" y1="12" x2="19" y2="12"/>
                 </svg>
-                Nouvelle commande
+                Retour au menu
             </a>
         </div>
 
@@ -1986,20 +2010,40 @@ $contactInfo = getContactInfo();
         const btnContact = document.getElementById('btnContactReception');
         const btnModalClose = document.getElementById('modalClose');
 
-        btnContact?.addEventListener('click', () => {
-            contactModal.classList.add('active');
-            document.body.style.overflow = 'hidden';
-        });
+        let rsModalOpener = null;
 
-        btnModalClose?.addEventListener('click', () => {
+        function closeContactModal() {
             contactModal.classList.remove('active');
             document.body.style.overflow = '';
+            if (rsModalOpener) { rsModalOpener.focus(); rsModalOpener = null; }
+        }
+
+        btnContact?.addEventListener('click', () => {
+            rsModalOpener = document.activeElement;
+            contactModal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+            const firstFocusable = contactModal.querySelector('button:not([disabled]), input, textarea');
+            if (firstFocusable) firstFocusable.focus();
         });
 
+        btnModalClose?.addEventListener('click', closeContactModal);
+
         contactModal?.addEventListener('click', (e) => {
-            if (e.target === contactModal) {
-                contactModal.classList.remove('active');
-                document.body.style.overflow = '';
+            if (e.target === contactModal) closeContactModal();
+        });
+
+        contactModal?.addEventListener('keydown', (e) => {
+            if (!contactModal.classList.contains('active') || e.key !== 'Tab') return;
+            const focusable = Array.from(contactModal.querySelectorAll(
+                'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href]'
+            )).filter(el => el.offsetParent !== null);
+            if (focusable.length < 2) return;
+            const first = focusable[0];
+            const last  = focusable[focusable.length - 1];
+            if (e.shiftKey && document.activeElement === first) {
+                e.preventDefault(); last.focus();
+            } else if (!e.shiftKey && document.activeElement === last) {
+                e.preventDefault(); first.focus();
             }
         });
 
@@ -2203,6 +2247,33 @@ $contactInfo = getContactInfo();
             // Store original text for restoration
             btn.dataset.originalText = btn.textContent.trim();
         });
+
+        // M1: Banner hide-on-scroll (desktop only)
+        const rsBannerEl = document.querySelector('.room-banner');
+        const rsHeaderEl = document.querySelector('.rs-header');
+        const rsCategoryTabsEl = document.querySelector('.category-tabs');
+        let rsLastScrollY = 0;
+
+        window.addEventListener('scroll', () => {
+            if (window.innerWidth < 768) return;
+            const y = window.scrollY;
+            const hide = y > 20 && y > rsLastScrollY;
+            rsBannerEl?.classList.toggle('hidden', hide);
+            rsHeaderEl?.classList.toggle('no-banner', hide);
+            rsCategoryTabsEl?.classList.toggle('no-banner', hide);
+            rsLastScrollY = y;
+        }, { passive: true });
+
+        // R1: Category tabs overflow fade indicator
+        function updateCategoryTabsFade() {
+            const tabs = document.querySelector('.category-tabs');
+            if (!tabs) return;
+            const hasMoreRight = tabs.scrollWidth > tabs.clientWidth + tabs.scrollLeft + 4;
+            tabs.classList.toggle('show-overflow-fade', hasMoreRight);
+        }
+        updateCategoryTabsFade();
+        document.querySelector('.category-tabs')?.addEventListener('scroll', updateCategoryTabsFade, { passive: true });
+        window.addEventListener('resize', updateCategoryTabsFade);
 
         // Click on order history item to reorder all items from that order
         document.querySelectorAll('.order-history-item').forEach(item => {

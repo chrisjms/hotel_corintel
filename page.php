@@ -183,8 +183,8 @@ $navPages = getNavigationPages();
                 <div class="footer-nav">
                     <h4 class="footer-title" data-i18n="footer.services">Services</h4>
                     <ul class="footer-links">
-                        <li><a href="/services" data-i18n="footer.restaurant">Restaurant</a></li>
-                        <li><a href="/services" data-i18n="footer.bar">Bar</a></li>
+                        <li><a href="services.php" data-i18n="footer.restaurant">Restaurant</a></li>
+                        <li><a href="services.php" data-i18n="footer.bar">Bar</a></li>
                         <li class="room-service-item">
                             <a href="room-service.php" data-i18n="footer.roomService">Room Service</a>
                             <span class="qr-badge" data-i18n="footer.qrOnly">QR code</span>
@@ -331,6 +331,24 @@ $navPages = getNavigationPages();
             navMenu.classList.toggle('active');
         });
 
+        // Close mobile nav on outside tap
+        document.addEventListener('click', (e) => {
+            if (navMenu.classList.contains('active') &&
+                !navMenu.contains(e.target) &&
+                !menuToggle.contains(e.target)) {
+                navMenu.classList.remove('active');
+                menuToggle.classList.remove('active');
+            }
+        });
+
+        // Close mobile nav when a link is tapped
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', () => {
+                navMenu.classList.remove('active');
+                menuToggle.classList.remove('active');
+            });
+        });
+
         // Header scroll effect
         const header = document.getElementById('header');
         window.addEventListener('scroll', () => {
@@ -360,16 +378,22 @@ $navPages = getNavigationPages();
         const btnOpenModal = document.getElementById('btnContactReception');
         const btnCloseModal = document.getElementById('modalClose');
 
+        let modalOpener = null;
+
         function openModal() {
+            modalOpener = document.activeElement;
             modal.classList.add('active');
             document.body.classList.add('modal-open');
             menuToggle.classList.remove('active');
             navMenu.classList.remove('active');
+            const firstFocusable = modal.querySelector('button:not([disabled]), input, textarea');
+            if (firstFocusable) firstFocusable.focus();
         }
 
         function closeModal() {
             modal.classList.remove('active');
             document.body.classList.remove('modal-open');
+            if (modalOpener) { modalOpener.focus(); modalOpener = null; }
         }
 
         btnOpenModal.addEventListener('click', openModal);
@@ -381,6 +405,21 @@ $navPages = getNavigationPages();
 
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && modal.classList.contains('active')) closeModal();
+        });
+
+        modal.addEventListener('keydown', (e) => {
+            if (!modal.classList.contains('active') || e.key !== 'Tab') return;
+            const focusable = Array.from(modal.querySelectorAll(
+                'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href]'
+            )).filter(el => el.offsetParent !== null);
+            if (focusable.length < 2) return;
+            const first = focusable[0];
+            const last  = focusable[focusable.length - 1];
+            if (e.shiftKey && document.activeElement === first) {
+                e.preventDefault(); last.focus();
+            } else if (!e.shiftKey && document.activeElement === last) {
+                e.preventDefault(); first.focus();
+            }
         });
 
         // Form interactions — only present when room session is active

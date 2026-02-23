@@ -36,6 +36,22 @@ Note: page.php has no shared JS file — full inline script added (menu toggle, 
 ### Admin QR generation
 admin/rooms.php → `generateRoomServiceUrl()` → auto-produces correct scan.php URLs
 
+## Mobile Nav Pattern (all 5 client pages)
+All 5 pages (index.php, services.php, activites.php, contact.php, page.php) have:
+- Outside-tap dismiss: `document.addEventListener('click', ...)` checking `navMenu.contains(e.target)`
+- Link-tap close: `document.querySelectorAll('.nav-link').forEach(...)`
+Active nav indicator: each page adds `active` to its own link (static HTML or PHP-driven dynamic nav)
+
+## Public Contact Form (contact.php)
+- Handler: `send_public_message` (no session required), calls `createGuestMessage()` with `room_number: null`
+- Email included in message body: `[Email : ...]` appended
+- JS: fetch with `X-Requested-With: XMLHttpRequest`, JSON response → in-page success/error divs
+- Success div: `#contactFormSuccess` (`.message-success`), error div: `#contactFormError` (`.alert-message-error`)
+
+## Room Service UX (room-service.php)
+- M1: Banner hides on scroll-down via `.room-banner.hidden { transform: translateY(-100%) }`, rs-header/tabs shift via `.no-banner` class (only on ≥768px)
+- R1: Category tabs overflow fade via `.category-tabs.show-overflow-fade { box-shadow: inset -48px 0 24px -16px #fff }` toggled by JS checking `scrollWidth > clientWidth + scrollLeft + 4`
+
 ## Tech Stack Constraints
 - No PHP frameworks, no JS frameworks, no CSS frameworks
 - PDO prepared statements only
