@@ -207,6 +207,61 @@ p {
   background: var(--color-primary-dark);
 }
 
+/* Badge shown when room session is active (replaces QR badge) */
+.nav-room-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.15rem 0.4rem;
+  background: var(--color-accent);
+  color: white;
+  border-radius: 4px;
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  line-height: 1;
+}
+
+.nav-link-room-service:hover .nav-room-badge {
+  background: #4a6b4c;
+}
+
+/* Modal locked state — shown when no room session is active */
+.modal-locked {
+  text-align: center;
+  padding: 2.5rem 1.5rem 2rem;
+}
+.modal-locked-icon {
+  width: 68px;
+  height: 68px;
+  margin: 0 auto 1.25rem;
+  background: var(--color-cream);
+  border: 1px solid var(--color-beige);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.modal-locked-icon svg {
+  width: 30px;
+  height: 30px;
+  color: var(--color-primary);
+  opacity: 0.65;
+}
+.modal-locked h3 {
+  font-family: var(--font-heading);
+  font-size: 1.3rem;
+  color: var(--color-primary);
+  margin-bottom: 0.625rem;
+}
+.modal-locked p {
+  color: var(--color-text-light);
+  font-size: 0.925rem;
+  line-height: 1.65;
+  max-width: 290px;
+  margin: 0 auto;
+}
+
 .btn-book {
   background-color: var(--color-primary);
   color: var(--color-white);

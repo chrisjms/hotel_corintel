@@ -6,6 +6,9 @@
 
 require_once __DIR__ . '/includes/functions.php';
 
+// Check for active room session (set by scanning QR code via scan.php)
+$roomSession = getRoomServiceSession();
+
 // Get message categories for the contact reception modal
 $messageCategories = getGuestMessageCategories();
 
@@ -55,7 +58,7 @@ $contactInfo = getContactInfo();
         <a href="index.php" class="nav-link" data-i18n="nav.home">Accueil</a>
         <a href="services.php" class="nav-link" data-i18n="nav.services">Services</a>
         <a href="activites.php" class="nav-link active" data-i18n="nav.activities">À découvrir</a>
-        <a href="room-service.php" class="nav-link nav-link-room-service" data-i18n="nav.roomService">Room Service <span class="nav-qr-badge" data-i18n="footer.qrOnly">QR</span></a>
+        <a href="room-service.php" class="nav-link nav-link-room-service" data-i18n="nav.roomService">Room Service <?php if ($roomSession): ?><span class="nav-room-badge">Ch. <?= h($roomSession['room_number']) ?></span><?php else: ?><span class="nav-qr-badge" data-i18n="footer.qrOnly">QR</span><?php endif; ?></a>
         <a href="contact.php" class="nav-link" data-i18n="nav.contact">Contact</a>
         <button type="button" class="btn-contact-reception" id="btnContactReception" data-i18n="header.contactReception">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -182,6 +185,7 @@ $contactInfo = getContactInfo();
         </button>
       </div>
       <div class="modal-body">
+        <?php if ($roomSession): ?>
         <div class="modal-success" id="modalSuccess" style="display: none;">
           <div class="modal-success-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -200,7 +204,8 @@ $contactInfo = getContactInfo();
             <div class="form-row">
               <div class="form-group">
                 <label for="modal_room_number" data-i18n="modal.roomNumber">Numéro de chambre *</label>
-                <input type="text" id="modal_room_number" name="msg_room_number" required placeholder="Ex: 101" data-i18n-placeholder="modal.roomNumberPlaceholder">
+                <input type="text" id="modal_room_number" name="msg_room_number"
+                    value="<?= h($roomSession['room_number']) ?>" readonly>
               </div>
               <div class="form-group">
                 <label for="modal_guest_name" data-i18n="modal.guestName">Votre nom</label>
@@ -234,6 +239,18 @@ $contactInfo = getContactInfo();
             </button>
           </form>
         </div>
+        <?php else: ?>
+        <div class="modal-locked">
+          <div class="modal-locked-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+          </div>
+          <h3 data-i18n="modal.lockedTitle">Fonctionnalité réservée aux clients</h3>
+          <p data-i18n="modal.lockedMessage">Scannez le QR code présent dans votre chambre pour contacter la réception.</p>
+        </div>
+        <?php endif; ?>
       </div>
     </div>
   </div>
@@ -279,11 +296,6 @@ $contactInfo = getContactInfo();
     const modal = document.getElementById('contactReceptionModal');
     const btnOpenModal = document.getElementById('btnContactReception');
     const btnCloseModal = document.getElementById('modalClose');
-    const modalForm = document.getElementById('modalMessageForm');
-    const modalSuccess = document.getElementById('modalSuccess');
-    const modalFormContainer = document.getElementById('modalFormContainer');
-    const modalError = document.getElementById('modalError');
-    const btnNewMessage = document.getElementById('btnNewMessage');
 
     function openModal() {
       modal.classList.add('active');
@@ -297,16 +309,8 @@ $contactInfo = getContactInfo();
       document.body.classList.remove('modal-open');
     }
 
-    function resetModalForm() {
-      modalForm.reset();
-      modalError.style.display = 'none';
-      modalSuccess.style.display = 'none';
-      modalFormContainer.style.display = 'block';
-    }
-
     btnOpenModal.addEventListener('click', openModal);
     btnCloseModal.addEventListener('click', closeModal);
-    btnNewMessage.addEventListener('click', resetModalForm);
 
     modal.addEventListener('click', (e) => {
       if (e.target === modal) closeModal();
@@ -316,27 +320,43 @@ $contactInfo = getContactInfo();
       if (e.key === 'Escape' && modal.classList.contains('active')) closeModal();
     });
 
-    modalForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const formData = new FormData(modalForm);
-      modalError.style.display = 'none';
+    // Form interactions — only present when room session is active
+    const modalForm = document.getElementById('modalMessageForm');
+    if (modalForm) {
+      const modalSuccess = document.getElementById('modalSuccess');
+      const modalFormContainer = document.getElementById('modalFormContainer');
+      const modalError = document.getElementById('modalError');
+      const btnNewMessage = document.getElementById('btnNewMessage');
 
-      try {
-        const response = await fetch('contact.php', { method: 'POST', body: formData });
-        const data = await response.json();
+      btnNewMessage.addEventListener('click', () => {
+        modalForm.reset();
+        modalError.style.display = 'none';
+        modalSuccess.style.display = 'none';
+        modalFormContainer.style.display = 'block';
+      });
 
-        if (data.success) {
-          modalFormContainer.style.display = 'none';
-          modalSuccess.style.display = 'block';
-        } else {
-          modalError.textContent = data.error || (window.I18n ? window.I18n.t('modal.errorGeneric') : 'Une erreur est survenue. Veuillez réessayer.');
+      modalForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(modalForm);
+        modalError.style.display = 'none';
+
+        try {
+          const response = await fetch('contact.php', { method: 'POST', body: formData });
+          const data = await response.json();
+
+          if (data.success) {
+            modalFormContainer.style.display = 'none';
+            modalSuccess.style.display = 'block';
+          } else {
+            modalError.textContent = data.error || (window.I18n ? window.I18n.t('modal.errorGeneric') : 'Une erreur est survenue. Veuillez réessayer.');
+            modalError.style.display = 'block';
+          }
+        } catch (error) {
+          modalError.textContent = window.I18n ? window.I18n.t('modal.errorGeneric') : 'Une erreur est survenue. Veuillez réessayer.';
           modalError.style.display = 'block';
         }
-      } catch (error) {
-        modalError.textContent = window.I18n ? window.I18n.t('modal.errorGeneric') : 'Une erreur est survenue. Veuillez réessayer.';
-        modalError.style.display = 'block';
-      }
-    });
+      });
+    }
   </script>
 </body>
 </html>

@@ -1376,7 +1376,7 @@ $contactInfo = getContactInfo();
             <h2 data-i18n="roomService.orderConfirmed">Commande confirmée !</h2>
             <p data-i18n="roomService.orderSuccessMessage">Votre commande a été enregistrée. Notre équipe va la préparer et vous la livrer dans les meilleurs délais.</p>
             <div class="order-id">Commande #<?= $orderId ?></div>
-            <a href="room-service.php?room=<?= $roomId ?>&token=<?= h(generateRoomServiceToken($roomId, $roomNumber)) ?>" class="btn-new-order">
+            <a href="room-service.php" class="btn-new-order">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="12" y1="5" x2="12" y2="19"/>
                     <line x1="5" y1="12" x2="19" y2="12"/>

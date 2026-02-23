@@ -6974,7 +6974,7 @@ function generateRoomServiceUrl(int $roomId, string $roomNumber, ?string $baseUr
         $baseUrl = $protocol . '://' . $host;
     }
 
-    return $baseUrl . '/room-service.php?room=' . $roomId . '&token=' . $token;
+    return $baseUrl . '/scan.php?room=' . $roomId . '&token=' . $token;
 }
 
 /**
@@ -7060,6 +7060,38 @@ function clearRoomServiceSession(): void {
         session_start();
     }
     unset($_SESSION['room_service_access']);
+}
+
+// =====================================================
+// ROOM SESSION ACCESS GUARDS
+// =====================================================
+
+/**
+ * Returns true if the current visitor has an active room session.
+ * Use this for conditional rendering in templates.
+ */
+function hasRoomSession(): bool {
+    return getRoomServiceSession() !== null;
+}
+
+/**
+ * Enforce that a valid room session exists.
+ * Call at the top of any handler restricted to QR-authenticated guests.
+ *
+ * - AJAX / JSON requests: returns 403 JSON and exits.
+ * - Regular requests: redirects to home page and exits.
+ */
+function requireRoomSession(bool $isAjax = false): void {
+    if (!hasRoomSession()) {
+        if ($isAjax) {
+            header('Content-Type: application/json');
+            http_response_code(403);
+            echo json_encode(['success' => false, 'error' => 'room_session_required']);
+            exit;
+        }
+        header('Location: index.php');
+        exit;
+    }
 }
 
 // =====================================================
