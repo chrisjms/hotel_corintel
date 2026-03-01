@@ -6,13 +6,66 @@
 
 require_once __DIR__ . '/includes/functions.php';
 
+// Check for active room session (set by scanning QR code via scan.php)
+$roomSession = getRoomServiceSession();
+
 // Handle message submission
 $messageSuccess = false;
 $messageError = '';
 $messageCategories = getGuestMessageCategories();
 $isAjaxRequest = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
 
+// Public contact form (no room session required)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'send_public_message') {
+    $pubFirstName = trim($_POST['firstName'] ?? '');
+    $pubLastName  = trim($_POST['lastName'] ?? '');
+    $pubEmail     = trim($_POST['email'] ?? '');
+    $pubPhone     = trim($_POST['phone'] ?? '');
+    $pubSubject   = trim($_POST['subject'] ?? '');
+    $pubMessage   = trim($_POST['message'] ?? '');
+
+    $pubError   = '';
+    $pubSuccess = false;
+
+    if (empty($pubFirstName) || empty($pubLastName)) {
+        $pubError = 'Veuillez indiquer votre prénom et votre nom.';
+    } elseif (empty($pubEmail) || !filter_var($pubEmail, FILTER_VALIDATE_EMAIL)) {
+        $pubError = 'Veuillez indiquer une adresse email valide.';
+    } elseif (empty($pubMessage)) {
+        $pubError = 'Veuillez écrire votre message.';
+    } elseif (strlen($pubMessage) > 2000) {
+        $pubError = 'Le message est trop long (max. 2000 caractères).';
+    } else {
+        $fullName = $pubFirstName . ' ' . $pubLastName;
+        $msgBody  = $pubMessage . "\n\n[Email : " . $pubEmail . "]";
+        if ($pubPhone) {
+            $msgBody .= "\n[Tél : " . $pubPhone . "]";
+        }
+        $msgId = createGuestMessage([
+            'room_number' => null,
+            'guest_name'  => $fullName,
+            'category'    => 'general',
+            'subject'     => $pubSubject ?: 'Message depuis le formulaire de contact',
+            'message'     => $msgBody,
+        ]);
+        $pubSuccess = (bool)$msgId;
+        if (!$pubSuccess) {
+            $pubError = 'Une erreur est survenue. Veuillez réessayer.';
+        }
+    }
+
+    if ($isAjaxRequest) {
+        header('Content-Type: application/json');
+        echo json_encode(['success' => $pubSuccess, 'error' => $pubError]);
+        exit;
+    }
+    // Non-AJAX fallback: fall through to render page
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'send_message') {
+    // Guests must have a valid room session to contact the reception
+    requireRoomSession($isAjaxRequest);
+
     $msgRoomNumber = trim($_POST['msg_room_number'] ?? '');
     $msgGuestName = trim($_POST['msg_guest_name'] ?? '');
     $msgCategory = $_POST['msg_category'] ?? 'general';
@@ -215,8 +268,8 @@ $contactInfo = getContactInfo();
       <nav class="nav-menu" id="navMenu">
         <a href="index.php" class="nav-link" data-i18n="nav.home">Accueil</a>
         <a href="services.php" class="nav-link" data-i18n="nav.services">Services</a>
-        <a href="room-service.php" class="nav-link" data-i18n="nav.roomService">Room Service</a>
         <a href="activites.php" class="nav-link" data-i18n="nav.activities">À découvrir</a>
+        <a href="room-service.php" class="nav-link nav-link-room-service" data-i18n="nav.roomService">Room Service <?php if ($roomSession): ?><span class="nav-room-badge">Ch. <?= h($roomSession['room_number']) ?></span><?php else: ?><span class="nav-qr-badge" data-i18n="footer.qrOnly">QR</span><?php endif; ?></a>
         <a href="contact.php" class="nav-link active" data-i18n="nav.contact">Contact</a>
         <button type="button" class="btn-contact-reception" id="btnContactReception" data-i18n="header.contactReception">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -327,7 +380,18 @@ $contactInfo = getContactInfo();
         <!-- Contact Form -->
         <div class="contact-form-wrapper">
           <h3 data-i18n="contact.formTitle">Envoyez-nous un message</h3>
-          <form class="contact-form" id="contactForm" action="#" method="POST">
+          <div class="alert-message-error" id="contactFormError" style="display: none;"></div>
+          <div class="message-success" id="contactFormSuccess" style="display: none;">
+            <div class="message-success-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+            </div>
+            <h3 data-i18n="contact.successTitle">Message envoyé !</h3>
+            <p data-i18n="contact.successMessage">Merci pour votre message. Nous vous répondrons dans les plus brefs délais.</p>
+          </div>
+          <form class="contact-form" id="contactForm" action="contact.php" method="POST">
+            <input type="hidden" name="action" value="send_public_message">
             <div class="form-row">
               <div class="form-group">
                 <label for="firstName" data-i18n="contact.firstNameLabel">Prénom *</label>
@@ -433,7 +497,9 @@ $contactInfo = getContactInfo();
     <div class="container">
       <h2 data-i18n="contact.ctaTitle">Des questions ?</h2>
       <p data-i18n="contact.ctaText">N'hésitez pas à nous contacter, notre équipe est à votre écoute</p>
-      <a href="tel:+33557341395" class="btn btn-primary" data-i18n="contact.callUs">Appelez-nous</a>
+      <?php if (!empty($contactInfo['phone'])): ?>
+      <a href="tel:<?= h(getContactPhone(true)) ?>" class="btn btn-primary" data-i18n="contact.callUs">Appelez-nous</a>
+      <?php endif; ?>
     </div>
   </section>
 
@@ -476,6 +542,10 @@ $contactInfo = getContactInfo();
             <li><a href="services.php" data-i18n="footer.bar">Bar</a></li>
             <li><a href="services.php" data-i18n="footer.boulodrome">Boulodrome</a></li>
             <li><a href="services.php" data-i18n="footer.parking">Parking</a></li>
+            <li class="room-service-item">
+              <a href="room-service.php" data-i18n="footer.roomService">Room Service</a>
+              <span class="qr-badge" data-i18n="footer.qrOnly">QR code</span>
+            </li>
           </ul>
         </div>
         <div class="footer-contact">
@@ -534,6 +604,7 @@ $contactInfo = getContactInfo();
         </button>
       </div>
       <div class="modal-body">
+        <?php if ($roomSession): ?>
         <div class="modal-success" id="modalSuccess" style="display: none;">
           <div class="modal-success-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -552,7 +623,8 @@ $contactInfo = getContactInfo();
             <div class="form-row">
               <div class="form-group">
                 <label for="modal_room_number" data-i18n="modal.roomNumber">Numéro de chambre *</label>
-                <input type="text" id="modal_room_number" name="msg_room_number" required placeholder="Ex: 101" data-i18n-placeholder="modal.roomNumberPlaceholder">
+                <input type="text" id="modal_room_number" name="msg_room_number"
+                    value="<?= h($roomSession['room_number']) ?>" readonly>
               </div>
               <div class="form-group">
                 <label for="modal_guest_name" data-i18n="modal.guestName">Votre nom</label>
@@ -586,6 +658,18 @@ $contactInfo = getContactInfo();
             </button>
           </form>
         </div>
+        <?php else: ?>
+        <div class="modal-locked">
+          <div class="modal-locked-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+          </div>
+          <h3 data-i18n="modal.lockedTitle">Fonctionnalité réservée aux clients</h3>
+          <p data-i18n="modal.lockedMessage">Scannez le QR code présent dans votre chambre pour contacter la réception.</p>
+        </div>
+        <?php endif; ?>
       </div>
     </div>
   </div>
@@ -601,6 +685,24 @@ $contactInfo = getContactInfo();
     menuToggle.addEventListener('click', () => {
       menuToggle.classList.toggle('active');
       navMenu.classList.toggle('active');
+    });
+
+    // Close mobile nav on outside tap
+    document.addEventListener('click', (e) => {
+      if (navMenu.classList.contains('active') &&
+          !navMenu.contains(e.target) &&
+          !menuToggle.contains(e.target)) {
+        navMenu.classList.remove('active');
+        menuToggle.classList.remove('active');
+      }
+    });
+
+    // Close mobile nav when a link is tapped
+    document.querySelectorAll('.nav-link').forEach(link => {
+      link.addEventListener('click', () => {
+        navMenu.classList.remove('active');
+        menuToggle.classList.remove('active');
+      });
     });
 
     // Header scroll effect
@@ -627,91 +729,122 @@ $contactInfo = getContactInfo();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     });
 
-    // Form submission (placeholder - needs backend integration)
+    // Public contact form — AJAX submission
     const contactForm = document.getElementById('contactForm');
-    contactForm.addEventListener('submit', (e) => {
+    const contactFormError = document.getElementById('contactFormError');
+    const contactFormSuccess = document.getElementById('contactFormSuccess');
+
+    contactForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      // In production, this would send data to a backend
-      alert(window.I18n ? window.I18n.t('contact.formSuccess') : 'Merci pour votre message ! Nous vous répondrons dans les plus brefs délais.');
-      contactForm.reset();
+      contactFormError.style.display = 'none';
+
+      try {
+        const response = await fetch('contact.php', {
+          method: 'POST',
+          body: new FormData(contactForm),
+          headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        });
+        const data = await response.json();
+
+        if (data.success) {
+          contactForm.style.display = 'none';
+          contactFormSuccess.style.display = 'block';
+        } else {
+          contactFormError.textContent = data.error || 'Une erreur est survenue. Veuillez réessayer.';
+          contactFormError.style.display = 'block';
+        }
+      } catch (err) {
+        contactFormError.textContent = 'Une erreur est survenue. Veuillez réessayer.';
+        contactFormError.style.display = 'block';
+      }
     });
 
     // Contact Reception Modal
     const modal = document.getElementById('contactReceptionModal');
     const btnOpenModal = document.getElementById('btnContactReception');
     const btnCloseModal = document.getElementById('modalClose');
-    const modalForm = document.getElementById('modalMessageForm');
-    const modalSuccess = document.getElementById('modalSuccess');
-    const modalFormContainer = document.getElementById('modalFormContainer');
-    const modalError = document.getElementById('modalError');
-    const btnNewMessage = document.getElementById('btnNewMessage');
+
+    let modalOpener = null;
 
     function openModal() {
+      modalOpener = document.activeElement;
       modal.classList.add('active');
       document.body.classList.add('modal-open');
-      // Close mobile menu if open
       menuToggle.classList.remove('active');
       navMenu.classList.remove('active');
+      const firstFocusable = modal.querySelector('button:not([disabled]), input, textarea');
+      if (firstFocusable) firstFocusable.focus();
     }
 
     function closeModal() {
       modal.classList.remove('active');
       document.body.classList.remove('modal-open');
-    }
-
-    function resetModalForm() {
-      modalForm.reset();
-      modalError.style.display = 'none';
-      modalSuccess.style.display = 'none';
-      modalFormContainer.style.display = 'block';
+      if (modalOpener) { modalOpener.focus(); modalOpener = null; }
     }
 
     btnOpenModal.addEventListener('click', openModal);
     btnCloseModal.addEventListener('click', closeModal);
-    btnNewMessage.addEventListener('click', resetModalForm);
 
-    // Close on overlay click
     modal.addEventListener('click', (e) => {
-      if (e.target === modal) {
-        closeModal();
-      }
+      if (e.target === modal) closeModal();
     });
 
-    // Close on escape key
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && modal.classList.contains('active')) {
-        closeModal();
+      if (e.key === 'Escape' && modal.classList.contains('active')) closeModal();
+    });
+
+    modal.addEventListener('keydown', (e) => {
+      if (!modal.classList.contains('active') || e.key !== 'Tab') return;
+      const focusable = Array.from(modal.querySelectorAll(
+        'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href]'
+      )).filter(el => el.offsetParent !== null);
+      if (focusable.length < 2) return;
+      const first = focusable[0];
+      const last  = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault(); last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault(); first.focus();
       }
     });
 
-    // Handle form submission via AJAX
-    modalForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
+    // Form interactions — only present when room session is active
+    const modalForm = document.getElementById('modalMessageForm');
+    if (modalForm) {
+      const modalSuccess = document.getElementById('modalSuccess');
+      const modalFormContainer = document.getElementById('modalFormContainer');
+      const modalError = document.getElementById('modalError');
+      const btnNewMessage = document.getElementById('btnNewMessage');
 
-      const formData = new FormData(modalForm);
-      modalError.style.display = 'none';
+      btnNewMessage.addEventListener('click', () => {
+        modalForm.reset();
+        modalError.style.display = 'none';
+        modalSuccess.style.display = 'none';
+        modalFormContainer.style.display = 'block';
+      });
 
-      try {
-        const response = await fetch('contact.php', {
-          method: 'POST',
-          body: formData
-        });
+      modalForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(modalForm);
+        modalError.style.display = 'none';
 
-        const data = await response.json();
+        try {
+          const response = await fetch('contact.php', { method: 'POST', body: formData });
+          const data = await response.json();
 
-        if (data.success) {
-          // Show success state
-          modalFormContainer.style.display = 'none';
-          modalSuccess.style.display = 'block';
-        } else {
-          modalError.textContent = data.error || (window.I18n ? window.I18n.t('modal.errorGeneric') : 'Une erreur est survenue. Veuillez réessayer.');
+          if (data.success) {
+            modalFormContainer.style.display = 'none';
+            modalSuccess.style.display = 'block';
+          } else {
+            modalError.textContent = data.error || (window.I18n ? window.I18n.t('modal.errorGeneric') : 'Une erreur est survenue. Veuillez réessayer.');
+            modalError.style.display = 'block';
+          }
+        } catch (error) {
+          modalError.textContent = window.I18n ? window.I18n.t('modal.errorGeneric') : 'Une erreur est survenue. Veuillez réessayer.';
           modalError.style.display = 'block';
         }
-      } catch (error) {
-        modalError.textContent = window.I18n ? window.I18n.t('modal.errorGeneric') : 'Une erreur est survenue. Veuillez réessayer.';
-        modalError.style.display = 'block';
-      }
-    });
+      });
+    }
   </script>
 </body>
 </html>

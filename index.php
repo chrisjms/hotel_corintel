@@ -7,6 +7,9 @@
 require_once __DIR__ . '/includes/functions.php';
 require_once __DIR__ . '/includes/content-helper.php';
 
+// Check for active room session (set by scanning QR code via scan.php)
+$roomSession = getRoomServiceSession();
+
 // Initialize pages table if needed (for dynamic navigation)
 initPagesTable();
 
@@ -61,10 +64,20 @@ $dynamicSectionsTranslations = !empty($dynamicSections) ? getDynamicSectionsTran
             $navUrl = $navPage['slug'] === '' ? 'index.php' : '/' . $navPage['slug'];
             $isActive = $navPage['page_type'] === 'home';
             $navI18nKey = $navPage['i18n_nav_key'] ?: '';
+            // Insert Room Service link before Contact
+            if ($navPage['slug'] === 'contact' || $navPage['page_type'] === 'contact'):
         ?>
+        <a href="room-service.php" class="nav-link nav-link-room-service" data-i18n="nav.roomService">
+          Room Service
+          <?php if ($roomSession): ?>
+          <span class="nav-room-badge">Ch. <?= h($roomSession['room_number']) ?></span>
+          <?php else: ?>
+          <span class="nav-qr-badge" data-i18n="footer.qrOnly">QR</span>
+          <?php endif; ?>
+        </a>
+        <?php endif; ?>
         <a href="<?= h($navUrl) ?>" class="nav-link<?= $isActive ? ' active' : '' ?>"<?= $navI18nKey ? ' data-i18n="' . h($navI18nKey) . '"' : '' ?>><?= h($navPage['nav_title'] ?: $navPage['title']) ?></a>
         <?php endforeach; ?>
-        <a href="room-service.php" class="nav-link" data-i18n="nav.roomService">Room Service</a>
         <button type="button" class="btn-contact-reception" id="btnContactReception" data-i18n="header.contactReception">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
@@ -221,9 +234,12 @@ $dynamicSectionsTranslations = !empty($dynamicSections) ? getDynamicSectionsTran
         <div class="footer-nav">
           <h4 class="footer-title" data-i18n="footer.services">Services</h4>
           <ul class="footer-links">
-            <li><a href="/services" data-i18n="footer.restaurant">Restaurant</a></li>
-            <li><a href="/services" data-i18n="footer.bar">Bar</a></li>
-            <li><a href="room-service.php" data-i18n="nav.roomService">Room Service</a></li>
+            <li><a href="services.php" data-i18n="footer.restaurant">Restaurant</a></li>
+            <li><a href="services.php" data-i18n="footer.bar">Bar</a></li>
+            <li class="room-service-item">
+              <a href="room-service.php" data-i18n="footer.roomService">Room Service</a>
+              <span class="qr-badge" data-i18n="footer.qrOnly">QR code</span>
+            </li>
           </ul>
         </div>
         <div class="footer-contact">
@@ -282,6 +298,7 @@ $dynamicSectionsTranslations = !empty($dynamicSections) ? getDynamicSectionsTran
         </button>
       </div>
       <div class="modal-body">
+        <?php if ($roomSession): ?>
         <div class="modal-success" id="modalSuccess" style="display: none;">
           <div class="modal-success-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -300,7 +317,8 @@ $dynamicSectionsTranslations = !empty($dynamicSections) ? getDynamicSectionsTran
             <div class="form-row">
               <div class="form-group">
                 <label for="modal_room_number" data-i18n="modal.roomNumber">Numéro de chambre *</label>
-                <input type="text" id="modal_room_number" name="msg_room_number" required placeholder="Ex: 101" data-i18n-placeholder="modal.roomNumberPlaceholder">
+                <input type="text" id="modal_room_number" name="msg_room_number"
+                    value="<?= h($roomSession['room_number']) ?>" readonly>
               </div>
               <div class="form-group">
                 <label for="modal_guest_name" data-i18n="modal.guestName">Votre nom</label>
@@ -334,6 +352,18 @@ $dynamicSectionsTranslations = !empty($dynamicSections) ? getDynamicSectionsTran
             </button>
           </form>
         </div>
+        <?php else: ?>
+        <div class="modal-locked">
+          <div class="modal-locked-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+          </div>
+          <h3 data-i18n="modal.lockedTitle">Fonctionnalité réservée aux clients</h3>
+          <p data-i18n="modal.lockedMessage">Scannez le QR code présent dans votre chambre pour contacter la réception.</p>
+        </div>
+        <?php endif; ?>
       </div>
     </div>
   </div>
@@ -350,6 +380,24 @@ $dynamicSectionsTranslations = !empty($dynamicSections) ? getDynamicSectionsTran
     menuToggle.addEventListener('click', () => {
       menuToggle.classList.toggle('active');
       navMenu.classList.toggle('active');
+    });
+
+    // Close mobile nav on outside tap
+    document.addEventListener('click', (e) => {
+      if (navMenu.classList.contains('active') &&
+          !navMenu.contains(e.target) &&
+          !menuToggle.contains(e.target)) {
+        navMenu.classList.remove('active');
+        menuToggle.classList.remove('active');
+      }
+    });
+
+    // Close mobile nav when a link is tapped
+    document.querySelectorAll('.nav-link').forEach(link => {
+      link.addEventListener('click', () => {
+        navMenu.classList.remove('active');
+        menuToggle.classList.remove('active');
+      });
     });
 
     // Header scroll effect
@@ -388,8 +436,35 @@ $dynamicSectionsTranslations = !empty($dynamicSections) ? getDynamicSectionsTran
         showSlide(currentSlide);
       }
 
+      function prevSlide() {
+        currentSlide = (currentSlide - 1 + slides.length) % slides.length;
+        showSlide(currentSlide);
+      }
+
       // Auto-advance carousel
       slideInterval = setInterval(nextSlide, 5000);
+
+      // Pause on hover (desktop)
+      const heroSection = document.querySelector('.hero');
+      heroSection?.addEventListener('mouseenter', () => clearInterval(slideInterval));
+      heroSection?.addEventListener('mouseleave', () => {
+        slideInterval = setInterval(nextSlide, 5000);
+      });
+
+      // Swipe support (mobile)
+      let touchStartX = 0;
+      const heroCarousel = document.getElementById('heroCarousel');
+      heroCarousel.addEventListener('touchstart', (e) => {
+        touchStartX = e.touches[0].clientX;
+      }, { passive: true });
+      heroCarousel.addEventListener('touchend', (e) => {
+        const delta = touchStartX - e.changedTouches[0].clientX;
+        if (Math.abs(delta) > 50) {
+          delta > 0 ? nextSlide() : prevSlide();
+          clearInterval(slideInterval);
+          slideInterval = setInterval(nextSlide, 5000);
+        }
+      }, { passive: true });
 
       // Dot navigation
       dots.forEach((dot, index) => {
@@ -420,85 +495,91 @@ $dynamicSectionsTranslations = !empty($dynamicSections) ? getDynamicSectionsTran
     const modal = document.getElementById('contactReceptionModal');
     const btnOpenModal = document.getElementById('btnContactReception');
     const btnCloseModal = document.getElementById('modalClose');
-    const modalForm = document.getElementById('modalMessageForm');
-    const modalSuccess = document.getElementById('modalSuccess');
-    const modalFormContainer = document.getElementById('modalFormContainer');
-    const modalError = document.getElementById('modalError');
-    const btnNewMessage = document.getElementById('btnNewMessage');
+
+    let modalOpener = null;
 
     function openModal() {
+      modalOpener = document.activeElement;
       modal.classList.add('active');
       document.body.classList.add('modal-open');
-      // Close mobile menu if open
       menuToggle.classList.remove('active');
       navMenu.classList.remove('active');
+      const firstFocusable = modal.querySelector('button:not([disabled]), input, textarea');
+      if (firstFocusable) firstFocusable.focus();
     }
 
     function closeModal() {
       modal.classList.remove('active');
       document.body.classList.remove('modal-open');
-    }
-
-    function resetModalForm() {
-      modalForm.reset();
-      modalError.style.display = 'none';
-      modalSuccess.style.display = 'none';
-      modalFormContainer.style.display = 'block';
+      if (modalOpener) { modalOpener.focus(); modalOpener = null; }
     }
 
     btnOpenModal.addEventListener('click', openModal);
     btnCloseModal.addEventListener('click', closeModal);
-    btnNewMessage.addEventListener('click', resetModalForm);
 
-    // Close on overlay click
     modal.addEventListener('click', (e) => {
-      if (e.target === modal) {
-        closeModal();
-      }
+      if (e.target === modal) closeModal();
     });
 
-    // Close on escape key
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && modal.classList.contains('active')) {
-        closeModal();
+      if (e.key === 'Escape' && modal.classList.contains('active')) closeModal();
+    });
+
+    modal.addEventListener('keydown', (e) => {
+      if (!modal.classList.contains('active') || e.key !== 'Tab') return;
+      const focusable = Array.from(modal.querySelectorAll(
+        'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href]'
+      )).filter(el => el.offsetParent !== null);
+      if (focusable.length < 2) return;
+      const first = focusable[0];
+      const last  = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault(); last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault(); first.focus();
       }
     });
 
-    // Handle form submission via AJAX
-    modalForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
+    // Form interactions — only present when room session is active
+    const modalForm = document.getElementById('modalMessageForm');
+    if (modalForm) {
+      const modalSuccess = document.getElementById('modalSuccess');
+      const modalFormContainer = document.getElementById('modalFormContainer');
+      const modalError = document.getElementById('modalError');
+      const btnNewMessage = document.getElementById('btnNewMessage');
 
-      const formData = new FormData(modalForm);
-      modalError.style.display = 'none';
+      btnNewMessage.addEventListener('click', () => {
+        modalForm.reset();
+        modalError.style.display = 'none';
+        modalSuccess.style.display = 'none';
+        modalFormContainer.style.display = 'block';
+      });
 
-      try {
-        const response = await fetch('contact.php', {
-          method: 'POST',
-          body: formData
-        });
+      modalForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(modalForm);
+        modalError.style.display = 'none';
 
-        const text = await response.text();
+        try {
+          const response = await fetch('contact.php', { method: 'POST', body: formData });
+          const text = await response.text();
 
-        // Check if the response contains success indicators
-        if (text.includes('message_sent=1') || text.includes('Message envoyé') || response.ok) {
-          // Show success state
-          modalFormContainer.style.display = 'none';
-          modalSuccess.style.display = 'block';
-        } else {
-          // Extract error message if present
-          const errorMatch = text.match(/alert-message-error[^>]*>([^<]+)/);
-          if (errorMatch) {
-            modalError.textContent = errorMatch[1];
+          if (text.includes('message_sent=1') || text.includes('Message envoyé') || response.ok) {
+            modalFormContainer.style.display = 'none';
+            modalSuccess.style.display = 'block';
           } else {
-            modalError.textContent = window.I18n ? window.I18n.t('modal.errorGeneric') : 'Une erreur est survenue. Veuillez réessayer.';
+            const errorMatch = text.match(/alert-message-error[^>]*>([^<]+)/);
+            modalError.textContent = errorMatch
+              ? errorMatch[1]
+              : (window.I18n ? window.I18n.t('modal.errorGeneric') : 'Une erreur est survenue. Veuillez réessayer.');
+            modalError.style.display = 'block';
           }
+        } catch (error) {
+          modalError.textContent = window.I18n ? window.I18n.t('modal.errorGeneric') : 'Une erreur est survenue. Veuillez réessayer.';
           modalError.style.display = 'block';
         }
-      } catch (error) {
-        modalError.textContent = window.I18n ? window.I18n.t('modal.errorGeneric') : 'Une erreur est survenue. Veuillez réessayer.';
-        modalError.style.display = 'block';
-      }
-    });
+      });
+    }
   </script>
 </body>
 </html>
