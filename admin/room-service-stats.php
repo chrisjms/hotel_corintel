@@ -108,6 +108,9 @@ $msgCategoryLabels = [
     'other' => 'Autre'
 ];
 
+// QR Code Scan Statistics
+$qrStats = getQrScanStatistics();
+
 $periodLabels = [
     'day' => "Aujourd'hui",
     'week' => 'Cette semaine',
@@ -1038,6 +1041,119 @@ $comparisonLabels = [
                 </div>
                 <?php endif; ?>
 
+                <!-- QR Code Analytics Section -->
+                <div class="section-divider">
+                    <h2 class="section-title-divider">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 20px; height: 20px;">
+                            <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+                            <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="3" height="3"/>
+                        </svg>
+                        Scans QR Code Room Service
+                    </h2>
+                    <a href="rooms.php" class="btn btn-sm btn-outline">Gérer les QR codes</a>
+                </div>
+
+                <!-- QR Scan KPIs -->
+                <div class="stats-grid-4">
+                    <div class="stat-card-enhanced">
+                        <div class="stat-label">Scans totaux</div>
+                        <div class="stat-value"><?= number_format($qrStats['total_scans']) ?></div>
+                        <div class="stat-change neutral">Depuis le début</div>
+                    </div>
+                    <div class="stat-card-enhanced">
+                        <div class="stat-label">Aujourd'hui</div>
+                        <div class="stat-value"><?= number_format($qrStats['scans_today']) ?></div>
+                    </div>
+                    <div class="stat-card-enhanced">
+                        <div class="stat-label">Cette semaine</div>
+                        <div class="stat-value"><?= number_format($qrStats['scans_this_week']) ?></div>
+                    </div>
+                    <div class="stat-card-enhanced">
+                        <div class="stat-label">Ce mois</div>
+                        <div class="stat-value"><?= number_format($qrStats['scans_this_month']) ?></div>
+                    </div>
+                </div>
+
+                <?php if (!empty($qrStats['top_rooms']) || !empty($qrStats['recent_scans'])): ?>
+                <div class="charts-grid">
+                    <!-- Daily Scans Chart -->
+                    <div class="chart-card">
+                        <h3>Scans par jour (30 derniers jours)</h3>
+                        <div class="chart-container">
+                            <canvas id="qrDailyChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Hourly Distribution -->
+                    <div class="chart-card">
+                        <h3>Distribution horaire des scans</h3>
+                        <div class="chart-container-small">
+                            <canvas id="qrHourlyChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tables-grid">
+                    <!-- Top Rooms by Scans -->
+                    <div class="table-card">
+                        <h3>Chambres les plus scannées</h3>
+                        <?php if (empty($qrStats['top_rooms'])): ?>
+                            <p style="color: var(--admin-text-light); text-align: center; padding: 2rem;">Aucun scan enregistré</p>
+                        <?php else: ?>
+                        <table class="stats-table">
+                            <thead>
+                                <tr>
+                                    <th>Chambre</th>
+                                    <th class="text-right">Scans</th>
+                                    <th class="text-right">Dernier scan</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($qrStats['top_rooms'] as $room): ?>
+                                <tr>
+                                    <td><strong>Ch. <?= h($room['room_number']) ?></strong></td>
+                                    <td class="text-right"><?= number_format($room['total_scans']) ?></td>
+                                    <td class="text-right">
+                                        <?php if ($room['last_scan_at']): ?>
+                                            <?= date('d/m H:i', strtotime($room['last_scan_at'])) ?>
+                                        <?php else: ?>
+                                            -
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                        <?php endif; ?>
+                    </div>
+
+                    <!-- Recent Scans -->
+                    <div class="table-card">
+                        <h3>Scans récents</h3>
+                        <?php if (empty($qrStats['recent_scans'])): ?>
+                            <p style="color: var(--admin-text-light); text-align: center; padding: 2rem;">Aucun scan enregistré</p>
+                        <?php else: ?>
+                        <table class="stats-table">
+                            <thead>
+                                <tr>
+                                    <th>Chambre</th>
+                                    <th>Date/Heure</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach (array_slice($qrStats['recent_scans'], 0, 10) as $scan): ?>
+                                <tr>
+                                    <td><strong>Ch. <?= h($scan['room_number']) ?></strong></td>
+                                    <td><?= date('d/m/Y H:i', strtotime($scan['scanned_at'])) ?></td>
+                                </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                <?php endif; ?>
+
             </div>
         </main>
     </div>
@@ -1217,6 +1333,80 @@ $comparisonLabels = [
                 }
             }
         });
+
+        // QR Scan Charts
+        const qrDailyData = <?= json_encode($qrStats['daily_scans']) ?>;
+        const qrHourlyData = <?= json_encode($qrStats['hourly_distribution']) ?>;
+
+        // QR Daily Scans Chart
+        const qrDailyCtx = document.getElementById('qrDailyChart');
+        if (qrDailyCtx && qrDailyData.length > 0) {
+            new Chart(qrDailyCtx.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: qrDailyData.map(d => {
+                        const date = new Date(d.scan_date);
+                        return date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
+                    }),
+                    datasets: [{
+                        label: 'Scans',
+                        data: qrDailyData.map(d => parseInt(d.count)),
+                        borderColor: '#805AD5',
+                        backgroundColor: 'rgba(128, 90, 213, 0.1)',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 3,
+                        pointHoverRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, ticks: { stepSize: 1 } }
+                    }
+                }
+            });
+        }
+
+        // QR Hourly Distribution Chart
+        const qrHourlyCtx = document.getElementById('qrHourlyChart');
+        if (qrHourlyCtx && qrHourlyData.length > 0) {
+            // Prepare 24-hour data
+            const hourlyLabels = [];
+            const hourlyValues = [];
+            for (let i = 0; i < 24; i++) {
+                hourlyLabels.push(i + 'h');
+                const found = qrHourlyData.find(h => parseInt(h.hour) === i);
+                hourlyValues.push(found ? parseInt(found.count) : 0);
+            }
+
+            new Chart(qrHourlyCtx.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: hourlyLabels,
+                    datasets: [{
+                        label: 'Scans',
+                        data: hourlyValues,
+                        backgroundColor: '#805AD5',
+                        borderRadius: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, ticks: { stepSize: 1 } }
+                    }
+                }
+            });
+        }
     </script>
     <?php endif; ?>
 

@@ -62,6 +62,7 @@ const translations = {
       orderSuccessMessage: 'Votre commande a été enregistrée avec succès. Notre équipe va la préparer et vous la livrer dans les meilleurs délais.',
       orderNumber: 'Commande #',
       newOrder: 'Passer une nouvelle commande',
+      backToMenu: 'Retour au menu',
 
       // No items
       serviceUnavailable: 'Service actuellement indisponible',
@@ -348,7 +349,8 @@ const translations = {
       restaurant: 'Restaurant',
       bar: 'Bar',
       roomService: 'Room Service',
-      parking: 'Parking'
+      parking: 'Parking',
+      qrOnly: 'QR code'
     },
 
     // Common
@@ -404,6 +406,7 @@ const translations = {
       orderSuccessMessage: 'Your order has been successfully registered. Our team will prepare it and deliver it to you as soon as possible.',
       orderNumber: 'Order #',
       newOrder: 'Place a new order',
+      backToMenu: 'Back to menu',
 
       // No items
       serviceUnavailable: 'Service currently unavailable',
@@ -669,7 +672,8 @@ const translations = {
       restaurant: 'Restaurant',
       bar: 'Bar',
       roomService: 'Room Service',
-      parking: 'Parking'
+      parking: 'Parking',
+      qrOnly: 'QR code'
     },
 
     common: {
@@ -724,6 +728,7 @@ const translations = {
       orderSuccessMessage: 'Su pedido ha sido registrado con éxito. Nuestro equipo lo preparará y se lo entregará lo antes posible.',
       orderNumber: 'Pedido #',
       newOrder: 'Hacer un nuevo pedido',
+      backToMenu: 'Volver al menú',
 
       // No items
       serviceUnavailable: 'Servicio actualmente no disponible',
@@ -989,7 +994,8 @@ const translations = {
       restaurant: 'Restaurante',
       bar: 'Bar',
       roomService: 'Room Service',
-      parking: 'Aparcamiento'
+      parking: 'Aparcamiento',
+      qrOnly: 'Código QR'
     },
 
     common: {
@@ -1044,6 +1050,7 @@ const translations = {
       orderSuccessMessage: 'Il tuo ordine è stato registrato con successo. Il nostro team lo preparerà e te lo consegnerà il prima possibile.',
       orderNumber: 'Ordine #',
       newOrder: 'Effettua un nuovo ordine',
+      backToMenu: 'Torna al menu',
 
       // No items
       serviceUnavailable: 'Servizio attualmente non disponibile',
@@ -1309,7 +1316,8 @@ const translations = {
       restaurant: 'Ristorante',
       bar: 'Bar',
       roomService: 'Room Service',
-      parking: 'Parcheggio'
+      parking: 'Parcheggio',
+      qrOnly: 'Codice QR'
     },
 
     common: {

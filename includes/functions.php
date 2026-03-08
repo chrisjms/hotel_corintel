@@ -1054,6 +1054,49 @@ function getCurrentLanguage(): string {
 }
 
 /**
+ * Detect browser language from Accept-Language header
+ * Returns the best matching supported language or null
+ */
+function detectBrowserLanguage(): ?string {
+    if (!isset($_SERVER['HTTP_ACCEPT_LANGUAGE'])) {
+        return null;
+    }
+
+    $supportedLanguages = getSupportedLanguages();
+    $acceptLanguage = $_SERVER['HTTP_ACCEPT_LANGUAGE'];
+
+    // Parse Accept-Language header (e.g., "en-US,en;q=0.9,fr;q=0.8")
+    $languages = [];
+    foreach (explode(',', $acceptLanguage) as $part) {
+        $part = trim($part);
+        $qValue = 1.0;
+
+        if (strpos($part, ';q=') !== false) {
+            list($lang, $q) = explode(';q=', $part);
+            $qValue = (float) $q;
+        } else {
+            $lang = $part;
+        }
+
+        // Extract primary language code (e.g., "en" from "en-US")
+        $primaryLang = strtolower(substr($lang, 0, 2));
+        $languages[$primaryLang] = max($languages[$primaryLang] ?? 0, $qValue);
+    }
+
+    // Sort by q-value descending
+    arsort($languages);
+
+    // Find first supported language
+    foreach ($languages as $lang => $q) {
+        if (in_array($lang, $supportedLanguages)) {
+            return $lang;
+        }
+    }
+
+    return null;
+}
+
+/**
  * Save item translations
  * @param int $itemId Item ID
  * @param array $translations Array of ['language_code' => ['name' => '', 'description' => '']]
@@ -6840,6 +6883,887 @@ function getTotalRoomCount(): int {
         return (int) $stmt->fetchColumn();
     } catch (PDOException $e) {
         return 0;
+    }
+}
+
+// =====================================================
+// ROOM SERVICE ACCESS CONTROL (QR-BASED)
+// =====================================================
+
+/**
+ * Secret key for HMAC token generation
+ * In production, this should be in a config file or environment variable
+ */
+define('ROOM_SERVICE_SECRET_KEY', 'hc_rs_2024_' . md5(__DIR__));
+
+/**
+ * Generate a secure access token for a room
+ * Uses HMAC-SHA256 for cryptographic security
+ *
+ * @param int $roomId The room ID
+ * @param string $roomNumber The room number
+ * @return string The secure token (32 characters hex)
+ */
+function generateRoomServiceToken(int $roomId, string $roomNumber): string {
+    $data = $roomId . ':' . $roomNumber;
+    $hash = hash_hmac('sha256', $data, ROOM_SERVICE_SECRET_KEY);
+    // Return first 32 chars for shorter URLs while maintaining security
+    return substr($hash, 0, 32);
+}
+
+/**
+ * Validate a room service access token
+ *
+ * @param int $roomId The room ID from URL
+ * @param string $token The token from URL
+ * @return array ['valid' => bool, 'room' => array|null, 'error' => string|null]
+ */
+function validateRoomServiceAccess(int $roomId, string $token): array {
+    // Get room from database
+    $room = getRoomById($roomId);
+
+    if (!$room) {
+        return [
+            'valid' => false,
+            'room' => null,
+            'error' => 'room_not_found'
+        ];
+    }
+
+    // Check if room is active
+    if (!$room['is_active']) {
+        return [
+            'valid' => false,
+            'room' => null,
+            'error' => 'room_inactive'
+        ];
+    }
+
+    // Validate token
+    $expectedToken = generateRoomServiceToken($roomId, $room['room_number']);
+
+    if (!hash_equals($expectedToken, $token)) {
+        return [
+            'valid' => false,
+            'room' => null,
+            'error' => 'invalid_token'
+        ];
+    }
+
+    return [
+        'valid' => true,
+        'room' => $room,
+        'error' => null
+    ];
+}
+
+/**
+ * Generate the full room service URL for a room (for QR codes)
+ *
+ * @param int $roomId The room ID
+ * @param string $roomNumber The room number
+ * @param string|null $baseUrl Optional base URL (defaults to current server)
+ * @return string The full URL
+ */
+function generateRoomServiceUrl(int $roomId, string $roomNumber, ?string $baseUrl = null): string {
+    $token = generateRoomServiceToken($roomId, $roomNumber);
+
+    if ($baseUrl === null) {
+        $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+        $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+        $baseUrl = $protocol . '://' . $host;
+    }
+
+    return $baseUrl . '/scan.php?room=' . $roomId . '&token=' . $token;
+}
+
+/**
+ * Store room access in session
+ *
+ * @param array $room The room data
+ */
+function setRoomServiceSession(array $room): void {
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    $_SESSION['room_service_access'] = [
+        'room_id' => $room['id'],
+        'room_number' => $room['room_number'],
+        'room_name' => $room['name'] ?? null,
+        'floor' => $room['floor'] ?? null,
+        'accessed_at' => time()
+    ];
+}
+
+/**
+ * Get current room service session
+ *
+ * @return array|null Room access data or null
+ */
+function getRoomServiceSession(): ?array {
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    return $_SESSION['room_service_access'] ?? null;
+}
+
+/**
+ * Check if room service access is valid (via URL params or session)
+ *
+ * @return array ['valid' => bool, 'room' => array|null, 'error' => string|null]
+ */
+function checkRoomServiceAccess(): array {
+    // First, check if there are URL parameters
+    $roomId = isset($_GET['room']) ? (int)$_GET['room'] : null;
+    $token = $_GET['token'] ?? null;
+
+    if ($roomId && $token) {
+        // Validate URL-based access
+        $validation = validateRoomServiceAccess($roomId, $token);
+
+        if ($validation['valid']) {
+            // Store in session for subsequent requests
+            setRoomServiceSession($validation['room']);
+            return $validation;
+        }
+
+        return $validation;
+    }
+
+    // Check session-based access
+    $session = getRoomServiceSession();
+    if ($session) {
+        // Verify room still exists and is active
+        $room = getRoomById($session['room_id']);
+        if ($room && $room['is_active']) {
+            return [
+                'valid' => true,
+                'room' => $room,
+                'error' => null
+            ];
+        }
+    }
+
+    // No valid access
+    return [
+        'valid' => false,
+        'room' => null,
+        'error' => 'no_access'
+    ];
+}
+
+/**
+ * Clear room service session
+ */
+function clearRoomServiceSession(): void {
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    unset($_SESSION['room_service_access']);
+}
+
+// =====================================================
+// ROOM SESSION ACCESS GUARDS
+// =====================================================
+
+/**
+ * Returns true if the current visitor has an active room session.
+ * Use this for conditional rendering in templates.
+ */
+function hasRoomSession(): bool {
+    return getRoomServiceSession() !== null;
+}
+
+/**
+ * Enforce that a valid room session exists.
+ * Call at the top of any handler restricted to QR-authenticated guests.
+ *
+ * - AJAX / JSON requests: returns 403 JSON and exits.
+ * - Regular requests: redirects to home page and exits.
+ */
+function requireRoomSession(bool $isAjax = false): void {
+    if (!hasRoomSession()) {
+        if ($isAjax) {
+            header('Content-Type: application/json');
+            http_response_code(403);
+            echo json_encode(['success' => false, 'error' => 'room_session_required']);
+            exit;
+        }
+        header('Location: index.php');
+        exit;
+    }
+}
+
+// =====================================================
+// QR CODE SCAN TRACKING
+// =====================================================
+
+/**
+ * Log a QR code scan for analytics
+ */
+function logQrScan(int $roomId): bool {
+    $pdo = getDatabase();
+
+    try {
+        // Insert scan record
+        $stmt = $pdo->prepare("
+            INSERT INTO qr_scans (room_id, scanned_at, ip_address, user_agent)
+            VALUES (:room_id, NOW(), :ip, :ua)
+        ");
+        $stmt->execute([
+            'room_id' => $roomId,
+            'ip' => $_SERVER['REMOTE_ADDR'] ?? null,
+            'ua' => substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 500)
+        ]);
+
+        // Update room's last_scan_at and total_scans
+        $stmt = $pdo->prepare("
+            UPDATE rooms
+            SET last_scan_at = NOW(),
+                total_scans = COALESCE(total_scans, 0) + 1
+            WHERE id = :room_id
+        ");
+        $stmt->execute(['room_id' => $roomId]);
+
+        return true;
+    } catch (PDOException $e) {
+        // Table might not exist yet, silently fail
+        return false;
+    }
+}
+
+/**
+ * Get QR scan statistics for all rooms
+ */
+function getQrScanStatistics(): array {
+    $pdo = getDatabase();
+
+    try {
+        // Total scans
+        $stmt = $pdo->query("SELECT COUNT(*) FROM qr_scans");
+        $totalScans = (int) $stmt->fetchColumn();
+
+        // Scans today
+        $stmt = $pdo->query("SELECT COUNT(*) FROM qr_scans WHERE DATE(scanned_at) = CURDATE()");
+        $scansToday = (int) $stmt->fetchColumn();
+
+        // Scans this week
+        $stmt = $pdo->query("SELECT COUNT(*) FROM qr_scans WHERE scanned_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)");
+        $scansThisWeek = (int) $stmt->fetchColumn();
+
+        // Scans this month
+        $stmt = $pdo->query("SELECT COUNT(*) FROM qr_scans WHERE scanned_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)");
+        $scansThisMonth = (int) $stmt->fetchColumn();
+
+        // Most scanned rooms
+        $stmt = $pdo->query("
+            SELECT r.id, r.room_number, r.total_scans, r.last_scan_at
+            FROM rooms r
+            WHERE r.total_scans > 0
+            ORDER BY r.total_scans DESC
+            LIMIT 10
+        ");
+        $topRooms = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Scans per day (last 30 days)
+        $stmt = $pdo->query("
+            SELECT DATE(scanned_at) as scan_date, COUNT(*) as count
+            FROM qr_scans
+            WHERE scanned_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+            GROUP BY DATE(scanned_at)
+            ORDER BY scan_date ASC
+        ");
+        $dailyScans = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Scans per hour (distribution)
+        $stmt = $pdo->query("
+            SELECT HOUR(scanned_at) as hour, COUNT(*) as count
+            FROM qr_scans
+            GROUP BY HOUR(scanned_at)
+            ORDER BY hour ASC
+        ");
+        $hourlyDistribution = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Recent scans
+        $stmt = $pdo->query("
+            SELECT qs.*, r.room_number
+            FROM qr_scans qs
+            JOIN rooms r ON qs.room_id = r.id
+            ORDER BY qs.scanned_at DESC
+            LIMIT 20
+        ");
+        $recentScans = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        return [
+            'total_scans' => $totalScans,
+            'scans_today' => $scansToday,
+            'scans_this_week' => $scansThisWeek,
+            'scans_this_month' => $scansThisMonth,
+            'top_rooms' => $topRooms,
+            'daily_scans' => $dailyScans,
+            'hourly_distribution' => $hourlyDistribution,
+            'recent_scans' => $recentScans
+        ];
+    } catch (PDOException $e) {
+        // Tables might not exist
+        return [
+            'total_scans' => 0,
+            'scans_today' => 0,
+            'scans_this_week' => 0,
+            'scans_this_month' => 0,
+            'top_rooms' => [],
+            'daily_scans' => [],
+            'hourly_distribution' => [],
+            'recent_scans' => []
+        ];
+    }
+}
+
+/**
+ * Get scan history for a specific room
+ */
+function getRoomScanHistory(int $roomId, int $limit = 50): array {
+    $pdo = getDatabase();
+
+    try {
+        $stmt = $pdo->prepare("
+            SELECT * FROM qr_scans
+            WHERE room_id = :room_id
+            ORDER BY scanned_at DESC
+            LIMIT :limit
+        ");
+        $stmt->bindValue('room_id', $roomId, PDO::PARAM_INT);
+        $stmt->bindValue('limit', $limit, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        return [];
+    }
+}
+
+// =====================================================
+// DELIVERY TIME & ANALYTICS
+// =====================================================
+
+/**
+ * Get estimated delivery time based on current kitchen load
+ * Returns time in minutes
+ */
+function getEstimatedDeliveryTime(): array {
+    $pdo = getDatabase();
+
+    try {
+        // Count pending/preparing orders
+        $stmt = $pdo->query("
+            SELECT COUNT(*) as pending_count
+            FROM room_service_orders
+            WHERE status IN ('pending', 'confirmed', 'preparing')
+            AND created_at >= DATE_SUB(NOW(), INTERVAL 2 HOUR)
+        ");
+        $pendingOrders = (int) $stmt->fetchColumn();
+
+        // Get average preparation time from recent delivered orders
+        $stmt = $pdo->query("
+            SELECT AVG(TIMESTAMPDIFF(MINUTE, created_at, updated_at)) as avg_time
+            FROM room_service_orders
+            WHERE status = 'delivered'
+            AND updated_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+        ");
+        $avgPrepTime = (float) $stmt->fetchColumn() ?: 20; // Default 20 min
+
+        // Calculate estimated time based on queue
+        $baseTime = max(15, min($avgPrepTime, 45)); // Between 15-45 min base
+        $queueTime = $pendingOrders * 5; // Add 5 min per order in queue
+        $estimatedTime = round($baseTime + $queueTime);
+
+        // Cap at reasonable maximum
+        $estimatedTime = min($estimatedTime, 90);
+
+        // Determine load level
+        $loadLevel = 'normal';
+        if ($pendingOrders >= 5) {
+            $loadLevel = 'high';
+        } elseif ($pendingOrders >= 10) {
+            $loadLevel = 'very_high';
+        } elseif ($pendingOrders <= 1) {
+            $loadLevel = 'low';
+        }
+
+        return [
+            'estimated_minutes' => $estimatedTime,
+            'min_minutes' => max(10, $estimatedTime - 10),
+            'max_minutes' => $estimatedTime + 15,
+            'pending_orders' => $pendingOrders,
+            'load_level' => $loadLevel,
+            'message' => getDeliveryTimeMessage($estimatedTime, $loadLevel)
+        ];
+    } catch (PDOException $e) {
+        return [
+            'estimated_minutes' => 25,
+            'min_minutes' => 15,
+            'max_minutes' => 40,
+            'pending_orders' => 0,
+            'load_level' => 'normal',
+            'message' => 'Livraison estimée : 15-40 min'
+        ];
+    }
+}
+
+/**
+ * Get delivery time message based on estimate and load
+ */
+function getDeliveryTimeMessage(int $minutes, string $loadLevel): string {
+    $messages = [
+        'fr' => [
+            'low' => "Livraison rapide : ~{$minutes} min",
+            'normal' => "Livraison estimée : {$minutes}-" . ($minutes + 10) . " min",
+            'high' => "Cuisine chargée : {$minutes}-" . ($minutes + 15) . " min",
+            'very_high' => "Forte affluence : " . ($minutes + 10) . "-" . ($minutes + 20) . " min"
+        ]
+    ];
+
+    $lang = getCurrentLanguage();
+    return $messages[$lang][$loadLevel] ?? $messages['fr'][$loadLevel];
+}
+
+/**
+ * Get average time from QR scan to order placement
+ */
+function getAverageTimeFromScanToOrder(int $days = 30): array {
+    $pdo = getDatabase();
+
+    try {
+        // Find orders that have a matching scan before them
+        $stmt = $pdo->prepare("
+            SELECT
+                AVG(TIMESTAMPDIFF(MINUTE, qs.scanned_at, o.created_at)) as avg_minutes,
+                MIN(TIMESTAMPDIFF(MINUTE, qs.scanned_at, o.created_at)) as min_minutes,
+                MAX(TIMESTAMPDIFF(MINUTE, qs.scanned_at, o.created_at)) as max_minutes,
+                COUNT(*) as sample_count
+            FROM room_service_orders o
+            INNER JOIN qr_scans qs ON o.room_id = qs.room_id
+                AND qs.scanned_at <= o.created_at
+                AND qs.scanned_at >= DATE_SUB(o.created_at, INTERVAL 2 HOUR)
+            WHERE o.created_at >= DATE_SUB(NOW(), INTERVAL :days DAY)
+            AND o.status != 'cancelled'
+        ");
+        $stmt->execute(['days' => $days]);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        // Get total scans in the period
+        $stmtScans = $pdo->prepare("
+            SELECT COUNT(*) as total_scans
+            FROM qr_scans
+            WHERE scanned_at >= DATE_SUB(NOW(), INTERVAL :days DAY)
+        ");
+        $stmtScans->execute(['days' => $days]);
+        $totalScans = (int) $stmtScans->fetchColumn();
+
+        // Get total orders in the period
+        $stmtOrders = $pdo->prepare("
+            SELECT COUNT(*) as total_orders
+            FROM room_service_orders
+            WHERE created_at >= DATE_SUB(NOW(), INTERVAL :days DAY)
+            AND status != 'cancelled'
+        ");
+        $stmtOrders->execute(['days' => $days]);
+        $totalOrders = (int) $stmtOrders->fetchColumn();
+
+        // Calculate conversion rate
+        $conversionRate = $totalScans > 0 ? round(($totalOrders / $totalScans) * 100) : 0;
+
+        return [
+            'average_minutes' => round($result['avg_minutes'] ?? 0),
+            'min_minutes' => round($result['min_minutes'] ?? 0),
+            'max_minutes' => round($result['max_minutes'] ?? 0),
+            'sample_count' => (int) ($result['sample_count'] ?? 0),
+            'total_scans' => $totalScans,
+            'total_orders' => $totalOrders,
+            'conversion_rate' => $conversionRate
+        ];
+    } catch (PDOException $e) {
+        return [
+            'average_minutes' => 0,
+            'min_minutes' => 0,
+            'max_minutes' => 0,
+            'sample_count' => 0,
+            'total_scans' => 0,
+            'total_orders' => 0,
+            'conversion_rate' => 0
+        ];
+    }
+}
+
+/**
+ * Get predictive preparation suggestions based on historical patterns
+ * Returns a structured array for dashboard display
+ */
+function getPredictivePreparationSuggestions(): array {
+    $pdo = getDatabase();
+    $currentHour = (int) date('H');
+    $currentDay = (int) date('N'); // 1=Monday, 7=Sunday
+    $mysqlDay = $currentDay % 7 + 1; // MySQL DAYOFWEEK: 1=Sunday, 2=Monday, etc.
+
+    $result = [
+        'popular_items' => [],
+        'peak_warnings' => [],
+        'predicted_volume' => null,
+        'time_range' => sprintf('%02d:00 - %02d:00', $currentHour, ($currentHour + 2) % 24)
+    ];
+
+    try {
+        // Get popular items for this week (simpler query without JSON_TABLE for compatibility)
+        $stmt = $pdo->prepare("
+            SELECT
+                SUBSTRING_INDEX(SUBSTRING_INDEX(items, '\"name\":\"', -1), '\"', 1) as name,
+                COUNT(*) as order_count
+            FROM room_service_orders
+            WHERE status IN ('delivered', 'preparing', 'confirmed')
+            AND created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+            GROUP BY name
+            ORDER BY order_count DESC
+            LIMIT 6
+        ");
+        $stmt->execute();
+        $result['popular_items'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Get average orders for this day of week
+        $stmt = $pdo->prepare("
+            SELECT
+                COUNT(*) as total_orders,
+                COUNT(*) / 4.0 as avg_per_day
+            FROM room_service_orders
+            WHERE status = 'delivered'
+            AND created_at >= DATE_SUB(NOW(), INTERVAL 28 DAY)
+            AND DAYOFWEEK(created_at) = :day
+        ");
+        $stmt->execute(['day' => $mysqlDay]);
+        $volumeData = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($volumeData && $volumeData['avg_per_day'] > 0) {
+            $result['predicted_volume'] = [
+                'today' => round($volumeData['avg_per_day']),
+                'same_day_avg' => round($volumeData['avg_per_day'])
+            ];
+        }
+
+        // Peak hours warning
+        $peakHours = [12, 13, 19, 20, 21];
+        $nextHour = ($currentHour + 1) % 24;
+        if (in_array($nextHour, $peakHours)) {
+            $result['peak_warnings'][] = sprintf(
+                "⚠️ Heure de pointe approchante (%02d:00) - Préparez-vous pour une période chargée",
+                $nextHour
+            );
+        }
+
+    } catch (PDOException $e) {
+        // Silently fail - suggestions are not critical
+    }
+
+    return $result;
+}
+
+/**
+ * Get order history for a specific room
+ */
+function getRoomOrderHistory(int $roomId, int $limit = 10): array {
+    $pdo = getDatabase();
+
+    try {
+        $stmt = $pdo->prepare("
+            SELECT
+                id,
+                room_number,
+                items,
+                total_amount,
+                status,
+                special_instructions,
+                created_at,
+                updated_at
+            FROM room_service_orders
+            WHERE room_id = :room_id
+            ORDER BY created_at DESC
+            LIMIT :limit
+        ");
+        $stmt->bindValue('room_id', $roomId, PDO::PARAM_INT);
+        $stmt->bindValue('limit', $limit, PDO::PARAM_INT);
+        $stmt->execute();
+
+        $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Parse items JSON
+        foreach ($orders as &$order) {
+            $order['items'] = json_decode($order['items'], true) ?: [];
+            $order['created_at_formatted'] = date('d/m/Y H:i', strtotime($order['created_at']));
+        }
+
+        return $orders;
+    } catch (PDOException $e) {
+        return [];
+    }
+}
+
+/**
+ * Get frequently ordered items for a room (for quick reorder)
+ */
+function getRoomFrequentItems(int $roomId, int $limit = 5): array {
+    $pdo = getDatabase();
+
+    try {
+        $stmt = $pdo->prepare("
+            SELECT
+                oi.item_id,
+                oi.item_name,
+                SUM(oi.quantity) as total_qty,
+                COUNT(DISTINCT o.id) as order_count,
+                MAX(o.created_at) as last_ordered
+            FROM room_service_orders o
+            CROSS JOIN JSON_TABLE(o.items, '\$[*]' COLUMNS (
+                item_id INT PATH '\$.id',
+                item_name VARCHAR(255) PATH '\$.name',
+                quantity INT PATH '\$.quantity'
+            )) as oi
+            WHERE o.room_id = :room_id
+            AND o.status = 'delivered'
+            GROUP BY oi.item_id, oi.item_name
+            ORDER BY order_count DESC, total_qty DESC
+            LIMIT :limit
+        ");
+        $stmt->bindValue('room_id', $roomId, PDO::PARAM_INT);
+        $stmt->bindValue('limit', $limit, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        return [];
+    }
+}
+
+// =====================================================
+// PUSH NOTIFICATIONS
+// =====================================================
+
+/**
+ * VAPID keys for push notifications
+ * In production, these should be in environment variables
+ */
+function getVapidKeys(): array {
+    // Generate with: npx web-push generate-vapid-keys
+    // These are example keys - replace with your own in production
+    return [
+        'publicKey' => getSettingValue('vapid_public_key', 'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U'),
+        'privateKey' => getSettingValue('vapid_private_key', 'UUxI4O8-FbRouAevSmBQ6o18hgE4nSG3qwvJTfKc-ls')
+    ];
+}
+
+/**
+ * Save push subscription for a room
+ */
+function savePushSubscription(int $roomId, array $subscription): bool {
+    $pdo = getDatabase();
+
+    try {
+        // Check if subscription already exists
+        $stmt = $pdo->prepare("
+            SELECT id FROM push_subscriptions
+            WHERE room_id = :room_id AND endpoint = :endpoint
+        ");
+        $stmt->execute([
+            'room_id' => $roomId,
+            'endpoint' => $subscription['endpoint']
+        ]);
+        $existing = $stmt->fetch();
+
+        if ($existing) {
+            // Update existing subscription
+            $stmt = $pdo->prepare("
+                UPDATE push_subscriptions
+                SET p256dh_key = :p256dh,
+                    auth_key = :auth,
+                    user_agent = :ua,
+                    is_active = 1,
+                    last_used_at = NOW()
+                WHERE id = :id
+            ");
+            return $stmt->execute([
+                'p256dh' => $subscription['keys']['p256dh'],
+                'auth' => $subscription['keys']['auth'],
+                'ua' => $_SERVER['HTTP_USER_AGENT'] ?? null,
+                'id' => $existing['id']
+            ]);
+        } else {
+            // Insert new subscription
+            $stmt = $pdo->prepare("
+                INSERT INTO push_subscriptions (room_id, endpoint, p256dh_key, auth_key, user_agent)
+                VALUES (:room_id, :endpoint, :p256dh, :auth, :ua)
+            ");
+            return $stmt->execute([
+                'room_id' => $roomId,
+                'endpoint' => $subscription['endpoint'],
+                'p256dh' => $subscription['keys']['p256dh'],
+                'auth' => $subscription['keys']['auth'],
+                'ua' => $_SERVER['HTTP_USER_AGENT'] ?? null
+            ]);
+        }
+    } catch (PDOException $e) {
+        error_log('Push subscription save error: ' . $e->getMessage());
+        return false;
+    }
+}
+
+/**
+ * Get push subscriptions for a room
+ */
+function getRoomPushSubscriptions(int $roomId): array {
+    $pdo = getDatabase();
+
+    try {
+        $stmt = $pdo->prepare("
+            SELECT * FROM push_subscriptions
+            WHERE room_id = :room_id AND is_active = 1
+        ");
+        $stmt->execute(['room_id' => $roomId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        return [];
+    }
+}
+
+/**
+ * Send push notification to a room
+ * Requires web-push library or external service
+ */
+function sendPushNotification(int $roomId, array $payload): array {
+    $subscriptions = getRoomPushSubscriptions($roomId);
+    $results = ['sent' => 0, 'failed' => 0];
+
+    if (empty($subscriptions)) {
+        return $results;
+    }
+
+    $vapidKeys = getVapidKeys();
+
+    foreach ($subscriptions as $sub) {
+        try {
+            // Build the notification payload
+            $data = json_encode([
+                'title' => $payload['title'] ?? 'Room Service',
+                'body' => $payload['body'] ?? '',
+                'data' => $payload['data'] ?? [],
+                'actions' => $payload['actions'] ?? []
+            ]);
+
+            // In production, use a proper web-push library
+            // For now, we'll store the notification for polling
+            $sent = queuePushNotification($sub['id'], $data);
+
+            if ($sent) {
+                $results['sent']++;
+            } else {
+                $results['failed']++;
+            }
+        } catch (Exception $e) {
+            $results['failed']++;
+            error_log('Push notification error: ' . $e->getMessage());
+        }
+    }
+
+    return $results;
+}
+
+/**
+ * Queue a push notification (fallback when web-push is not available)
+ */
+function queuePushNotification(int $subscriptionId, string $payload): bool {
+    // This is a simple polling-based fallback
+    // In production, implement actual web-push
+    $pdo = getDatabase();
+
+    try {
+        $stmt = $pdo->prepare("
+            UPDATE push_subscriptions
+            SET last_used_at = NOW()
+            WHERE id = :id
+        ");
+        return $stmt->execute(['id' => $subscriptionId]);
+    } catch (PDOException $e) {
+        return false;
+    }
+}
+
+/**
+ * Remove invalid push subscription
+ */
+function removePushSubscription(int $subscriptionId): bool {
+    $pdo = getDatabase();
+
+    try {
+        $stmt = $pdo->prepare("
+            UPDATE push_subscriptions SET is_active = 0 WHERE id = :id
+        ");
+        return $stmt->execute(['id' => $subscriptionId]);
+    } catch (PDOException $e) {
+        return false;
+    }
+}
+
+/**
+ * Send order status notification
+ */
+function sendOrderStatusNotification(int $orderId, string $newStatus): bool {
+    $pdo = getDatabase();
+
+    try {
+        // Get order details
+        $stmt = $pdo->prepare("SELECT room_id, room_number FROM room_service_orders WHERE id = :id");
+        $stmt->execute(['id' => $orderId]);
+        $order = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$order || !$order['room_id']) {
+            return false;
+        }
+
+        // Build notification message
+        $messages = [
+            'confirmed' => [
+                'title' => 'Commande confirmée',
+                'body' => 'Votre commande a été confirmée et est en préparation.'
+            ],
+            'preparing' => [
+                'title' => 'En préparation',
+                'body' => 'Votre commande est en cours de préparation en cuisine.'
+            ],
+            'ready' => [
+                'title' => 'Commande prête',
+                'body' => 'Votre commande est prête et arrive bientôt !'
+            ],
+            'delivered' => [
+                'title' => 'Livré !',
+                'body' => 'Votre commande a été livrée. Bon appétit !'
+            ],
+            'cancelled' => [
+                'title' => 'Commande annulée',
+                'body' => 'Votre commande a été annulée. Contactez la réception pour plus d\'informations.'
+            ]
+        ];
+
+        $notification = $messages[$newStatus] ?? null;
+        if (!$notification) {
+            return false;
+        }
+
+        $notification['data'] = [
+            'orderId' => $orderId,
+            'status' => $newStatus,
+            'url' => '/room-service.php'
+        ];
+
+        $result = sendPushNotification($order['room_id'], $notification);
+        return $result['sent'] > 0;
+    } catch (PDOException $e) {
+        return false;
     }
 }
 

@@ -397,6 +397,267 @@ if (isset($_GET['edit']) && is_numeric($_GET['edit'])) {
             padding-top: 1rem;
             border-top: 1px solid var(--admin-border);
         }
+        /* QR Code Modal */
+        .qr-modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .qr-modal-overlay.active {
+            display: flex;
+        }
+        .qr-modal {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+        .qr-modal h3 {
+            margin: 0 0 0.5rem 0;
+            font-size: 1.5rem;
+            color: var(--admin-text);
+        }
+        .qr-modal .room-label {
+            font-size: 0.875rem;
+            color: var(--admin-text-light);
+            margin-bottom: 1.5rem;
+        }
+        .qr-code-container {
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            display: inline-block;
+            margin-bottom: 1rem;
+        }
+        .qr-code-container canvas {
+            display: block;
+        }
+        .qr-url {
+            background: var(--admin-bg);
+            border: 1px solid var(--admin-border);
+            border-radius: 6px;
+            padding: 0.75rem;
+            font-size: 0.75rem;
+            word-break: break-all;
+            margin-bottom: 1rem;
+            font-family: monospace;
+        }
+        .qr-actions {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .qr-actions .btn {
+            flex: 1;
+            min-width: 100px;
+        }
+        .btn-qr {
+            background: #805AD5;
+            color: white;
+        }
+        .btn-qr:hover {
+            background: #6B46C1;
+        }
+        /* QR Actions Bar */
+        .qr-actions-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.25rem;
+            background: linear-gradient(135deg, #805AD5 0%, #6B46C1 100%);
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            color: white;
+        }
+        .qr-actions-label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 500;
+        }
+        .qr-actions-buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+        .qr-actions-bar .btn {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+        }
+        .qr-actions-bar .btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        /* Enhanced QR Modal */
+        .qr-modal {
+            background: white;
+            border-radius: 16px;
+            padding: 0;
+            max-width: 480px;
+            width: 95%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.4);
+        }
+        .qr-modal-header {
+            background: linear-gradient(135deg, #8B6F47 0%, #6B5635 100%);
+            color: white;
+            padding: 1.5rem;
+            text-align: center;
+            border-radius: 16px 16px 0 0;
+        }
+        .qr-modal-header h3 {
+            margin: 0;
+            font-size: 1.5rem;
+            font-family: 'Cormorant Garamond', serif;
+        }
+        .qr-modal-header p {
+            margin: 0.25rem 0 0;
+            opacity: 0.9;
+            font-size: 0.875rem;
+        }
+        .qr-modal-body {
+            padding: 1.5rem;
+        }
+        .qr-preview {
+            background: #FAF6F0;
+            border: 2px solid #8B6F47;
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+        .qr-preview .hotel-brand {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1rem;
+            color: #8B6F47;
+            margin-bottom: 0.5rem;
+        }
+        .qr-preview .room-label {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 1rem;
+        }
+        .qr-code-wrapper {
+            display: inline-block;
+            padding: 0.75rem;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .qr-preview .scan-instruction {
+            margin-top: 1rem;
+            font-size: 0.8rem;
+            color: #666;
+        }
+        .qr-url-display {
+            background: var(--admin-bg);
+            border: 1px solid var(--admin-border);
+            border-radius: 6px;
+            padding: 0.75rem;
+            font-size: 0.7rem;
+            word-break: break-all;
+            font-family: monospace;
+            margin-bottom: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .qr-url-display code {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .qr-url-display button {
+            flex-shrink: 0;
+        }
+        /* Download Section */
+        .qr-section-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--admin-text-light);
+            margin-bottom: 0.75rem;
+            font-weight: 600;
+        }
+        .qr-download-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+            margin-bottom: 1.25rem;
+        }
+        .qr-download-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.75rem;
+            border: 1px solid var(--admin-border);
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.875rem;
+        }
+        .qr-download-btn:hover {
+            border-color: var(--admin-primary);
+            background: var(--admin-bg);
+        }
+        .qr-download-btn svg {
+            width: 18px;
+            height: 18px;
+            color: var(--admin-primary);
+        }
+        /* Print Formats */
+        .qr-print-formats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+            margin-bottom: 1.25rem;
+        }
+        .qr-format-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 1rem 0.5rem;
+            border: 1px solid var(--admin-border);
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.75rem;
+            text-align: center;
+        }
+        .qr-format-btn:hover {
+            border-color: #805AD5;
+            background: #F7F5FF;
+        }
+        .qr-format-btn svg {
+            width: 32px;
+            height: 32px;
+            color: #805AD5;
+        }
+        .qr-format-btn span {
+            font-weight: 500;
+        }
+        .qr-modal-footer {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--admin-border);
+            display: flex;
+            justify-content: flex-end;
+        }
     </style>
 </head>
 <body>
@@ -758,6 +1019,28 @@ if (isset($_GET['edit']) && is_numeric($_GET['edit'])) {
                     </form>
                 </div>
 
+                <!-- QR Actions Bar -->
+                <?php if (!empty($rooms)): ?>
+                <div class="qr-actions-bar">
+                    <span class="qr-actions-label">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px;">
+                            <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+                            <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="3" height="3"/>
+                        </svg>
+                        QR Codes Room Service
+                    </span>
+                    <div class="qr-actions-buttons">
+                        <button type="button" class="btn btn-sm btn-qr" onclick="printAllQrCodes('sticker')">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;">
+                                <polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+                                <rect x="6" y="14" width="12" height="8"/>
+                            </svg>
+                            Imprimer tous les QR
+                        </button>
+                    </div>
+                </div>
+                <?php endif; ?>
+
                 <!-- Rooms List -->
                 <div class="data-card">
                     <?php if (empty($rooms)): ?>
@@ -775,6 +1058,7 @@ if (isset($_GET['edit']) && is_numeric($_GET['edit'])) {
                                     <th>Capacité</th>
                                     <th>Statut</th>
                                     <th>Ménage</th>
+                                    <th>Dernier scan</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -816,7 +1100,32 @@ if (isset($_GET['edit']) && is_numeric($_GET['edit'])) {
                                             </form>
                                         </td>
                                         <td>
+                                            <?php if (!empty($room['last_scan_at'])): ?>
+                                                <span title="<?= date('d/m/Y H:i', strtotime($room['last_scan_at'])) ?>" style="font-size: 0.8rem; color: var(--admin-text-light);">
+                                                    <?= date('d/m H:i', strtotime($room['last_scan_at'])) ?>
+                                                </span>
+                                                <?php if (!empty($room['total_scans'])): ?>
+                                                <br><span style="font-size: 0.7rem; color: #805AD5;"><?= $room['total_scans'] ?> scan(s)</span>
+                                                <?php endif; ?>
+                                            <?php else: ?>
+                                                <span style="font-size: 0.8rem; color: var(--admin-text-light);">-</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td>
                                             <div class="action-buttons">
+                                                <button type="button" class="btn btn-sm btn-qr btn-icon"
+                                                        title="QR Code Room Service"
+                                                        onclick="showQrCode(<?= $room['id'] ?>, '<?= h($room['room_number']) ?>', '<?= h(generateRoomServiceUrl($room['id'], $room['room_number'])) ?>')">
+                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                        <rect x="3" y="3" width="7" height="7"/>
+                                                        <rect x="14" y="3" width="7" height="7"/>
+                                                        <rect x="3" y="14" width="7" height="7"/>
+                                                        <rect x="14" y="14" width="3" height="3"/>
+                                                        <rect x="18" y="14" width="3" height="3"/>
+                                                        <rect x="14" y="18" width="3" height="3"/>
+                                                        <rect x="18" y="18" width="3" height="3"/>
+                                                    </svg>
+                                                </button>
                                                 <a href="?edit=<?= $room['id'] ?>" class="btn btn-sm btn-outline btn-icon" title="Modifier">
                                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
@@ -846,7 +1155,115 @@ if (isset($_GET['edit']) && is_numeric($_GET['edit'])) {
         </main>
     </div>
 
+    <!-- QR Code Modal -->
+    <div class="qr-modal-overlay" id="qrModalOverlay" onclick="closeQrModal(event)">
+        <div class="qr-modal" onclick="event.stopPropagation()">
+            <div class="qr-modal-header">
+                <h3><?= h($hotelName) ?></h3>
+                <p>QR Code Room Service - Chambre <span id="qrRoomNumber"></span></p>
+            </div>
+            <div class="qr-modal-body">
+                <!-- QR Preview with Branding -->
+                <div class="qr-preview" id="qrPreview">
+                    <div class="hotel-brand"><?= h($hotelName) ?></div>
+                    <div class="room-label">Chambre <span id="qrRoomLabel"></span></div>
+                    <div class="qr-code-wrapper">
+                        <div id="qrCodeContainer"></div>
+                    </div>
+                    <p class="scan-instruction">Scannez pour accéder au Room Service</p>
+                </div>
+
+                <!-- URL Display -->
+                <div class="qr-url-display">
+                    <code id="qrUrl"></code>
+                    <button type="button" class="btn btn-sm btn-outline" onclick="copyQrUrl()" title="Copier">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Download Options -->
+                <div class="qr-section-title">Télécharger</div>
+                <div class="qr-download-grid">
+                    <button type="button" class="qr-download-btn" onclick="downloadQrCode('png')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="7 10 12 15 17 10"/>
+                            <line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
+                        PNG (Standard)
+                    </button>
+                    <button type="button" class="qr-download-btn" onclick="downloadQrCode('png-hd')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="7 10 12 15 17 10"/>
+                            <line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
+                        PNG HD (Print)
+                    </button>
+                </div>
+
+                <!-- Print Formats -->
+                <div class="qr-section-title">Imprimer</div>
+                <div class="qr-print-formats">
+                    <button type="button" class="qr-format-btn" onclick="printQrCode('sticker')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <rect x="6" y="6" width="12" height="12" rx="2"/>
+                            <rect x="9" y="9" width="6" height="6" fill="currentColor" opacity="0.3"/>
+                        </svg>
+                        <span>Sticker</span>
+                        <small>5x5 cm</small>
+                    </button>
+                    <button type="button" class="qr-format-btn" onclick="printQrCode('tent')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M4 6h16v12H4z"/>
+                            <path d="M4 12h16" stroke-dasharray="2 2"/>
+                            <rect x="8" y="14" width="8" height="3" fill="currentColor" opacity="0.3"/>
+                        </svg>
+                        <span>Chevalet</span>
+                        <small>Table tent</small>
+                    </button>
+                    <button type="button" class="qr-format-btn" onclick="printQrCode('poster')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <rect x="3" y="3" width="18" height="18" rx="2"/>
+                            <rect x="7" y="7" width="10" height="10" fill="currentColor" opacity="0.3"/>
+                            <line x1="7" y1="19" x2="17" y2="19"/>
+                        </svg>
+                        <span>Affiche</span>
+                        <small>A5 / A4</small>
+                    </button>
+                </div>
+            </div>
+            <div class="qr-modal-footer">
+                <button type="button" class="btn btn-outline" onclick="closeQrModal()">Fermer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- QRCode.js library (davidshimjs) -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+
     <script>
+        // Hotel configuration
+        const hotelName = <?= json_encode($hotelName) ?>;
+        const hotelColors = {
+            primary: '#8B6F47',
+            primaryDark: '#6B5635',
+            accent: '#5C7C5E',
+            cream: '#FAF6F0'
+        };
+
+        // All rooms data for batch printing
+        const allRooms = <?= json_encode(array_map(function($r) {
+            return [
+                'id' => $r['id'],
+                'room_number' => $r['room_number'],
+                'url' => generateRoomServiceUrl($r['id'], $r['room_number'])
+            ];
+        }, $rooms)) ?>;
+
         // Mobile menu toggle
         const menuToggle = document.getElementById('menuToggle');
         const sidebar = document.getElementById('adminSidebar');
@@ -869,14 +1286,346 @@ if (isset($_GET['edit']) && is_numeric($_GET['edit'])) {
         sidebarOverlay.addEventListener('click', closeSidebar);
         sidebarClose.addEventListener('click', closeSidebar);
 
-        // Auto-hide alerts after 5 seconds
+        // Auto-hide alerts
         document.querySelectorAll('.alert').forEach(function(alert) {
             setTimeout(function() {
                 alert.style.opacity = '0';
-                setTimeout(function() {
-                    alert.remove();
-                }, 300);
+                setTimeout(() => alert.remove(), 300);
             }, 5000);
+        });
+
+        // QR Code State
+        let currentQrUrl = '';
+        let currentRoomNumber = '';
+        let currentRoomId = '';
+
+        // Show QR Code Modal
+        function showQrCode(roomId, roomNumber, url) {
+            currentQrUrl = url;
+            currentRoomNumber = roomNumber;
+            currentRoomId = roomId;
+
+            document.getElementById('qrRoomNumber').textContent = roomNumber;
+            document.getElementById('qrRoomLabel').textContent = roomNumber;
+            document.getElementById('qrUrl').textContent = url;
+
+            // Generate QR code
+            const container = document.getElementById('qrCodeContainer');
+            container.innerHTML = '';
+
+            try {
+                new QRCode(container, {
+                    text: url,
+                    width: 160,
+                    height: 160,
+                    colorDark: hotelColors.primary,
+                    colorLight: '#FFFFFF',
+                    correctLevel: QRCode.CorrectLevel.H
+                });
+            } catch (error) {
+                console.error('QR Code error:', error);
+                container.innerHTML = '<p style="color: red;">Erreur QR</p>';
+            }
+
+            document.getElementById('qrModalOverlay').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeQrModal(event) {
+            if (event && event.target !== event.currentTarget) return;
+            document.getElementById('qrModalOverlay').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        // Copy URL
+        function copyQrUrl() {
+            navigator.clipboard.writeText(currentQrUrl).then(function() {
+                const btn = event.target.closest('button');
+                btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;"><polyline points="20 6 9 17 4 12"/></svg>';
+                btn.style.background = '#48BB78';
+                btn.style.color = 'white';
+                setTimeout(() => {
+                    btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+                    btn.style.background = '';
+                    btn.style.color = '';
+                }, 2000);
+            }).catch(err => alert('Copie impossible: ' + currentQrUrl));
+        }
+
+        // Get QR Image Source
+        function getQrImageSrc(containerId = 'qrCodeContainer') {
+            const container = document.getElementById(containerId);
+            const img = container.querySelector('img');
+            if (img && img.src) return img.src;
+            const canvas = container.querySelector('canvas');
+            if (canvas) return canvas.toDataURL('image/png');
+            return null;
+        }
+
+        // Generate high-res QR code
+        function generateHDQrCode(url, size = 400) {
+            return new Promise((resolve) => {
+                const tempDiv = document.createElement('div');
+                tempDiv.style.position = 'absolute';
+                tempDiv.style.left = '-9999px';
+                document.body.appendChild(tempDiv);
+
+                new QRCode(tempDiv, {
+                    text: url,
+                    width: size,
+                    height: size,
+                    colorDark: hotelColors.primary,
+                    colorLight: '#FFFFFF',
+                    correctLevel: QRCode.CorrectLevel.H
+                });
+
+                setTimeout(() => {
+                    const canvas = tempDiv.querySelector('canvas');
+                    const img = tempDiv.querySelector('img');
+                    const src = canvas ? canvas.toDataURL('image/png') : (img ? img.src : null);
+                    document.body.removeChild(tempDiv);
+                    resolve(src);
+                }, 100);
+            });
+        }
+
+        // Download QR Code
+        async function downloadQrCode(format) {
+            const size = format === 'png-hd' ? 800 : 400;
+            const qrSrc = await generateHDQrCode(currentQrUrl, size);
+
+            if (!qrSrc) {
+                alert('Impossible de générer le QR code');
+                return;
+            }
+
+            // Create branded QR image
+            const canvas = document.createElement('canvas');
+            const padding = Math.round(size * 0.15);
+            canvas.width = size + padding * 2;
+            canvas.height = size + padding * 2 + Math.round(size * 0.35);
+            const ctx = canvas.getContext('2d');
+
+            // Background
+            ctx.fillStyle = hotelColors.cream;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Border
+            ctx.strokeStyle = hotelColors.primary;
+            ctx.lineWidth = 3;
+            ctx.strokeRect(10, 10, canvas.width - 20, canvas.height - 20);
+
+            // Hotel name
+            ctx.fillStyle = hotelColors.primary;
+            ctx.font = `${Math.round(size * 0.06)}px Georgia, serif`;
+            ctx.textAlign = 'center';
+            ctx.fillText(hotelName, canvas.width / 2, padding + Math.round(size * 0.08));
+
+            // Room number
+            ctx.fillStyle = '#333';
+            ctx.font = `bold ${Math.round(size * 0.08)}px Georgia, serif`;
+            ctx.fillText('Chambre ' + currentRoomNumber, canvas.width / 2, padding + Math.round(size * 0.18));
+
+            // QR Code
+            const qrImg = new Image();
+            qrImg.onload = function() {
+                ctx.drawImage(qrImg, padding, padding + Math.round(size * 0.22), size, size);
+
+                // Instruction
+                ctx.fillStyle = '#666';
+                ctx.font = `${Math.round(size * 0.04)}px Arial, sans-serif`;
+                ctx.fillText('Scannez pour accéder au Room Service', canvas.width / 2, canvas.height - padding);
+
+                // Download
+                const link = document.createElement('a');
+                link.download = `qr-chambre-${currentRoomNumber}${format === 'png-hd' ? '-hd' : ''}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            };
+            qrImg.src = qrSrc;
+        }
+
+        // Print QR Code with different formats
+        function printQrCode(format) {
+            const qrSrc = getQrImageSrc();
+            if (!qrSrc) {
+                alert('Impossible de générer l\'impression');
+                return;
+            }
+
+            const printWindow = window.open('', '_blank');
+            let html = '';
+
+            if (format === 'sticker') {
+                html = getStickerTemplate(qrSrc, currentRoomNumber);
+            } else if (format === 'tent') {
+                html = getTentCardTemplate(qrSrc, currentRoomNumber);
+            } else if (format === 'poster') {
+                html = getPosterTemplate(qrSrc, currentRoomNumber);
+            }
+
+            printWindow.document.write(html);
+            printWindow.document.close();
+        }
+
+        // Sticker Template (5x5cm)
+        function getStickerTemplate(qrSrc, roomNumber) {
+            return `<!DOCTYPE html><html><head><title>Sticker - Chambre ${roomNumber}</title>
+            <style>
+                * { margin: 0; padding: 0; box-sizing: border-box; }
+                @page { size: 50mm 50mm; margin: 0; }
+                body { width: 50mm; height: 50mm; display: flex; align-items: center; justify-content: center; font-family: Georgia, serif; }
+                .sticker { width: 48mm; height: 48mm; border: 1px solid ${hotelColors.primary}; border-radius: 4mm; padding: 2mm; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; background: ${hotelColors.cream}; }
+                .hotel { font-size: 6pt; color: ${hotelColors.primary}; margin-bottom: 1mm; }
+                .room { font-size: 9pt; font-weight: bold; margin-bottom: 2mm; }
+                .qr img { width: 28mm; height: 28mm; }
+                .scan { font-size: 5pt; color: #666; margin-top: 1mm; }
+            </style></head>
+            <body><div class="sticker">
+                <div class="hotel">${hotelName}</div>
+                <div class="room">Chambre ${roomNumber}</div>
+                <div class="qr"><img src="${qrSrc}"></div>
+                <div class="scan">Scannez pour le Room Service</div>
+            </div></body></html>`;
+        }
+
+        // Tent Card Template (folding table tent)
+        function getTentCardTemplate(qrSrc, roomNumber) {
+            return `<!DOCTYPE html><html><head><title>Chevalet - Chambre ${roomNumber}</title>
+            <style>
+                * { margin: 0; padding: 0; box-sizing: border-box; }
+                @page { size: A5 landscape; margin: 0; }
+                body { font-family: Georgia, serif; }
+                .tent { width: 210mm; height: 148mm; display: flex; }
+                .side { width: 105mm; height: 148mm; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 10mm; border: 1px dashed #ccc; }
+                .side:first-child { transform: rotate(180deg); }
+                .hotel { font-size: 14pt; color: ${hotelColors.primary}; letter-spacing: 2px; margin-bottom: 5mm; }
+                .room { font-size: 24pt; font-weight: bold; color: #333; margin-bottom: 8mm; }
+                .qr { padding: 5mm; background: white; border-radius: 3mm; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+                .qr img { width: 50mm; height: 50mm; }
+                .scan { font-size: 10pt; color: #666; margin-top: 6mm; text-align: center; line-height: 1.4; }
+                .fold-line { position: absolute; left: 50%; top: 0; bottom: 0; border-left: 1px dashed #aaa; }
+                .fold-label { position: absolute; left: 50%; top: 5mm; transform: translateX(-50%); font-size: 7pt; color: #aaa; }
+            </style></head>
+            <body>
+                <div class="fold-label">--- plier ici ---</div>
+                <div class="fold-line"></div>
+                <div class="tent">
+                    <div class="side">
+                        <div class="hotel">${hotelName}</div>
+                        <div class="room">Chambre ${roomNumber}</div>
+                        <div class="qr"><img src="${qrSrc}"></div>
+                        <div class="scan">Scannez ce QR code<br>pour accéder au Room Service</div>
+                    </div>
+                    <div class="side">
+                        <div class="hotel">${hotelName}</div>
+                        <div class="room">Chambre ${roomNumber}</div>
+                        <div class="qr"><img src="${qrSrc}"></div>
+                        <div class="scan">Scannez ce QR code<br>pour accéder au Room Service</div>
+                    </div>
+                </div>
+            <script>window.onload = function() { window.print(); }<\/script>
+            </body></html>`;
+        }
+
+        // Poster Template (A5/A4)
+        function getPosterTemplate(qrSrc, roomNumber) {
+            return `<!DOCTYPE html><html><head><title>Affiche - Chambre ${roomNumber}</title>
+            <style>
+                * { margin: 0; padding: 0; box-sizing: border-box; }
+                @page { size: A5; margin: 0; }
+                body { width: 148mm; height: 210mm; font-family: Georgia, serif; background: ${hotelColors.cream}; display: flex; align-items: center; justify-content: center; }
+                .poster { width: 130mm; height: 190mm; border: 3px solid ${hotelColors.primary}; border-radius: 8mm; padding: 15mm; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; background: white; }
+                .hotel { font-size: 16pt; color: ${hotelColors.primary}; letter-spacing: 3px; margin-bottom: 8mm; text-transform: uppercase; }
+                .divider { width: 30mm; height: 1px; background: ${hotelColors.primary}; margin-bottom: 8mm; }
+                .room { font-size: 32pt; font-weight: bold; color: #333; margin-bottom: 12mm; }
+                .qr { padding: 8mm; background: white; border: 2px solid ${hotelColors.cream}; border-radius: 4mm; box-shadow: 0 4px 20px rgba(0,0,0,0.1); margin-bottom: 10mm; }
+                .qr img { width: 70mm; height: 70mm; }
+                .title { font-size: 14pt; color: ${hotelColors.primary}; font-weight: bold; margin-bottom: 4mm; }
+                .scan { font-size: 11pt; color: #666; line-height: 1.5; }
+                .footer { margin-top: auto; font-size: 8pt; color: #999; }
+            </style></head>
+            <body>
+                <div class="poster">
+                    <div class="hotel">${hotelName}</div>
+                    <div class="divider"></div>
+                    <div class="room">Chambre ${roomNumber}</div>
+                    <div class="qr"><img src="${qrSrc}"></div>
+                    <div class="title">Room Service</div>
+                    <div class="scan">Scannez ce QR code avec votre téléphone<br>pour découvrir notre carte et passer commande</div>
+                    <div class="footer">Service disponible 24h/24</div>
+                </div>
+            <script>window.onload = function() { window.print(); }<\/script>
+            </body></html>`;
+        }
+
+        // Print All QR Codes
+        async function printAllQrCodes(format) {
+            if (allRooms.length === 0) {
+                alert('Aucune chambre à imprimer');
+                return;
+            }
+
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`<!DOCTYPE html><html><head><title>Tous les QR Codes</title>
+            <style>
+                * { margin: 0; padding: 0; box-sizing: border-box; }
+                body { font-family: Georgia, serif; }
+                .loading { text-align: center; padding: 50px; font-size: 18px; }
+            </style></head><body><div class="loading">Génération des QR codes en cours...</div></body></html>`);
+
+            // Generate all QR codes
+            const qrCodes = [];
+            for (const room of allRooms) {
+                const qrSrc = await generateHDQrCode(room.url, 200);
+                qrCodes.push({ ...room, qrSrc });
+            }
+
+            // Build print page based on format
+            let html = '';
+            if (format === 'sticker') {
+                html = getAllStickersTemplate(qrCodes);
+            } else {
+                html = getAllStickersTemplate(qrCodes); // Default to stickers
+            }
+
+            printWindow.document.open();
+            printWindow.document.write(html);
+            printWindow.document.close();
+        }
+
+        // All Stickers Template (grid layout)
+        function getAllStickersTemplate(qrCodes) {
+            const stickers = qrCodes.map(qr => `
+                <div class="sticker">
+                    <div class="hotel">${hotelName}</div>
+                    <div class="room">Ch. ${qr.room_number}</div>
+                    <div class="qr"><img src="${qr.qrSrc}"></div>
+                    <div class="scan">Room Service</div>
+                </div>
+            `).join('');
+
+            return `<!DOCTYPE html><html><head><title>QR Codes - Toutes les chambres</title>
+            <style>
+                * { margin: 0; padding: 0; box-sizing: border-box; }
+                @page { margin: 10mm; }
+                body { font-family: Georgia, serif; }
+                .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5mm; padding: 5mm; }
+                .sticker { width: 45mm; height: 45mm; border: 1px solid ${hotelColors.primary}; border-radius: 3mm; padding: 2mm; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; background: ${hotelColors.cream}; page-break-inside: avoid; }
+                .hotel { font-size: 5pt; color: ${hotelColors.primary}; margin-bottom: 1mm; }
+                .room { font-size: 8pt; font-weight: bold; margin-bottom: 1mm; }
+                .qr img { width: 25mm; height: 25mm; }
+                .scan { font-size: 5pt; color: #666; margin-top: 1mm; }
+            </style></head>
+            <body>
+                <div class="grid">${stickers}</div>
+                <script>window.onload = function() { window.print(); }<\/script>
+            </body></html>`;
+        }
+
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') closeQrModal();
         });
     </script>
 </body>

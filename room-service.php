@@ -1,21 +1,174 @@
 <?php
 /**
  * Room Service Page - Hôtel Corintel
- * Public page for guests to order room service
+ * QR-code protected access for hotel guests
+ *
+ * Access: /room-service.php?room=X&token=TOKEN
+ * Each room has a unique QR code that links to this page
  */
 
 require_once __DIR__ . '/includes/functions.php';
 
-// Initialize pages table if needed (for dynamic navigation)
-initPagesTable();
+// =====================================================
+// ACCESS CONTROL - QR CODE VALIDATION
+// =====================================================
 
-// Get navigation pages for dynamic menu
+// Start session for room service access
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+// =====================================================
+// MULTI-LANGUAGE DETECTION (on first QR scan)
+// =====================================================
+if (isset($_GET['room']) && isset($_GET['token']) && !isset($_COOKIE['hotel_corintel_lang'])) {
+    $detectedLang = detectBrowserLanguage();
+    if ($detectedLang) {
+        setcookie('hotel_corintel_lang', $detectedLang, time() + (365 * 24 * 60 * 60), '/');
+        $_COOKIE['hotel_corintel_lang'] = $detectedLang;
+    }
+}
+
+// Check access (via URL params or session)
+$accessCheck = checkRoomServiceAccess();
+
+// Get hotel info for error pages
+$hotelName = getHotelName();
+$logoText = getLogoText();
+
+// If no valid access, show error page
+if (!$accessCheck['valid']) {
+    $errorType = $accessCheck['error'];
+    http_response_code(403);
+    ?>
+    <!DOCTYPE html>
+    <html lang="fr">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="robots" content="noindex, nofollow">
+        <title>Accès Refusé | <?= h($hotelName) ?></title>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Lato:wght@300;400;500;700&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="style.css">
+        <?= getThemeCSS() ?>
+        <style>
+            .access-denied {
+                min-height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 2rem;
+                background: linear-gradient(135deg, var(--color-cream) 0%, #fff 100%);
+            }
+            .access-denied-card {
+                max-width: 420px;
+                background: #fff;
+                border-radius: 20px;
+                padding: 3rem 2rem;
+                text-align: center;
+                box-shadow: 0 20px 60px rgba(139, 111, 71, 0.15);
+            }
+            .access-denied-icon {
+                width: 80px;
+                height: 80px;
+                margin: 0 auto 1.5rem;
+                background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            .access-denied-icon svg {
+                width: 40px;
+                height: 40px;
+                color: #fff;
+            }
+            .access-denied h1 {
+                font-family: var(--font-heading);
+                font-size: 1.75rem;
+                color: var(--color-primary);
+                margin-bottom: 1rem;
+            }
+            .access-denied p {
+                color: var(--color-text-light);
+                line-height: 1.6;
+                margin-bottom: 2rem;
+            }
+            .access-denied .hotel-logo {
+                margin-top: 2rem;
+                padding-top: 2rem;
+                border-top: 1px solid var(--color-beige);
+            }
+            .access-denied .hotel-logo span {
+                font-family: var(--font-heading);
+                font-size: 1.25rem;
+                color: var(--color-primary);
+            }
+            .access-denied .hotel-logo small {
+                display: block;
+                color: var(--color-text-light);
+                font-size: 0.85rem;
+                margin-top: 0.25rem;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="access-denied">
+            <div class="access-denied-card">
+                <div class="access-denied-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                    </svg>
+                </div>
+                <h1>Accès Réservé aux Clients</h1>
+                <p>
+                    <?php if ($errorType === 'invalid_token'): ?>
+                        Le lien que vous avez utilisé n'est pas valide. Veuillez scanner le QR code présent dans votre chambre pour accéder au Room Service.
+                    <?php elseif ($errorType === 'room_not_found' || $errorType === 'room_inactive'): ?>
+                        Cette chambre n'est pas disponible pour le Room Service. Veuillez contacter la réception.
+                    <?php else: ?>
+                        Pour commander le Room Service, veuillez scanner le QR code présent dans votre chambre d'hôtel.
+                    <?php endif; ?>
+                </p>
+                <a href="index.php" class="btn btn-primary">Retour à l'accueil</a>
+                <div class="hotel-logo">
+                    <span><?= h($hotelName) ?></span>
+                    <small><?= h($logoText) ?></small>
+                </div>
+            </div>
+        </div>
+    </body>
+    </html>
+    <?php
+    exit;
+}
+
+// =====================================================
+// VALID ACCESS - LOAD ROOM SERVICE
+// =====================================================
+
+$currentRoom = $accessCheck['room'];
+$roomNumber = $currentRoom['room_number'];
+$roomId = $currentRoom['id'];
+
+// Log QR scan only on initial access (not on form submissions or refreshes)
+// We check if this is a fresh QR scan by looking at a session flag
+if (isset($_GET['room']) && isset($_GET['token']) && empty($_SESSION['qr_scan_logged_' . $roomId])) {
+    logQrScan($roomId);
+    $_SESSION['qr_scan_logged_' . $roomId] = time();
+}
+
+// Initialize pages table for navigation
+initPagesTable();
 $navPages = getNavigationPages();
 
-// Get message categories for the contact reception modal
+// Get message categories for contact modal
 $messageCategories = getGuestMessageCategories();
 
-// Get current language for translations
+// Get current language
 $currentLang = getCurrentLanguage();
 
 // Get active items with translations
@@ -23,17 +176,21 @@ $items = getRoomServiceItemsTranslated(true, $currentLang);
 $categories = getRoomServiceCategoriesTranslated($currentLang);
 $paymentMethods = getRoomServicePaymentMethods();
 
-// Store all translations for JavaScript (for dynamic language switching)
+// Store all translations for JS
 $allItemTranslations = [];
 foreach ($items as $item) {
     $allItemTranslations[$item['id']] = getItemTranslations($item['id']);
 }
 
-// Store all category translations for JavaScript
 $allCategoryTranslations = [];
 foreach (array_keys($categories) as $catCode) {
     $allCategoryTranslations[$catCode] = getCategoryTranslations($catCode);
 }
+
+// Get order history for the room
+$orderHistory = getRoomOrderHistory($roomId, 5);
+$frequentItems = getRoomFrequentItems($roomId, 4);
+$estimatedDelivery = getEstimatedDeliveryTime();
 
 // Group items by category
 $itemsByCategory = [];
@@ -51,7 +208,7 @@ $orderId = null;
 $orderError = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'place_order') {
-    $roomNumber = trim($_POST['room_number'] ?? '');
+    // Room number comes from QR code session, not user input
     $guestName = trim($_POST['guest_name'] ?? '');
     $phone = trim($_POST['phone'] ?? '');
     $paymentMethod = $_POST['payment_method'] ?? 'room_charge';
@@ -59,30 +216,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $notes = trim($_POST['notes'] ?? '');
     $orderItems = isset($_POST['items']) ? json_decode($_POST['items'], true) : [];
 
-    // Validation
-    if (empty($roomNumber)) {
-        $orderError = 'Veuillez indiquer votre numéro de chambre.';
-    } elseif (empty($orderItems) || !is_array($orderItems)) {
+    if (empty($orderItems) || !is_array($orderItems)) {
         $orderError = 'Veuillez sélectionner au moins un article.';
     } elseif (!array_key_exists($paymentMethod, $paymentMethods)) {
         $orderError = 'Mode de paiement invalide.';
     } else {
-        // Validate delivery datetime
         $deliveryValidation = validateDeliveryDatetime($deliveryDatetime);
         if (!$deliveryValidation['valid']) {
             $orderError = $deliveryValidation['message'];
         } else {
-            // Validate items and build order items array
             $validItems = [];
             foreach ($orderItems as $orderItem) {
-                if (!isset($orderItem['id']) || !isset($orderItem['quantity'])) {
-                    continue;
-                }
+                if (!isset($orderItem['id']) || !isset($orderItem['quantity'])) continue;
                 $itemId = intval($orderItem['id']);
                 $quantity = intval($orderItem['quantity']);
-                if ($quantity < 1) {
-                    continue;
-                }
+                if ($quantity < 1) continue;
                 $dbItem = getRoomServiceItemById($itemId);
                 if ($dbItem && $dbItem['is_active']) {
                     $validItems[] = [
@@ -97,7 +245,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             if (empty($validItems)) {
                 $orderError = 'Aucun article valide sélectionné.';
             } else {
-                // Validate item availability at delivery time
                 $availabilityCheck = validateOrderItemsAvailability(
                     array_map(fn($i) => ['item_id' => $i['id']], $validItems),
                     $deliveryValidation['datetime']
@@ -106,7 +253,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     $orderError = implode(' ', $availabilityCheck['errors']);
                 } else {
                     $orderId = createRoomServiceOrder([
-                        'room_number' => $roomNumber,
+                        'room_number' => $roomNumber, // Auto-filled from QR
                         'guest_name' => $guestName,
                         'phone' => $phone,
                         'payment_method' => $paymentMethod,
@@ -125,1225 +272,2024 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
 }
 
-$hotelName = getHotelName();
-$logoText = getLogoText();
 $contactInfo = getContactInfo();
 ?>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Commandez votre room service directement depuis votre chambre. <?= h($hotelName) ?>, <?= h($logoText) ?>.">
-  <title>Room Service | <?= h($hotelName) ?> - <?= h($logoText) ?></title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Lato:wght@300;400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
-  <?= getThemeCSS() ?>
-  <?= getHotelNameJS() ?>
-  <style>
-    .room-service-section {
-      padding: 6rem 0 4rem;
-      background: var(--color-cream);
-    }
-    .room-service-header {
-      text-align: center;
-      margin-bottom: 3rem;
-    }
-    .room-service-header h1 {
-      margin-bottom: 1rem;
-    }
-    .room-service-header p {
-      color: var(--color-text-light);
-      max-width: 600px;
-      margin: 0 auto;
-    }
-    .room-service-grid {
-      display: grid;
-      grid-template-columns: 1fr 380px;
-      gap: 2rem;
-      align-items: start;
-    }
-    @media (max-width: 1024px) {
-      .room-service-grid {
-        grid-template-columns: 1fr;
-      }
-    }
-    .category-section {
-      margin-bottom: 1.5rem;
-    }
-    .category-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-      padding: 1rem 0;
-      border-bottom: 2px solid var(--color-beige);
-      cursor: pointer;
-      user-select: none;
-      transition: var(--transition);
-    }
-    .category-header:hover {
-      background: rgba(139, 111, 71, 0.03);
-    }
-    .category-header-left {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-    }
-    .category-toggle {
-      width: 24px;
-      height: 24px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: transform 0.3s ease;
-    }
-    .category-toggle svg {
-      width: 20px;
-      height: 20px;
-      color: var(--color-primary);
-    }
-    .category-section.expanded .category-toggle {
-      transform: rotate(180deg);
-    }
-    .items-grid-wrapper {
-      max-height: 0;
-      overflow: hidden;
-      transition: max-height 0.4s ease-out;
-    }
-    .category-section.expanded .items-grid-wrapper {
-      max-height: 2000px;
-      transition: max-height 0.5s ease-in;
-    }
-    .category-section.expanded .category-header {
-      border-bottom-color: var(--color-primary);
-    }
-    .category-title {
-      font-family: var(--font-heading);
-      font-size: 1.5rem;
-      color: var(--color-primary);
-      margin: 0;
-    }
-    .category-availability {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.35rem;
-      padding: 0.25rem 0.75rem;
-      border-radius: 20px;
-      font-size: 0.8rem;
-      font-weight: 500;
-    }
-    .category-availability.available {
-      background: rgba(72, 187, 120, 0.15);
-      color: #276749;
-    }
-    .category-availability.unavailable {
-      background: rgba(245, 101, 101, 0.15);
-      color: #C53030;
-    }
-    .category-availability.always-available {
-      background: rgba(66, 153, 225, 0.15);
-      color: #2B6CB0;
-    }
-    .items-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 1.5rem;
-      padding-top: 1.5rem;
-      padding-bottom: 0.5rem;
-    }
-    .item-card {
-      background: var(--color-white);
-      border-radius: 12px;
-      overflow: hidden;
-      box-shadow: var(--shadow-soft);
-      transition: var(--transition);
-    }
-    .item-card:hover {
-      box-shadow: var(--shadow-hover);
-      transform: translateY(-4px);
-    }
-    .item-image {
-      height: 160px;
-      background: var(--color-beige);
-      overflow: hidden;
-    }
-    .item-image img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-    .item-content {
-      padding: 1.25rem;
-    }
-    .item-name {
-      font-family: var(--font-heading);
-      font-size: 1.25rem;
-      font-weight: 600;
-      margin-bottom: 0.5rem;
-    }
-    .item-description {
-      color: var(--color-text-light);
-      font-size: 0.9rem;
-      margin-bottom: 1rem;
-      min-height: 2.5rem;
-    }
-    .item-footer {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .item-price {
-      font-size: 1.25rem;
-      font-weight: 700;
-      color: var(--color-primary);
-    }
-    .quantity-control {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-    .quantity-btn {
-      width: 32px;
-      height: 32px;
-      border: 1px solid var(--color-beige);
-      background: var(--color-white);
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 1.25rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: var(--transition);
-    }
-    .quantity-btn:hover {
-      background: var(--color-primary);
-      color: var(--color-white);
-      border-color: var(--color-primary);
-    }
-    .quantity-btn:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-    .quantity-value {
-      width: 40px;
-      text-align: center;
-      font-weight: 600;
-      font-size: 1rem;
-    }
-    .cart-sidebar {
-      background: var(--color-white);
-      border-radius: 12px;
-      box-shadow: var(--shadow-soft);
-      position: sticky;
-      top: calc(var(--header-height) + 1rem);
-    }
-    .cart-header {
-      padding: 1.25rem;
-      border-bottom: 1px solid var(--color-beige);
-    }
-    .cart-header h3 {
-      font-family: var(--font-heading);
-      font-size: 1.25rem;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-    .cart-header h3 svg {
-      width: 24px;
-      height: 24px;
-      color: var(--color-primary);
-    }
-    .cart-body {
-      padding: 1.25rem;
-      max-height: 400px;
-      overflow-y: auto;
-    }
-    .cart-empty {
-      text-align: center;
-      color: var(--color-text-light);
-      padding: 2rem 0;
-    }
-    .cart-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 0.75rem 0;
-      border-bottom: 1px solid var(--color-beige);
-    }
-    .cart-item:last-child {
-      border-bottom: none;
-    }
-    .cart-item-info {
-      flex: 1;
-    }
-    .cart-item-name {
-      font-weight: 600;
-      font-size: 0.9rem;
-    }
-    .cart-item-qty {
-      color: var(--color-text-light);
-      font-size: 0.8rem;
-    }
-    .cart-item-subtotal {
-      font-weight: 600;
-      color: var(--color-primary);
-    }
-    .cart-item-remove {
-      background: none;
-      border: none;
-      color: var(--color-text-light);
-      cursor: pointer;
-      padding: 0.25rem;
-      margin-left: 0.5rem;
-    }
-    .cart-item-remove:hover {
-      color: #e53e3e;
-    }
-    .cart-footer {
-      padding: 1.25rem;
-      border-top: 1px solid var(--color-beige);
-      background: var(--color-cream);
-      border-radius: 0 0 12px 12px;
-    }
-    .cart-total {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 1rem;
-    }
-    .cart-total-label {
-      font-size: 1rem;
-      font-weight: 600;
-    }
-    .cart-total-value {
-      font-size: 1.5rem;
-      font-weight: 700;
-      color: var(--color-primary);
-    }
-    .form-group {
-      margin-bottom: 1rem;
-    }
-    .form-group label {
-      display: block;
-      font-weight: 500;
-      margin-bottom: 0.375rem;
-      font-size: 0.9rem;
-    }
-    .form-group input,
-    .form-group select,
-    .form-group textarea {
-      width: 100%;
-      padding: 0.625rem 0.875rem;
-      border: 1px solid var(--color-beige);
-      border-radius: 6px;
-      font-size: 0.9rem;
-      font-family: var(--font-body);
-      transition: var(--transition);
-    }
-    .form-group input:focus,
-    .form-group select:focus,
-    .form-group textarea:focus {
-      outline: none;
-      border-color: var(--color-primary);
-      box-shadow: 0 0 0 3px rgba(139, 111, 71, 0.1);
-    }
-    .form-group small {
-      display: block;
-      margin-top: 0.25rem;
-      color: var(--color-text-light);
-      font-size: 0.8rem;
-    }
-    .btn-order {
-      width: 100%;
-      padding: 1rem;
-      background: var(--color-primary);
-      color: var(--color-white);
-      border: none;
-      border-radius: 6px;
-      font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: var(--transition);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.5rem;
-    }
-    .btn-order:hover {
-      background: var(--color-primary-dark);
-    }
-    .btn-order:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
-    .btn-order svg {
-      width: 20px;
-      height: 20px;
-    }
-    .order-success {
-      text-align: center;
-      padding: 4rem 2rem;
-    }
-    .order-success-icon {
-      width: 80px;
-      height: 80px;
-      background: rgba(72, 187, 120, 0.1);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto 1.5rem;
-    }
-    .order-success-icon svg {
-      width: 40px;
-      height: 40px;
-      color: #48BB78;
-    }
-    .order-success h2 {
-      margin-bottom: 1rem;
-    }
-    .order-success p {
-      color: var(--color-text-light);
-      max-width: 500px;
-      margin: 0 auto 2rem;
-    }
-    .order-id {
-      font-size: 1.25rem;
-      font-weight: 700;
-      color: var(--color-primary);
-      margin-bottom: 2rem;
-    }
-    .alert-error {
-      background: rgba(245, 101, 101, 0.1);
-      color: #C53030;
-      padding: 1rem;
-      border-radius: 8px;
-      margin-bottom: 1.5rem;
-      border: 1px solid rgba(245, 101, 101, 0.3);
-    }
-    .no-items {
-      text-align: center;
-      padding: 4rem 2rem;
-      color: var(--color-text-light);
-    }
-    .no-items svg {
-      width: 64px;
-      height: 64px;
-      margin-bottom: 1rem;
-      opacity: 0.5;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Room Service | Chambre <?= h($roomNumber) ?> | <?= h($hotelName) ?></title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Lato:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <?= getThemeCSS() ?>
+    <?= getHotelNameJS() ?>
+    <style>
+        /* =====================================================
+           PREMIUM MOBILE-FIRST ROOM SERVICE STYLES
+           ===================================================== */
+
+        :root {
+            --rs-radius: 16px;
+            --rs-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            --rs-shadow-hover: 0 8px 30px rgba(0,0,0,0.12);
+            --rs-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --rs-header-height: 70px;
+            --rs-cart-height: 72px;
+        }
+
+        /* Room indicator banner */
+        .room-banner {
+            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+            color: #fff;
+            padding: 0.75rem 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .room-banner svg {
+            width: 18px;
+            height: 18px;
+            opacity: 0.9;
+        }
+        .room-banner strong {
+            font-weight: 600;
+        }
+
+        /* Compact header for mobile */
+        .rs-header {
+            background: #fff;
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid var(--color-beige);
+            position: sticky;
+            top: 45px;
+            z-index: 99;
+        }
+        .rs-header-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .rs-logo {
+            font-family: var(--font-heading);
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--color-primary);
+            text-decoration: none;
+        }
+        .rs-logo span {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 400;
+            color: var(--color-text-light);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        .btn-contact-small {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.5rem 0.875rem;
+            background: var(--color-cream);
+            border: 1px solid var(--color-beige);
+            border-radius: 8px;
+            font-size: 0.8rem;
+            color: var(--color-text);
+            cursor: pointer;
+            transition: var(--rs-transition);
+        }
+        .btn-contact-small:hover {
+            background: var(--color-beige);
+        }
+        .btn-contact-small svg {
+            width: 16px;
+            height: 16px;
+            color: var(--color-primary);
+        }
+
+        /* Main content area */
+        .rs-main {
+            background: var(--color-cream);
+            min-height: calc(100vh - var(--rs-header-height) - var(--rs-cart-height));
+            padding-bottom: calc(var(--rs-cart-height) + 2rem);
+        }
+
+        /* Hero section - simplified for mobile */
+        .rs-hero {
+            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+            color: #fff;
+            padding: 2.5rem 1.25rem;
+            text-align: center;
+        }
+        .rs-hero h1 {
+            font-family: var(--font-heading);
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+        .rs-hero p {
+            opacity: 0.9;
+            font-size: 1rem;
+        }
+
+        /* Order History Section */
+        .order-history-section {
+            background: white;
+            border-bottom: 1px solid var(--color-beige);
+            padding: 1rem 1.25rem;
+        }
+        .order-history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+        .order-history-header h3 {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--color-primary);
+            margin: 0;
+        }
+        .order-history-header h3 svg {
+            width: 18px;
+            height: 18px;
+        }
+        .order-history-toggle {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            background: none;
+            border: none;
+            color: var(--color-primary);
+            font-size: 0.8rem;
+            cursor: pointer;
+            padding: 0.25rem 0.5rem;
+        }
+        .order-history-toggle svg {
+            width: 16px;
+            height: 16px;
+            transition: transform 0.2s;
+        }
+        .order-history-toggle.expanded svg {
+            transform: rotate(180deg);
+        }
+        .order-history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            max-height: 140px;
+            overflow: hidden;
+            transition: max-height 0.3s;
+        }
+        .order-history-list.expanded {
+            max-height: 500px;
+        }
+        .order-history-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem;
+            background: var(--color-cream);
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .order-history-item:hover {
+            background: var(--color-beige);
+        }
+        .order-history-main {
+            flex: 1;
+            min-width: 0;
+        }
+        .order-date {
+            font-size: 0.7rem;
+            color: var(--color-text-light);
+            margin-bottom: 0.25rem;
+        }
+        .order-items {
+            font-size: 0.85rem;
+            color: var(--color-text);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .order-history-right {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 0.25rem;
+            margin-left: 1rem;
+        }
+        .order-total {
+            font-weight: 600;
+            color: var(--color-primary);
+            font-size: 0.9rem;
+        }
+        .order-status {
+            font-size: 0.65rem;
+            padding: 0.125rem 0.5rem;
+            border-radius: 10px;
+            text-transform: uppercase;
+            font-weight: 500;
+        }
+        .order-status-delivered {
+            background: #C8E6C9;
+            color: #2E7D32;
+        }
+        .order-status-pending, .order-status-confirmed, .order-status-preparing {
+            background: #FFF3E0;
+            color: #E65100;
+        }
+        .order-status-cancelled {
+            background: #FFCDD2;
+            color: #C62828;
+        }
+        /* Quick Reorder */
+        .quick-reorder {
+            margin-top: 0.75rem;
+            padding-top: 0.75rem;
+            border-top: 1px dashed var(--color-beige);
+        }
+        .quick-reorder-label {
+            font-size: 0.75rem;
+            color: var(--color-text-light);
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+        .quick-reorder-items {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .quick-reorder-btn {
+            padding: 0.375rem 0.75rem;
+            background: white;
+            border: 1px solid var(--color-primary);
+            border-radius: 20px;
+            color: var(--color-primary);
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .quick-reorder-btn:hover {
+            background: var(--color-primary);
+            color: white;
+        }
+
+        /* Category tabs - horizontal scroll */
+        .category-tabs {
+            display: flex;
+            gap: 0.5rem;
+            padding: 1rem 1.25rem;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            background: #fff;
+            border-bottom: 1px solid var(--color-beige);
+            position: sticky;
+            top: 115px;
+            z-index: 98;
+        }
+        .category-tabs::-webkit-scrollbar {
+            display: none;
+        }
+        /* R1: Overflow fade on right edge */
+        .category-tabs.show-overflow-fade {
+            box-shadow: inset -48px 0 24px -16px #fff;
+        }
+        .category-tab {
+            flex-shrink: 0;
+            padding: 0.625rem 1rem;
+            background: var(--color-cream);
+            border: 1px solid var(--color-beige);
+            border-radius: 25px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--color-text);
+            cursor: pointer;
+            transition: var(--rs-transition);
+            white-space: nowrap;
+        }
+        .category-tab.active,
+        .category-tab:hover {
+            background: var(--color-primary);
+            border-color: var(--color-primary);
+            color: #fff;
+        }
+        .category-tab .tab-count {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 20px;
+            height: 20px;
+            margin-left: 0.35rem;
+            padding: 0 0.35rem;
+            background: rgba(255,255,255,0.2);
+            border-radius: 10px;
+            font-size: 0.75rem;
+        }
+        .category-tab.active .tab-count {
+            background: rgba(255,255,255,0.3);
+        }
+
+        /* Menu sections */
+        .menu-section {
+            padding: 1.25rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid var(--color-beige);
+        }
+        .section-title {
+            font-family: var(--font-heading);
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+        .section-availability {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.35rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .section-availability.available {
+            background: rgba(72, 187, 120, 0.15);
+            color: #276749;
+        }
+        .section-availability.unavailable {
+            background: rgba(245, 101, 101, 0.15);
+            color: #C53030;
+        }
+        .section-availability.always {
+            background: rgba(66, 153, 225, 0.15);
+            color: #2B6CB0;
+        }
+        .section-availability svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        /* Item cards - Mobile optimized */
+        .items-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .item-card {
+            display: flex;
+            background: #fff;
+            border-radius: var(--rs-radius);
+            box-shadow: var(--rs-shadow);
+            overflow: hidden;
+            transition: var(--rs-transition);
+        }
+        .item-card:active {
+            transform: scale(0.98);
+        }
+        .item-image {
+            width: 110px;
+            min-width: 110px;
+            height: 110px;
+            background: var(--color-beige);
+            flex-shrink: 0;
+        }
+        .item-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .item-image-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--color-beige) 0%, var(--color-cream) 100%);
+        }
+        .item-image-placeholder svg {
+            width: 32px;
+            height: 32px;
+            color: var(--color-primary);
+            opacity: 0.4;
+        }
+        .item-content {
+            flex: 1;
+            padding: 0.875rem 1rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .item-name {
+            font-family: var(--font-heading);
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--color-text);
+            margin-bottom: 0.25rem;
+            line-height: 1.3;
+        }
+        .item-description {
+            font-size: 0.8rem;
+            color: var(--color-text-light);
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .item-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: auto;
+            padding-top: 0.5rem;
+        }
+        .item-price {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--color-primary);
+        }
+
+        /* Quantity controls - larger touch targets */
+        .quantity-control {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            background: var(--color-cream);
+            border-radius: 8px;
+            padding: 0.25rem;
+        }
+        .quantity-btn {
+            width: 44px;
+            height: 44px;
+            border: none;
+            background: #fff;
+            border-radius: 6px;
+            font-size: 1.25rem;
+            font-weight: 500;
+            color: var(--color-primary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--rs-transition);
+            -webkit-tap-highlight-color: transparent;
+        }
+        .quantity-btn:active {
+            transform: scale(0.9);
+            background: var(--color-primary);
+            color: #fff;
+        }
+        .quantity-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+        .quantity-btn:disabled:active {
+            transform: none;
+            background: #fff;
+            color: var(--color-primary);
+        }
+        .quantity-value {
+            width: 32px;
+            text-align: center;
+            font-weight: 700;
+            font-size: 1rem;
+            color: var(--color-text);
+        }
+        .quantity-value.has-items {
+            color: var(--color-primary);
+        }
+
+        /* Floating cart bar - bottom sheet style */
+        .cart-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #fff;
+            border-top: 1px solid var(--color-beige);
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
+            z-index: 1000;
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .cart-bar.visible {
+            transform: translateY(0);
+        }
+        .cart-bar-content {
+            display: flex;
+            align-items: center;
+            padding: 0.875rem 1.25rem;
+            gap: 1rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .cart-summary {
+            flex: 1;
+        }
+        .cart-items-count {
+            font-size: 0.85rem;
+            color: var(--color-text-light);
+        }
+        .cart-items-count strong {
+            color: var(--color-primary);
+        }
+        .cart-total {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--color-primary);
+        }
+        .btn-view-cart {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.875rem 1.5rem;
+            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--rs-transition);
+        }
+        .btn-view-cart:active {
+            transform: scale(0.96);
+        }
+        .btn-view-cart svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        /* Cart modal - full screen on mobile */
+        .cart-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        .cart-modal.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        .cart-modal-content {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            max-height: 90vh;
+            background: #fff;
+            border-radius: 24px 24px 0 0;
+            transform: translateY(100%);
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+        }
+        .cart-modal.active .cart-modal-content {
+            transform: translateY(0);
+        }
+        .cart-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--color-beige);
+        }
+        .cart-modal-header h2 {
+            font-family: var(--font-heading);
+            font-size: 1.5rem;
+            color: var(--color-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .cart-modal-header h2 svg {
+            width: 24px;
+            height: 24px;
+        }
+        .btn-close-cart {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--color-cream);
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+        .btn-close-cart svg {
+            width: 20px;
+            height: 20px;
+            color: var(--color-text);
+        }
+        .cart-modal-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem 1.5rem;
+        }
+        .cart-empty-modal {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--color-text-light);
+        }
+        .cart-empty-modal svg {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+        .cart-item {
+            display: flex;
+            align-items: center;
+            padding: 1rem 0;
+            border-bottom: 1px solid var(--color-beige);
+            gap: 1rem;
+        }
+        .cart-item:last-child {
+            border-bottom: none;
+        }
+        .cart-item-info {
+            flex: 1;
+        }
+        .cart-item-name {
+            font-weight: 600;
+            font-size: 1rem;
+            margin-bottom: 0.25rem;
+        }
+        .cart-item-qty {
+            font-size: 0.85rem;
+            color: var(--color-text-light);
+        }
+        .cart-item-price {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--color-primary);
+        }
+        .btn-remove-item {
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(220, 53, 69, 0.1);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: var(--rs-transition);
+        }
+        .btn-remove-item svg {
+            width: 18px;
+            height: 18px;
+            color: #dc3545;
+        }
+        .btn-remove-item:active {
+            background: #dc3545;
+        }
+        .btn-remove-item:active svg {
+            color: #fff;
+        }
+        .cart-modal-footer {
+            padding: 1rem 1.5rem 1.5rem;
+            border-top: 1px solid var(--color-beige);
+            background: var(--color-cream);
+        }
+        /* Delivery Estimate */
+        .delivery-estimate {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1rem;
+            background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%);
+            border-radius: 8px;
+            margin-bottom: 0.75rem;
+            font-size: 0.875rem;
+            color: #2E7D32;
+        }
+        .delivery-estimate svg {
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+        }
+        .delivery-estimate.busy {
+            background: linear-gradient(135deg, #FFF3E0 0%, #FFE0B2 100%);
+            color: #E65100;
+        }
+        /* Notification Toggle */
+        .notification-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px dashed var(--color-primary);
+            background: transparent;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            color: var(--color-primary);
+            cursor: pointer;
+            margin-bottom: 1rem;
+            transition: all 0.2s;
+        }
+        .notification-toggle:hover {
+            background: rgba(139, 111, 71, 0.05);
+        }
+        .notification-toggle.active {
+            background: var(--color-primary);
+            color: white;
+            border-style: solid;
+        }
+        .notification-toggle svg {
+            width: 18px;
+            height: 18px;
+        }
+        .cart-total-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .cart-total-label {
+            font-size: 1rem;
+            color: var(--color-text);
+        }
+        .cart-total-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--color-primary);
+        }
+        .btn-checkout {
+            width: 100%;
+            padding: 1rem;
+            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            transition: var(--rs-transition);
+        }
+        .btn-checkout:active {
+            transform: scale(0.98);
+        }
+        .btn-checkout svg {
+            width: 22px;
+            height: 22px;
+        }
+
+        /* Checkout form modal */
+        .checkout-form {
+            padding-top: 1rem;
+        }
+        .form-section {
+            margin-bottom: 1.5rem;
+        }
+        .form-section-title {
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--color-text-light);
+            margin-bottom: 0.75rem;
+        }
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        .form-group label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 0.4rem;
+            font-size: 0.9rem;
+        }
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            border: 1px solid var(--color-beige);
+            border-radius: 10px;
+            font-size: 1rem;
+            font-family: inherit;
+            transition: var(--rs-transition);
+            background: #fff;
+        }
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 3px rgba(139, 111, 71, 0.15);
+        }
+        .form-group small {
+            display: block;
+            margin-top: 0.35rem;
+            font-size: 0.8rem;
+            color: var(--color-text-light);
+        }
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+        @media (max-width: 480px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+        .room-display {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.875rem 1rem;
+            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+            border-radius: 10px;
+            color: #fff;
+        }
+        .room-display svg {
+            width: 24px;
+            height: 24px;
+            opacity: 0.9;
+        }
+        .room-display-text {
+            flex: 1;
+        }
+        .room-display-text small {
+            display: block;
+            font-size: 0.75rem;
+            opacity: 0.8;
+        }
+        .room-display-text strong {
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        /* Order success */
+        .order-success {
+            text-align: center;
+            padding: 4rem 2rem;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        .order-success-icon {
+            width: 100px;
+            height: 100px;
+            margin: 0 auto 2rem;
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: successPulse 0.6s ease-out;
+        }
+        @keyframes successPulse {
+            0% { transform: scale(0); opacity: 0; }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .order-success-icon svg {
+            width: 50px;
+            height: 50px;
+            color: #fff;
+        }
+        .order-success h2 {
+            font-family: var(--font-heading);
+            font-size: 2rem;
+            color: var(--color-primary);
+            margin-bottom: 1rem;
+        }
+        .order-success p {
+            color: var(--color-text-light);
+            font-size: 1.1rem;
+            line-height: 1.6;
+            margin-bottom: 2rem;
+        }
+        .order-id {
+            display: inline-block;
+            background: var(--color-cream);
+            padding: 0.75rem 1.5rem;
+            border-radius: 10px;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--color-primary);
+            margin-bottom: 2rem;
+        }
+        .btn-new-order {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 1rem 2rem;
+            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        /* Alert styles */
+        .alert-error {
+            background: rgba(220, 53, 69, 0.1);
+            color: #dc3545;
+            padding: 1rem 1.25rem;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .alert-error svg {
+            width: 20px;
+            height: 20px;
+            flex-shrink: 0;
+        }
+
+        /* Service unavailable */
+        .service-unavailable {
+            text-align: center;
+            padding: 4rem 2rem;
+        }
+        .service-unavailable svg {
+            width: 80px;
+            height: 80px;
+            color: var(--color-primary);
+            opacity: 0.5;
+            margin-bottom: 1.5rem;
+        }
+        .service-unavailable h2 {
+            font-family: var(--font-heading);
+            font-size: 1.75rem;
+            color: var(--color-primary);
+            margin-bottom: 1rem;
+        }
+        .service-unavailable p {
+            color: var(--color-text-light);
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        /* Desktop optimizations */
+        @media (min-width: 768px) {
+            .room-banner {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+            }
+            .rs-header {
+                position: fixed;
+                top: 45px;
+                left: 0;
+                right: 0;
+            }
+            .category-tabs {
+                position: fixed;
+                top: 115px;
+                left: 0;
+                right: 0;
+                justify-content: center;
+            }
+            .rs-main {
+                padding-top: 120px;
+            }
+            .rs-hero {
+                padding: 3rem 2rem;
+            }
+            .rs-hero h1 {
+                font-size: 2.5rem;
+            }
+            .menu-section {
+                padding: 2rem;
+            }
+            .items-list {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+                gap: 1.25rem;
+            }
+            .item-card {
+                flex-direction: column;
+            }
+            .item-image {
+                width: 100%;
+                height: 180px;
+            }
+            .item-content {
+                padding: 1.25rem;
+            }
+            .cart-modal-content {
+                max-width: 500px;
+                left: 50%;
+                transform: translateX(-50%) translateY(100%);
+                border-radius: 24px;
+                bottom: 20px;
+                max-height: calc(90vh - 40px);
+            }
+            .cart-modal.active .cart-modal-content {
+                transform: translateX(-50%) translateY(0);
+            }
+            .cart-bar-content {
+                justify-content: center;
+                gap: 2rem;
+            }
+
+            /* M1: Banner hide-on-scroll */
+            .room-banner {
+                transition: transform 0.25s ease;
+            }
+            .room-banner.hidden {
+                transform: translateY(-100%);
+            }
+            .rs-header {
+                transition: top 0.25s ease;
+            }
+            .rs-header.no-banner {
+                top: 0;
+            }
+            .category-tabs {
+                transition: top 0.25s ease;
+            }
+            .category-tabs.no-banner {
+                top: var(--rs-header-height);
+            }
+        }
+
+        /* Hide footer on room service for cleaner mobile experience */
+        .footer {
+            display: none;
+        }
+
+        /* Quick reorder highlight animation */
+        @keyframes highlightItem {
+            0% { box-shadow: 0 0 0 0 var(--color-primary); }
+            50% { box-shadow: 0 0 0 4px rgba(139, 111, 71, 0.3); }
+            100% { box-shadow: var(--rs-shadow); }
+        }
+    </style>
 </head>
 <body>
-  <!-- Header -->
-  <header class="header" id="header">
-    <div class="container">
-      <a href="index.php" class="logo">
-        <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6M9 9h.01M15 9h.01M9 13h.01M15 13h.01"/>
+    <!-- Room Banner -->
+    <div class="room-banner">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+            <polyline points="9 22 9 12 15 12 15 22"/>
         </svg>
-        <div class="logo-text">
-          <?= h($hotelName) ?>
-          <span><?= h($logoText) ?></span>
+        <span>Chambre <strong><?= h($roomNumber) ?></strong></span>
+    </div>
+
+    <!-- Compact Header -->
+    <header class="rs-header">
+        <div class="rs-header-content">
+            <a href="index.php" class="rs-logo">
+                <?= h($hotelName) ?>
+                <span>Room Service</span>
+            </a>
+            <button type="button" class="btn-contact-small" id="btnContactReception">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81"/>
+                </svg>
+                Réception
+            </button>
         </div>
-      </a>
-      <nav class="nav-menu" id="navMenu">
-        <?php foreach ($navPages as $navPage): ?>
-        <?php
-            $navUrl = $navPage['slug'] === '' ? 'index.php' : '/' . $navPage['slug'];
-            $navI18nKey = $navPage['i18n_nav_key'] ?: '';
-        ?>
-        <a href="<?= h($navUrl) ?>" class="nav-link"<?= $navI18nKey ? ' data-i18n="' . h($navI18nKey) . '"' : '' ?>><?= h($navPage['nav_title'] ?: $navPage['title']) ?></a>
-        <?php endforeach; ?>
-        <a href="room-service.php" class="nav-link active" data-i18n="nav.roomService">Room Service</a>
-        <button type="button" class="btn-contact-reception" id="btnContactReception" data-i18n="header.contactReception">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-          </svg>
-          Contacter la réception
-        </button>
-      </nav>
-      <div class="menu-toggle" id="menuToggle">
-        <span></span>
-        <span></span>
-        <span></span>
-      </div>
-    </div>
-  </header>
+    </header>
 
-  <!-- Page Hero -->
-  <section class="page-hero" style="background-image: url('images/resto/restaurant-hotel-tresses-3.jpg');">
-    <div class="page-hero-content">
-      <p class="hero-subtitle" data-i18n="roomService.heroSubtitle"><?= h($hotelName) ?></p>
-      <h1 class="page-hero-title" data-i18n="roomService.heroTitle">Room Service</h1>
-      <p class="page-hero-subtitle" data-i18n="roomService.heroDescription">Commandez depuis votre chambre</p>
-    </div>
-  </section>
-
-  <?php if ($orderSuccess): ?>
-    <!-- Order Success -->
-    <section class="room-service-section">
-      <div class="container">
+    <main class="rs-main">
+        <?php if ($orderSuccess): ?>
+        <!-- Order Success -->
         <div class="order-success">
-          <div class="order-success-icon">
+            <div class="order-success-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="20 6 9 17 4 12"/>
+                </svg>
+            </div>
+            <h2 data-i18n="roomService.orderConfirmed">Commande confirmée !</h2>
+            <p data-i18n="roomService.orderSuccessMessage">Votre commande a été enregistrée. Notre équipe va la préparer et vous la livrer dans les meilleurs délais.</p>
+            <div class="order-id">Commande #<?= $orderId ?></div>
+            <a href="room-service.php" class="btn-new-order" data-i18n="roomService.backToMenu">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"/>
+                    <line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+                Retour au menu
+            </a>
+        </div>
+
+        <?php elseif (empty($items)): ?>
+        <!-- Service Unavailable -->
+        <div class="service-unavailable">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="20 6 9 17 4 12"/>
+                <path d="M18 8h1a4 4 0 0 1 0 8h-1"/>
+                <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/>
             </svg>
-          </div>
-          <h2 data-i18n="roomService.orderConfirmed">Commande confirmée</h2>
-          <p data-i18n="roomService.orderSuccessMessage">Votre commande a été enregistrée avec succès. Notre équipe va la préparer et vous la livrer dans les meilleurs délais.</p>
-          <div class="order-id"><span data-i18n="roomService.orderNumber">Commande #</span><?= $orderId ?></div>
-          <a href="room-service.php" class="btn btn-primary" data-i18n="roomService.newOrder">Passer une nouvelle commande</a>
+            <h2 data-i18n="roomService.serviceUnavailable">Service momentanément indisponible</h2>
+            <p data-i18n="roomService.serviceUnavailableMessage">Le room service n'est pas disponible actuellement. Veuillez contacter la réception.</p>
         </div>
-      </div>
-    </section>
 
-  <?php elseif (empty($items)): ?>
-    <!-- No Items Available -->
-    <section class="room-service-section">
-      <div class="container">
-        <div class="no-items">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M18 8h1a4 4 0 0 1 0 8h-1"/>
-            <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/>
-          </svg>
-          <h2 data-i18n="roomService.serviceUnavailable">Service actuellement indisponible</h2>
-          <p data-i18n="roomService.serviceUnavailableMessage">Le room service n'est pas disponible pour le moment. Veuillez réessayer ultérieurement ou appeler la réception au +33 5 57 34 13 95.</p>
-        </div>
-      </div>
-    </section>
+        <?php else: ?>
+        <!-- Hero -->
+        <section class="rs-hero">
+            <h1 data-i18n="roomService.heroTitle">Room Service</h1>
+            <p data-i18n="roomService.heroDescription">Commandez et faites-vous livrer en chambre</p>
+        </section>
 
-  <?php else: ?>
-    <!-- Room Service Order Form -->
-    <section class="room-service-section">
-      <div class="container">
-        <?php if ($orderError): ?>
-          <div class="alert-error"><?= htmlspecialchars($orderError) ?></div>
-        <?php endif; ?>
-
-        <div class="room-service-grid">
-          <!-- Menu Items -->
-          <div class="menu-items">
-            <?php foreach ($itemsByCategory as $categoryKey => $categoryItems): ?>
-              <?php $catAvailability = getCategoryAvailabilityInfo($categoryKey); ?>
-              <div class="category-section" data-category="<?= htmlspecialchars($categoryKey) ?>">
-                <div class="category-header">
-                  <div class="category-header-left">
-                    <span class="category-toggle">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polyline points="6 9 12 15 18 9"/>
-                      </svg>
-                    </span>
-                    <h2 class="category-title" data-i18n="roomService.categories.<?= htmlspecialchars($categoryKey) ?>"><?= htmlspecialchars($categories[$categoryKey] ?? ucfirst($categoryKey)) ?></h2>
-                  </div>
-                  <?php if ($catAvailability['time_start'] && $catAvailability['time_end']): ?>
-                    <span class="category-availability <?= $catAvailability['available'] ? 'available' : 'unavailable' ?>">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;">
+        <?php if (!empty($orderHistory)): ?>
+        <!-- Order History Section -->
+        <section class="order-history-section">
+            <div class="order-history-header">
+                <h3>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="10"/>
                         <polyline points="12 6 12 12 16 14"/>
-                      </svg>
-                      <?= htmlspecialchars($catAvailability['time_start']) ?> - <?= htmlspecialchars($catAvailability['time_end']) ?>
-                    </span>
-                  <?php else: ?>
-                    <span class="category-availability always-available">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;">
-                        <polyline points="20 6 9 17 4 12"/>
-                      </svg>
-                      <span data-i18n="roomService.available24h">24h/24</span>
-                    </span>
-                  <?php endif; ?>
+                    </svg>
+                    Vos commandes récentes
+                </h3>
+                <button type="button" class="order-history-toggle" id="orderHistoryToggle">
+                    <span>Voir tout</span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="order-history-list" id="orderHistoryList">
+                <?php foreach ($orderHistory as $order): ?>
+                <div class="order-history-item" data-order-id="<?= $order['id'] ?>">
+                    <div class="order-history-main">
+                        <div class="order-date"><?= $order['created_at_formatted'] ?></div>
+                        <div class="order-items">
+                            <?php
+                            $itemNames = array_map(fn($i) => $i['name'], array_slice($order['items'], 0, 2));
+                            echo h(implode(', ', $itemNames));
+                            if (count($order['items']) > 2) echo ' +' . (count($order['items']) - 2);
+                            ?>
+                        </div>
+                    </div>
+                    <div class="order-history-right">
+                        <span class="order-total"><?= number_format($order['total_amount'], 2, ',', ' ') ?> €</span>
+                        <span class="order-status order-status-<?= $order['status'] ?>"><?= ucfirst($order['status']) ?></span>
+                    </div>
                 </div>
-                <div class="items-grid-wrapper">
-                  <div class="items-grid">
-                    <?php foreach ($categoryItems as $item): ?>
-                      <div class="item-card" data-item-id="<?= $item['id'] ?>" data-item-name="<?= htmlspecialchars($item['name']) ?>" data-item-price="<?= $item['price'] ?>" data-item-category="<?= htmlspecialchars($item['category'] ?? 'general') ?>">
-                        <div class="item-image">
-                          <?php if ($item['image']): ?>
-                            <img src="<?= htmlspecialchars($item['image']) ?>" alt="<?= htmlspecialchars($item['name']) ?>">
-                          <?php else: ?>
-                            <div style="height: 100%; display: flex; align-items: center; justify-content: center;">
-                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" style="width: 48px; height: 48px; opacity: 0.3;">
+                <?php endforeach; ?>
+            </div>
+            <?php if (!empty($frequentItems)): ?>
+            <div class="quick-reorder">
+                <span class="quick-reorder-label">Commander à nouveau :</span>
+                <div class="quick-reorder-items">
+                    <?php foreach ($frequentItems as $fItem): ?>
+                    <button type="button" class="quick-reorder-btn" data-item-id="<?= $fItem['item_id'] ?>">
+                        <?= h($fItem['item_name']) ?>
+                    </button>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+            <?php endif; ?>
+        </section>
+        <?php endif; ?>
+
+        <!-- Category Tabs -->
+        <div class="category-tabs" id="categoryTabs">
+            <?php $firstCategory = true; ?>
+            <?php foreach ($itemsByCategory as $categoryKey => $categoryItems): ?>
+            <button type="button" class="category-tab<?= $firstCategory ? ' active' : '' ?>" data-category="<?= h($categoryKey) ?>">
+                <?= h($categories[$categoryKey] ?? ucfirst($categoryKey)) ?>
+                <span class="tab-count"><?= count($categoryItems) ?></span>
+            </button>
+            <?php $firstCategory = false; ?>
+            <?php endforeach; ?>
+        </div>
+
+        <?php if ($orderError): ?>
+        <div style="padding: 1rem 1.25rem;">
+            <div class="alert-error">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="8" x2="12" y2="12"/>
+                    <line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+                <?= h($orderError) ?>
+            </div>
+        </div>
+        <?php endif; ?>
+
+        <!-- Menu Sections -->
+        <?php $firstSection = true; ?>
+        <?php foreach ($itemsByCategory as $categoryKey => $categoryItems): ?>
+        <?php $catAvailability = getCategoryAvailabilityInfo($categoryKey); ?>
+        <section class="menu-section" id="section-<?= h($categoryKey) ?>" style="<?= $firstSection ? '' : 'display:none;' ?>">
+            <div class="section-header">
+                <h2 class="section-title"><?= h($categories[$categoryKey] ?? ucfirst($categoryKey)) ?></h2>
+                <?php if ($catAvailability['time_start'] && $catAvailability['time_end']): ?>
+                <span class="section-availability <?= $catAvailability['available'] ? 'available' : 'unavailable' ?>">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                    <?= h($catAvailability['time_start']) ?> - <?= h($catAvailability['time_end']) ?>
+                </span>
+                <?php else: ?>
+                <span class="section-availability always">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    24h/24
+                </span>
+                <?php endif; ?>
+            </div>
+
+            <div class="items-list">
+                <?php foreach ($categoryItems as $item): ?>
+                <div class="item-card" data-item-id="<?= $item['id'] ?>" data-item-name="<?= h($item['name']) ?>" data-item-price="<?= $item['price'] ?>">
+                    <div class="item-image">
+                        <?php if ($item['image']): ?>
+                        <img src="<?= h($item['image']) ?>" alt="<?= h($item['name']) ?>" loading="lazy">
+                        <?php else: ?>
+                        <div class="item-image-placeholder">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                                 <path d="M18 8h1a4 4 0 0 1 0 8h-1"/>
                                 <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/>
-                              </svg>
-                            </div>
-                          <?php endif; ?>
+                            </svg>
                         </div>
-                        <div class="item-content">
-                          <h3 class="item-name"><?= htmlspecialchars($item['name']) ?></h3>
-                          <p class="item-description"><?= htmlspecialchars($item['description'] ?? '') ?></p>
-                          <div class="item-footer">
+                        <?php endif; ?>
+                    </div>
+                    <div class="item-content">
+                        <div>
+                            <h3 class="item-name"><?= h($item['name']) ?></h3>
+                            <?php if (!empty($item['description'])): ?>
+                            <p class="item-description"><?= h($item['description']) ?></p>
+                            <?php endif; ?>
+                        </div>
+                        <div class="item-footer">
                             <span class="item-price"><?= number_format($item['price'], 2, ',', ' ') ?> €</span>
                             <div class="quantity-control">
-                              <button type="button" class="quantity-btn btn-minus" disabled>−</button>
-                              <span class="quantity-value">0</span>
-                              <button type="button" class="quantity-btn btn-plus">+</button>
+                                <button type="button" class="quantity-btn btn-minus" disabled>−</button>
+                                <span class="quantity-value">0</span>
+                                <button type="button" class="quantity-btn btn-plus">+</button>
                             </div>
-                          </div>
                         </div>
-                      </div>
-                    <?php endforeach; ?>
-                  </div>
+                    </div>
                 </div>
-              </div>
-            <?php endforeach; ?>
-          </div>
+                <?php endforeach; ?>
+            </div>
+        </section>
+        <?php $firstSection = false; ?>
+        <?php endforeach; ?>
+        <?php endif; ?>
+    </main>
 
-          <!-- Cart Sidebar -->
-          <div class="cart-sidebar">
-            <div class="cart-header">
-              <h3>
+    <!-- Floating Cart Bar -->
+    <div class="cart-bar" id="cartBar">
+        <div class="cart-bar-content">
+            <div class="cart-summary">
+                <div class="cart-items-count"><strong id="cartCount">0</strong> article(s)</div>
+                <div class="cart-total" id="cartTotalBar">0,00 €</div>
+            </div>
+            <button type="button" class="btn-view-cart" id="btnViewCart">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="9" cy="21" r="1"/>
-                  <circle cx="20" cy="21" r="1"/>
-                  <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                    <circle cx="9" cy="21" r="1"/>
+                    <circle cx="20" cy="21" r="1"/>
+                    <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
                 </svg>
-                <span data-i18n="roomService.yourOrder">Votre commande</span>
-              </h3>
-            </div>
-            <div class="cart-body" id="cartBody">
-              <div class="cart-empty" id="cartEmpty" data-i18n="roomService.cartEmpty">
-                Sélectionnez des articles pour commencer
-              </div>
-              <div id="cartItems"></div>
-            </div>
-            <div class="cart-footer">
-              <div class="cart-total">
-                <span class="cart-total-label" data-i18n="roomService.total">Total</span>
-                <span class="cart-total-value" id="cartTotal">0,00 €</span>
-              </div>
-
-              <form method="POST" id="orderForm">
-                <input type="hidden" name="action" value="place_order">
-                <input type="hidden" name="items" id="orderItems">
-
-                <div class="form-group">
-                  <label for="room_number" data-i18n="roomService.roomNumber">Numéro de chambre *</label>
-                  <input type="text" id="room_number" name="room_number" required placeholder="Ex: 101" data-i18n-placeholder="roomService.roomNumberPlaceholder">
-                </div>
-
-                <div class="form-group">
-                  <label for="guest_name" data-i18n="roomService.yourName">Votre nom</label>
-                  <input type="text" id="guest_name" name="guest_name" placeholder="Optionnel" data-i18n-placeholder="roomService.optionalPlaceholder">
-                </div>
-
-                <div class="form-group">
-                  <label for="phone" data-i18n="roomService.phone">Téléphone</label>
-                  <input type="tel" id="phone" name="phone" placeholder="Pour vous joindre si nécessaire" data-i18n-placeholder="roomService.phonePlaceholder">
-                </div>
-
-                <div class="form-group">
-                  <label for="delivery_datetime" data-i18n="roomService.deliveryDateTime">Date et heure de livraison *</label>
-                  <input type="datetime-local" id="delivery_datetime" name="delivery_datetime" required>
-                  <small data-i18n="roomService.deliveryMinTime">Minimum 30 minutes à l'avance</small>
-                </div>
-
-                <div class="form-group">
-                  <label for="payment_method" data-i18n="roomService.paymentMethod">Mode de paiement</label>
-                  <select id="payment_method" name="payment_method">
-                    <?php foreach ($paymentMethods as $key => $label): ?>
-                      <option value="<?= htmlspecialchars($key) ?>"><?= htmlspecialchars($label) ?></option>
-                    <?php endforeach; ?>
-                  </select>
-                </div>
-
-                <div class="form-group">
-                  <label for="notes" data-i18n="roomService.notes">Remarques</label>
-                  <textarea id="notes" name="notes" rows="2" placeholder="Allergies, préférences..." data-i18n-placeholder="roomService.notesPlaceholder"></textarea>
-                </div>
-
-                <button type="submit" class="btn-order" id="submitBtn" disabled>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                    <polyline points="22 4 12 14.01 9 11.01"/>
-                  </svg>
-                  <span data-i18n="roomService.orderButton">Commander</span>
-                </button>
-              </form>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  <?php endif; ?>
-
-  <!-- Footer -->
-  <footer class="footer">
-    <div class="container">
-      <div class="footer-grid">
-        <div class="footer-brand">
-          <div class="logo-text">
-            <?= h($hotelName) ?>
-            <span><?= h($logoText) ?></span>
-          </div>
-<?php $footerDescription = getHotelDescription(); if ($footerDescription): ?>
-          <p><?= h($footerDescription) ?></p>
-          <?php endif; ?>
-        </div>
-        <div class="footer-nav">
-          <h4 class="footer-title" data-i18n="footer.navigation">Navigation</h4>
-          <ul class="footer-links">
-            <?php foreach ($navPages as $navPage): ?>
-            <?php $navUrl = $navPage['slug'] === '' ? 'index.php' : '/' . $navPage['slug']; ?>
-            <li><a href="<?= h($navUrl) ?>"<?= $navPage['i18n_nav_key'] ? ' data-i18n="' . h($navPage['i18n_nav_key']) . '"' : '' ?>><?= h($navPage['nav_title'] ?: $navPage['title']) ?></a></li>
-            <?php endforeach; ?>
-          </ul>
-        </div>
-        <div class="footer-nav">
-          <h4 class="footer-title" data-i18n="footer.services">Services</h4>
-          <ul class="footer-links">
-            <li><a href="/services" data-i18n="footer.restaurant">Restaurant</a></li>
-            <li><a href="/services" data-i18n="footer.bar">Bar</a></li>
-            <li><a href="room-service.php" data-i18n="nav.roomService">Room Service</a></li>
-          </ul>
-        </div>
-        <div class="footer-contact">
-          <h4 class="footer-title" data-i18n="footer.contactTitle">Contact</h4>
-          <?php if (hasContactInfo()): ?>
-          <div class="footer-contact-item">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-              <circle cx="12" cy="10" r="3"/>
-            </svg>
-            <span><?= getFormattedAddress() ?></span>
-          </div>
-          <?php endif; ?>
-          <?php if (!empty($contactInfo['phone'])): ?>
-          <div class="footer-contact-item">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
-            </svg>
-            <span><?= h($contactInfo['phone']) ?></span>
-          </div>
-          <?php endif; ?>
-          <?php if (!empty($contactInfo['email'])): ?>
-          <div class="footer-contact-item">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-              <polyline points="22,6 12,13 2,6"/>
-            </svg>
-            <span><?= h($contactInfo['email']) ?></span>
-          </div>
-          <?php endif; ?>
-        </div>
-      </div>
-      <div class="footer-bottom">
-        <p data-i18n="footer.copyright">&copy; <?= date('Y') ?> <?= h($hotelName) ?>. Tous droits réservés.</p>
-      </div>
-    </div>
-  </footer>
-
-  <!-- Scroll to Top Button -->
-  <button class="scroll-top" id="scrollTop" aria-label="Retour en haut" data-i18n-aria="common.backToTop">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <polyline points="18 15 12 9 6 15"/>
-    </svg>
-  </button>
-
-  <!-- Contact Reception Modal -->
-  <div class="modal-overlay" id="contactReceptionModal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3 data-i18n="modal.contactReceptionTitle">Contacter la réception</h3>
-        <button type="button" class="modal-close" id="modalClose" aria-label="Fermer">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="18" y1="6" x2="6" y2="18"/>
-            <line x1="6" y1="6" x2="18" y2="18"/>
-          </svg>
-        </button>
-      </div>
-      <div class="modal-body">
-        <div class="modal-success" id="modalSuccess" style="display: none;">
-          <div class="modal-success-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="20 6 9 17 4 12"/>
-            </svg>
-          </div>
-          <h3 data-i18n="modal.successTitle">Message envoyé</h3>
-          <p data-i18n="modal.successMessage">Votre message a bien été transmis à la réception. Nous vous répondrons dans les meilleurs délais.</p>
-          <button type="button" class="btn-new-message" id="btnNewMessage" data-i18n="modal.newMessage">Envoyer un autre message</button>
-        </div>
-        <div id="modalFormContainer">
-          <div class="modal-alert-error" id="modalError" style="display: none;"></div>
-          <form method="POST" class="modal-form" id="modalMessageForm" action="contact.php">
-            <input type="hidden" name="action" value="send_message">
-            <input type="hidden" name="redirect_back" value="1">
-            <div class="form-row">
-              <div class="form-group">
-                <label for="modal_room_number" data-i18n="modal.roomNumber">Numéro de chambre *</label>
-                <input type="text" id="modal_room_number" name="msg_room_number" required placeholder="Ex: 101" data-i18n-placeholder="modal.roomNumberPlaceholder">
-              </div>
-              <div class="form-group">
-                <label for="modal_guest_name" data-i18n="modal.guestName">Votre nom</label>
-                <input type="text" id="modal_guest_name" name="msg_guest_name" placeholder="Optionnel" data-i18n-placeholder="modal.guestNamePlaceholder">
-              </div>
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label for="modal_category" data-i18n="modal.category">Catégorie</label>
-                <select id="modal_category" name="msg_category">
-                  <?php foreach ($messageCategories as $key => $label): ?>
-                    <option value="<?= htmlspecialchars($key) ?>"><?= htmlspecialchars($label) ?></option>
-                  <?php endforeach; ?>
-                </select>
-              </div>
-              <div class="form-group">
-                <label for="modal_subject" data-i18n="modal.subject">Objet</label>
-                <input type="text" id="modal_subject" name="msg_subject" placeholder="Résumé du problème" data-i18n-placeholder="modal.subjectPlaceholder">
-              </div>
-            </div>
-            <div class="form-group">
-              <label for="modal_message" data-i18n="modal.message">Votre message *</label>
-              <textarea id="modal_message" name="msg_message" required placeholder="Décrivez votre demande ou problème..." data-i18n-placeholder="modal.messagePlaceholder"></textarea>
-            </div>
-            <button type="submit" class="btn-submit-modal" data-i18n="modal.sendMessage">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="22" y1="2" x2="11" y2="13"/>
-                <polygon points="22 2 15 22 11 13 2 9 22 2"/>
-              </svg>
-              Envoyer le message
+                Commander
             </button>
-          </form>
         </div>
-      </div>
     </div>
-  </div>
 
-  <!-- Dynamic content translations (for room service items and categories) -->
-  <script>
-    // Item translations from database
-    window.itemTranslations = <?= json_encode($allItemTranslations) ?>;
-    // Category translations from database
-    window.categoryTranslations = <?= json_encode($allCategoryTranslations) ?>;
-    // Default language
-    window.defaultLang = '<?= getDefaultLanguage() ?>';
-  </script>
-
-  <script src="js/translations.js"></script>
-  <script src="js/i18n.js"></script>
-  <script src="js/animations.js"></script>
-  <script>
-    // Cart management
-    const cart = {};
-
-    function formatPrice(price) {
-      return new Intl.NumberFormat('fr-FR', {
-        style: 'currency',
-        currency: 'EUR'
-      }).format(price);
-    }
-
-    function updateCart() {
-      const cartItems = document.getElementById('cartItems');
-      const cartEmpty = document.getElementById('cartEmpty');
-      const cartTotal = document.getElementById('cartTotal');
-      const orderItems = document.getElementById('orderItems');
-      const submitBtn = document.getElementById('submitBtn');
-
-      let total = 0;
-      let html = '';
-      const itemsArray = [];
-
-      for (const [id, item] of Object.entries(cart)) {
-        if (item.quantity > 0) {
-          const subtotal = item.price * item.quantity;
-          total += subtotal;
-          html += `
-            <div class="cart-item">
-              <div class="cart-item-info">
-                <div class="cart-item-name">${item.name}</div>
-                <div class="cart-item-qty">${item.quantity} x ${formatPrice(item.price)}</div>
-              </div>
-              <span class="cart-item-subtotal">${formatPrice(subtotal)}</span>
-              <button type="button" class="cart-item-remove" onclick="removeFromCart(${id})">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;">
-                  <line x1="18" y1="6" x2="6" y2="18"/>
-                  <line x1="6" y1="6" x2="18" y2="18"/>
-                </svg>
-              </button>
+    <!-- Cart Modal -->
+    <div class="cart-modal" id="cartModal">
+        <div class="cart-modal-content">
+            <div class="cart-modal-header">
+                <h2>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="9" cy="21" r="1"/>
+                        <circle cx="20" cy="21" r="1"/>
+                        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                    </svg>
+                    Votre commande
+                </h2>
+                <button type="button" class="btn-close-cart" id="btnCloseCart">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
             </div>
-          `;
-          itemsArray.push({
-            id: parseInt(id),
-            quantity: item.quantity
-          });
-        }
-      }
+            <div class="cart-modal-body" id="cartModalBody">
+                <div class="cart-empty-modal" id="cartEmpty">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <circle cx="9" cy="21" r="1"/>
+                        <circle cx="20" cy="21" r="1"/>
+                        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                    </svg>
+                    <p>Votre panier est vide</p>
+                </div>
+                <div id="cartItems"></div>
 
-      cartItems.innerHTML = html;
-      cartEmpty.style.display = html ? 'none' : 'block';
-      cartTotal.textContent = formatPrice(total);
-      orderItems.value = JSON.stringify(itemsArray);
-      submitBtn.disabled = itemsArray.length === 0;
-    }
+                <!-- Checkout Form -->
+                <form method="POST" id="orderForm" class="checkout-form" style="display:none;">
+                    <input type="hidden" name="action" value="place_order">
+                    <input type="hidden" name="items" id="orderItemsInput">
 
-    function removeFromCart(id) {
-      if (cart[id]) {
-        cart[id].quantity = 0;
-        const card = document.querySelector(`[data-item-id="${id}"]`);
-        if (card) {
-          card.querySelector('.quantity-value').textContent = '0';
-          card.querySelector('.btn-minus').disabled = true;
-        }
-        updateCart();
-      }
-    }
+                    <div class="form-section">
+                        <div class="form-section-title">Livraison en chambre</div>
+                        <div class="room-display">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                                <polyline points="9 22 9 12 15 12 15 22"/>
+                            </svg>
+                            <div class="room-display-text">
+                                <small>Chambre</small>
+                                <strong><?= h($roomNumber) ?></strong>
+                            </div>
+                        </div>
+                    </div>
 
-    // Initialize item cards
-    document.querySelectorAll('.item-card').forEach(card => {
-      const id = card.dataset.itemId;
-      const name = card.dataset.itemName;
-      const price = parseFloat(card.dataset.itemPrice);
-      const quantityEl = card.querySelector('.quantity-value');
-      const minusBtn = card.querySelector('.btn-minus');
-      const plusBtn = card.querySelector('.btn-plus');
+                    <div class="form-section">
+                        <div class="form-section-title">Vos informations (optionnel)</div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="guest_name">Votre nom</label>
+                                <input type="text" id="guest_name" name="guest_name" placeholder="Pour la livraison">
+                            </div>
+                            <div class="form-group">
+                                <label for="phone">Téléphone</label>
+                                <input type="tel" id="phone" name="phone" placeholder="En cas de besoin">
+                            </div>
+                        </div>
+                    </div>
 
-      cart[id] = { name, price, quantity: 0 };
+                    <div class="form-section">
+                        <div class="form-section-title">Livraison</div>
+                        <div class="form-group">
+                            <label for="delivery_datetime">Date et heure souhaitées *</label>
+                            <input type="datetime-local" id="delivery_datetime" name="delivery_datetime" required>
+                            <small>Minimum 30 minutes à l'avance</small>
+                        </div>
+                    </div>
 
-      plusBtn.addEventListener('click', () => {
-        cart[id].quantity++;
-        quantityEl.textContent = cart[id].quantity;
-        minusBtn.disabled = false;
-        updateCart();
-      });
+                    <div class="form-section">
+                        <div class="form-section-title">Paiement</div>
+                        <div class="form-group">
+                            <label for="payment_method">Mode de paiement</label>
+                            <select id="payment_method" name="payment_method">
+                                <?php foreach ($paymentMethods as $key => $label): ?>
+                                <option value="<?= h($key) ?>"><?= h($label) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    </div>
 
-      minusBtn.addEventListener('click', () => {
-        if (cart[id].quantity > 0) {
-          cart[id].quantity--;
-          quantityEl.textContent = cart[id].quantity;
-          minusBtn.disabled = cart[id].quantity === 0;
-          updateCart();
-        }
-      });
-    });
-
-    // Set minimum delivery datetime (30 minutes from now)
-    function updateMinDeliveryTime() {
-      const deliveryInput = document.getElementById('delivery_datetime');
-      if (deliveryInput) {
-        const now = new Date();
-        now.setMinutes(now.getMinutes() + 30);
-        // Round up to next 15 minutes
-        const minutes = now.getMinutes();
-        const roundedMinutes = Math.ceil(minutes / 15) * 15;
-        now.setMinutes(roundedMinutes);
-        now.setSeconds(0);
-
-        // Format for datetime-local input (YYYY-MM-DDTHH:MM)
-        const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, '0');
-        const day = String(now.getDate()).padStart(2, '0');
-        const hours = String(now.getHours()).padStart(2, '0');
-        const mins = String(now.getMinutes()).padStart(2, '0');
-
-        const minDatetime = `${year}-${month}-${day}T${hours}:${mins}`;
-        deliveryInput.min = minDatetime;
-
-        // Set max to 7 days from now
-        const maxDate = new Date();
-        maxDate.setDate(maxDate.getDate() + 7);
-        const maxYear = maxDate.getFullYear();
-        const maxMonth = String(maxDate.getMonth() + 1).padStart(2, '0');
-        const maxDay = String(maxDate.getDate()).padStart(2, '0');
-        deliveryInput.max = `${maxYear}-${maxMonth}-${maxDay}T23:59`;
-
-        // Set default value to minimum time if empty
-        if (!deliveryInput.value) {
-          deliveryInput.value = minDatetime;
-        }
-      }
-    }
-    updateMinDeliveryTime();
-    // Update every minute
-    setInterval(updateMinDeliveryTime, 60000);
-
-    // Form validation
-    document.getElementById('orderForm')?.addEventListener('submit', (e) => {
-      const items = JSON.parse(document.getElementById('orderItems').value);
-      if (items.length === 0) {
-        e.preventDefault();
-        alert(window.I18n ? window.I18n.t('roomService.errorSelectItem') : 'Veuillez sélectionner au moins un article.');
-        return false;
-      }
-      const roomNumber = document.getElementById('room_number').value.trim();
-      if (!roomNumber) {
-        e.preventDefault();
-        alert(window.I18n ? window.I18n.t('roomService.errorRoomNumber') : 'Veuillez indiquer votre numéro de chambre.');
-        return false;
-      }
-      const deliveryDatetime = document.getElementById('delivery_datetime').value;
-      if (!deliveryDatetime) {
-        e.preventDefault();
-        alert(window.I18n ? window.I18n.t('roomService.errorDeliveryTime') : 'Veuillez indiquer la date et heure de livraison.');
-        return false;
-      }
-      // Check if delivery time is in the future
-      const deliveryTime = new Date(deliveryDatetime);
-      const minTime = new Date();
-      minTime.setMinutes(minTime.getMinutes() + 25); // 25 min buffer for form submission
-      if (deliveryTime < minTime) {
-        e.preventDefault();
-        alert(window.I18n ? window.I18n.t('roomService.errorMinDeliveryTime') : 'La livraison doit être prévue au moins 30 minutes à l\'avance.');
-        return false;
-      }
-    });
-
-    // Category accordion toggle
-    document.querySelectorAll('.category-header').forEach(header => {
-      header.addEventListener('click', () => {
-        const section = header.closest('.category-section');
-        section.classList.toggle('expanded');
-      });
-    });
-
-    // Mobile menu toggle
-    const menuToggle = document.getElementById('menuToggle');
-    const navMenu = document.getElementById('navMenu');
-
-    menuToggle?.addEventListener('click', () => {
-      menuToggle.classList.toggle('active');
-      navMenu.classList.toggle('active');
-    });
-
-    // Header scroll effect
-    const header = document.getElementById('header');
-    window.addEventListener('scroll', () => {
-      if (window.scrollY > 100) {
-        header.classList.add('scrolled');
-      } else {
-        header.classList.remove('scrolled');
-      }
-    });
-
-    // Scroll to top button
-    const scrollTop = document.getElementById('scrollTop');
-    window.addEventListener('scroll', () => {
-      if (window.scrollY > 500) {
-        scrollTop.classList.add('visible');
-      } else {
-        scrollTop.classList.remove('visible');
-      }
-    });
-
-    scrollTop?.addEventListener('click', () => {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    });
-
-    // Contact Reception Modal
-    const modal = document.getElementById('contactReceptionModal');
-    const btnOpenModal = document.getElementById('btnContactReception');
-    const btnCloseModal = document.getElementById('modalClose');
-    const modalForm = document.getElementById('modalMessageForm');
-    const modalSuccess = document.getElementById('modalSuccess');
-    const modalFormContainer = document.getElementById('modalFormContainer');
-    const modalError = document.getElementById('modalError');
-    const btnNewMessage = document.getElementById('btnNewMessage');
-
-    function openModal() {
-      modal.classList.add('active');
-      document.body.classList.add('modal-open');
-      menuToggle?.classList.remove('active');
-      navMenu?.classList.remove('active');
-    }
-
-    function closeModal() {
-      modal.classList.remove('active');
-      document.body.classList.remove('modal-open');
-    }
-
-    function resetModalForm() {
-      modalForm.reset();
-      modalError.style.display = 'none';
-      modalSuccess.style.display = 'none';
-      modalFormContainer.style.display = 'block';
-    }
-
-    btnOpenModal?.addEventListener('click', openModal);
-    btnCloseModal?.addEventListener('click', closeModal);
-    btnNewMessage?.addEventListener('click', resetModalForm);
-
-    modal?.addEventListener('click', (e) => {
-      if (e.target === modal) closeModal();
-    });
-
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && modal?.classList.contains('active')) closeModal();
-    });
-
-    modalForm?.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const formData = new FormData(modalForm);
-      modalError.style.display = 'none';
-
-      try {
-        const response = await fetch('contact.php', { method: 'POST', body: formData });
-        const data = await response.json();
-
-        if (data.success) {
-          modalFormContainer.style.display = 'none';
-          modalSuccess.style.display = 'block';
-        } else {
-          modalError.textContent = data.error || (window.I18n ? window.I18n.t('modal.errorGeneric') : 'Une erreur est survenue. Veuillez réessayer.');
-          modalError.style.display = 'block';
-        }
-      } catch (error) {
-        modalError.textContent = window.I18n ? window.I18n.t('modal.errorGeneric') : 'Une erreur est survenue. Veuillez réessayer.';
-        modalError.style.display = 'block';
-      }
-    });
-
-    // ===========================================
-    // Dynamic Content Translation (Items & Categories)
-    // ===========================================
-
-    /**
-     * Get translation for an item based on current language
-     */
-    function getItemTranslation(itemId, field, fallback) {
-      const lang = window.I18n ? window.I18n.currentLang : window.defaultLang;
-      const translations = window.itemTranslations[itemId];
-
-      if (translations) {
-        // Try current language
-        if (translations[lang] && translations[lang][field]) {
-          return translations[lang][field];
-        }
-        // Fallback to default language
-        if (translations[window.defaultLang] && translations[window.defaultLang][field]) {
-          return translations[window.defaultLang][field];
-        }
-      }
-
-      return fallback;
-    }
-
-    /**
-     * Get translation for a category based on current language
-     */
-    function getCategoryTranslation(categoryCode, fallback) {
-      const lang = window.I18n ? window.I18n.currentLang : window.defaultLang;
-      const translations = window.categoryTranslations[categoryCode];
-
-      if (translations) {
-        // Try current language
-        if (translations[lang]) {
-          return translations[lang];
-        }
-        // Fallback to default language
-        if (translations[window.defaultLang]) {
-          return translations[window.defaultLang];
-        }
-      }
-
-      return fallback;
-    }
-
-    /**
-     * Update all dynamic content (items & categories) for current language
-     */
-    function updateDynamicTranslations() {
-      // Update item names
-      document.querySelectorAll('.item-card').forEach(card => {
-        const itemId = card.dataset.itemId;
-        const nameEl = card.querySelector('.item-name');
-        const descEl = card.querySelector('.item-description');
-
-        if (nameEl) {
-          const originalName = nameEl.dataset.originalName || nameEl.textContent;
-          nameEl.dataset.originalName = originalName;
-          nameEl.textContent = getItemTranslation(itemId, 'name', originalName);
-        }
-
-        if (descEl) {
-          const originalDesc = descEl.dataset.originalDesc || descEl.textContent;
-          descEl.dataset.originalDesc = originalDesc;
-          const translated = getItemTranslation(itemId, 'description', originalDesc);
-          descEl.textContent = translated || '';
-        }
-      });
-
-      // Update category titles (those not handled by data-i18n)
-      document.querySelectorAll('.category-title').forEach(title => {
-        const section = title.closest('.category-section');
-        if (section) {
-          const categoryCode = section.dataset.category;
-          if (categoryCode && window.categoryTranslations[categoryCode]) {
-            const originalName = title.dataset.originalName || title.textContent;
-            title.dataset.originalName = originalName;
-            title.textContent = getCategoryTranslation(categoryCode, originalName);
-          }
-        }
-      });
-
-      // Update cart items if any
-      updateCart();
-    }
-
-    // Override the original updateCart to use translated names
-    const originalUpdateCart = updateCart;
-    updateCart = function() {
-      const cartItems = document.getElementById('cartItems');
-      const cartEmpty = document.getElementById('cartEmpty');
-      const cartTotal = document.getElementById('cartTotal');
-      const orderItems = document.getElementById('orderItems');
-      const submitBtn = document.getElementById('submitBtn');
-
-      let total = 0;
-      let html = '';
-      const itemsArray = [];
-
-      for (const [id, item] of Object.entries(cart)) {
-        if (item.quantity > 0) {
-          const subtotal = item.price * item.quantity;
-          total += subtotal;
-          // Use translated name
-          const translatedName = getItemTranslation(id, 'name', item.name);
-          html += `
-            <div class="cart-item">
-              <div class="cart-item-info">
-                <div class="cart-item-name">${translatedName}</div>
-                <div class="cart-item-qty">${item.quantity} x ${formatPrice(item.price)}</div>
-              </div>
-              <span class="cart-item-subtotal">${formatPrice(subtotal)}</span>
-              <button type="button" class="cart-item-remove" onclick="removeFromCart(${id})">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;">
-                  <line x1="18" y1="6" x2="6" y2="18"/>
-                  <line x1="6" y1="6" x2="18" y2="18"/>
-                </svg>
-              </button>
+                    <div class="form-section">
+                        <div class="form-group">
+                            <label for="notes">Remarques</label>
+                            <textarea id="notes" name="notes" rows="2" placeholder="Allergies, préférences..."></textarea>
+                        </div>
+                    </div>
+                </form>
             </div>
-          `;
-          itemsArray.push({
-            id: parseInt(id),
-            quantity: item.quantity
-          });
+            <div class="cart-modal-footer">
+                <!-- Estimated Delivery Time -->
+                <div class="delivery-estimate" id="deliveryEstimate">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                    <span><?= h($estimatedDelivery['message']) ?></span>
+                </div>
+
+                <!-- Push Notification Toggle -->
+                <button type="button" class="notification-toggle" id="notificationToggle">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                    </svg>
+                    Activer les notifications
+                </button>
+
+                <div class="cart-total-row">
+                    <span class="cart-total-label">Total</span>
+                    <span class="cart-total-value" id="cartTotalModal">0,00 €</span>
+                </div>
+                <button type="button" class="btn-checkout" id="btnCheckout" disabled>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                        <polyline points="22 4 12 14.01 9 11.01"/>
+                    </svg>
+                    <span id="checkoutBtnText">Valider la commande</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contact Reception Modal (simplified) -->
+    <div class="modal-overlay" id="contactReceptionModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Contacter la réception</h3>
+                <button type="button" class="modal-close" id="modalClose">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-success" id="modalSuccess" style="display: none;">
+                    <div class="modal-success-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                    </div>
+                    <h3>Message envoyé</h3>
+                    <p>Votre message a bien été transmis à la réception.</p>
+                    <button type="button" class="btn-new-message" id="btnNewMessage">Envoyer un autre message</button>
+                </div>
+                <div id="modalFormContainer">
+                    <div class="modal-alert-error" id="modalError" style="display: none;"></div>
+                    <form method="POST" class="modal-form" id="modalMessageForm" action="contact.php">
+                        <input type="hidden" name="action" value="send_message">
+                        <input type="hidden" name="redirect_back" value="1">
+                        <input type="hidden" name="msg_room_number" value="<?= h($roomNumber) ?>">
+                        <div class="form-group">
+                            <label for="modal_guest_name">Votre nom</label>
+                            <input type="text" id="modal_guest_name" name="msg_guest_name" placeholder="Optionnel">
+                        </div>
+                        <div class="form-group">
+                            <label for="modal_category">Catégorie</label>
+                            <select id="modal_category" name="msg_category">
+                                <?php foreach ($messageCategories as $key => $label): ?>
+                                <option value="<?= h($key) ?>"><?= h($label) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="modal_message">Votre message *</label>
+                            <textarea id="modal_message" name="msg_message" required placeholder="Comment pouvons-nous vous aider ?"></textarea>
+                        </div>
+                        <button type="submit" class="btn-submit-modal">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="22" y1="2" x2="11" y2="13"/>
+                                <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                            </svg>
+                            Envoyer
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script>
+        window.itemTranslations = <?= json_encode($allItemTranslations) ?>;
+        window.categoryTranslations = <?= json_encode($allCategoryTranslations) ?>;
+        window.defaultLang = '<?= getDefaultLanguage() ?>';
+    </script>
+    <script src="js/translations.js"></script>
+    <script src="js/i18n.js"></script>
+    <script>
+        // =====================================================
+        // ROOM SERVICE APP
+        // =====================================================
+
+        const cart = {};
+        let checkoutMode = false;
+
+        // DOM Elements
+        const cartBar = document.getElementById('cartBar');
+        const cartModal = document.getElementById('cartModal');
+        const cartItems = document.getElementById('cartItems');
+        const cartEmpty = document.getElementById('cartEmpty');
+        const cartCount = document.getElementById('cartCount');
+        const cartTotalBar = document.getElementById('cartTotalBar');
+        const cartTotalModal = document.getElementById('cartTotalModal');
+        const btnViewCart = document.getElementById('btnViewCart');
+        const btnCloseCart = document.getElementById('btnCloseCart');
+        const btnCheckout = document.getElementById('btnCheckout');
+        const checkoutBtnText = document.getElementById('checkoutBtnText');
+        const orderForm = document.getElementById('orderForm');
+        const orderItemsInput = document.getElementById('orderItemsInput');
+
+        // Format price
+        function formatPrice(price) {
+            return new Intl.NumberFormat('fr-FR', {
+                style: 'currency',
+                currency: 'EUR'
+            }).format(price);
         }
-      }
 
-      cartItems.innerHTML = html;
-      cartEmpty.style.display = html ? 'none' : 'block';
-      cartTotal.textContent = formatPrice(total);
-      orderItems.value = JSON.stringify(itemsArray);
-      submitBtn.disabled = itemsArray.length === 0;
-    };
+        // Update cart display
+        function updateCart() {
+            let total = 0;
+            let count = 0;
+            let html = '';
+            const itemsArray = [];
 
-    // Listen for language changes and update dynamic content
-    // The I18n system stores original switchLanguage, we need to extend it
-    if (window.I18n) {
-      const originalSwitchLanguage = window.I18n.switchLanguage.bind(window.I18n);
-      window.I18n.switchLanguage = function(lang) {
-        originalSwitchLanguage(lang);
-        // Update dynamic content after I18n has updated
-        setTimeout(updateDynamicTranslations, 50);
-      };
-    }
+            for (const [id, item] of Object.entries(cart)) {
+                if (item.quantity > 0) {
+                    const subtotal = item.price * item.quantity;
+                    total += subtotal;
+                    count += item.quantity;
+                    html += `
+                        <div class="cart-item">
+                            <div class="cart-item-info">
+                                <div class="cart-item-name">${item.name}</div>
+                                <div class="cart-item-qty">${item.quantity} × ${formatPrice(item.price)}</div>
+                            </div>
+                            <span class="cart-item-price">${formatPrice(subtotal)}</span>
+                            <button type="button" class="btn-remove-item" onclick="removeFromCart(${id})">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="18" y1="6" x2="6" y2="18"/>
+                                    <line x1="6" y1="6" x2="18" y2="18"/>
+                                </svg>
+                            </button>
+                        </div>
+                    `;
+                    itemsArray.push({ id: parseInt(id), quantity: item.quantity });
+                }
+            }
 
-    // Initial update of dynamic translations on page load
-    setTimeout(updateDynamicTranslations, 100);
-  </script>
+            cartItems.innerHTML = html;
+            cartEmpty.style.display = count > 0 ? 'none' : 'block';
+            orderForm.style.display = count > 0 ? 'block' : 'none';
+            cartCount.textContent = count;
+            cartTotalBar.textContent = formatPrice(total);
+            cartTotalModal.textContent = formatPrice(total);
+            orderItemsInput.value = JSON.stringify(itemsArray);
+            btnCheckout.disabled = count === 0;
+
+            // Show/hide cart bar
+            if (count > 0) {
+                cartBar.classList.add('visible');
+            } else {
+                cartBar.classList.remove('visible');
+            }
+        }
+
+        // Remove item from cart
+        function removeFromCart(id) {
+            if (cart[id]) {
+                cart[id].quantity = 0;
+                const card = document.querySelector(`[data-item-id="${id}"]`);
+                if (card) {
+                    card.querySelector('.quantity-value').textContent = '0';
+                    card.querySelector('.quantity-value').classList.remove('has-items');
+                    card.querySelector('.btn-minus').disabled = true;
+                }
+                updateCart();
+            }
+        }
+
+        // Initialize item cards
+        document.querySelectorAll('.item-card').forEach(card => {
+            const id = card.dataset.itemId;
+            const name = card.dataset.itemName;
+            const price = parseFloat(card.dataset.itemPrice);
+            const quantityEl = card.querySelector('.quantity-value');
+            const minusBtn = card.querySelector('.btn-minus');
+            const plusBtn = card.querySelector('.btn-plus');
+
+            cart[id] = { name, price, quantity: 0 };
+
+            plusBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                cart[id].quantity++;
+                quantityEl.textContent = cart[id].quantity;
+                quantityEl.classList.add('has-items');
+                minusBtn.disabled = false;
+                updateCart();
+            });
+
+            minusBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (cart[id].quantity > 0) {
+                    cart[id].quantity--;
+                    quantityEl.textContent = cart[id].quantity;
+                    if (cart[id].quantity === 0) {
+                        quantityEl.classList.remove('has-items');
+                        minusBtn.disabled = true;
+                    }
+                    updateCart();
+                }
+            });
+        });
+
+        // Category tabs
+        document.querySelectorAll('.category-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                // Update active tab
+                document.querySelectorAll('.category-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+
+                // Show corresponding section
+                const category = tab.dataset.category;
+                document.querySelectorAll('.menu-section').forEach(section => {
+                    section.style.display = section.id === `section-${category}` ? 'block' : 'none';
+                });
+            });
+        });
+
+        // Cart modal
+        btnViewCart?.addEventListener('click', () => {
+            cartModal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        });
+
+        btnCloseCart?.addEventListener('click', () => {
+            cartModal.classList.remove('active');
+            document.body.style.overflow = '';
+        });
+
+        cartModal?.addEventListener('click', (e) => {
+            if (e.target === cartModal) {
+                cartModal.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+        });
+
+        // Checkout button
+        btnCheckout?.addEventListener('click', () => {
+            if (btnCheckout.disabled) return;
+
+            const items = JSON.parse(orderItemsInput.value);
+            if (items.length === 0) {
+                alert('Veuillez sélectionner au moins un article.');
+                return;
+            }
+
+            const deliveryDatetime = document.getElementById('delivery_datetime').value;
+            if (!deliveryDatetime) {
+                alert('Veuillez indiquer la date et heure de livraison.');
+                document.getElementById('delivery_datetime').focus();
+                return;
+            }
+
+            // Check if delivery time is in the future
+            const deliveryTime = new Date(deliveryDatetime);
+            const minTime = new Date();
+            minTime.setMinutes(minTime.getMinutes() + 25);
+            if (deliveryTime < minTime) {
+                alert('La livraison doit être prévue au moins 30 minutes à l\'avance.');
+                return;
+            }
+
+            // Submit form
+            orderForm.submit();
+        });
+
+        // Set minimum delivery datetime
+        function updateMinDeliveryTime() {
+            const deliveryInput = document.getElementById('delivery_datetime');
+            if (!deliveryInput) return;
+
+            const now = new Date();
+            now.setMinutes(now.getMinutes() + 30);
+            const minutes = now.getMinutes();
+            const roundedMinutes = Math.ceil(minutes / 15) * 15;
+            now.setMinutes(roundedMinutes);
+            now.setSeconds(0);
+
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const mins = String(now.getMinutes()).padStart(2, '0');
+
+            const minDatetime = `${year}-${month}-${day}T${hours}:${mins}`;
+            deliveryInput.min = minDatetime;
+
+            const maxDate = new Date();
+            maxDate.setDate(maxDate.getDate() + 7);
+            const maxYear = maxDate.getFullYear();
+            const maxMonth = String(maxDate.getMonth() + 1).padStart(2, '0');
+            const maxDay = String(maxDate.getDate()).padStart(2, '0');
+            deliveryInput.max = `${maxYear}-${maxMonth}-${maxDay}T23:59`;
+
+            if (!deliveryInput.value) {
+                deliveryInput.value = minDatetime;
+            }
+        }
+        updateMinDeliveryTime();
+        setInterval(updateMinDeliveryTime, 60000);
+
+        // Contact modal
+        const contactModal = document.getElementById('contactReceptionModal');
+        const btnContact = document.getElementById('btnContactReception');
+        const btnModalClose = document.getElementById('modalClose');
+
+        let rsModalOpener = null;
+
+        function closeContactModal() {
+            contactModal.classList.remove('active');
+            document.body.style.overflow = '';
+            if (rsModalOpener) { rsModalOpener.focus(); rsModalOpener = null; }
+        }
+
+        btnContact?.addEventListener('click', () => {
+            rsModalOpener = document.activeElement;
+            contactModal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+            const firstFocusable = contactModal.querySelector('button:not([disabled]), input, textarea');
+            if (firstFocusable) firstFocusable.focus();
+        });
+
+        btnModalClose?.addEventListener('click', closeContactModal);
+
+        contactModal?.addEventListener('click', (e) => {
+            if (e.target === contactModal) closeContactModal();
+        });
+
+        contactModal?.addEventListener('keydown', (e) => {
+            if (!contactModal.classList.contains('active') || e.key !== 'Tab') return;
+            const focusable = Array.from(contactModal.querySelectorAll(
+                'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href]'
+            )).filter(el => el.offsetParent !== null);
+            if (focusable.length < 2) return;
+            const first = focusable[0];
+            const last  = focusable[focusable.length - 1];
+            if (e.shiftKey && document.activeElement === first) {
+                e.preventDefault(); last.focus();
+            } else if (!e.shiftKey && document.activeElement === last) {
+                e.preventDefault(); first.focus();
+            }
+        });
+
+        // Handle contact form submission via AJAX
+        document.getElementById('modalMessageForm')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const form = e.target;
+            const formData = new FormData(form);
+            const modalError = document.getElementById('modalError');
+            const modalSuccess = document.getElementById('modalSuccess');
+            const modalFormContainer = document.getElementById('modalFormContainer');
+
+            try {
+                const response = await fetch('contact.php', {
+                    method: 'POST',
+                    body: formData
+                });
+                const text = await response.text();
+
+                if (text.includes('message_sent=1') || text.includes('Message envoyé') || response.ok) {
+                    modalFormContainer.style.display = 'none';
+                    modalSuccess.style.display = 'block';
+                } else {
+                    modalError.textContent = 'Une erreur est survenue. Veuillez réessayer.';
+                    modalError.style.display = 'block';
+                }
+            } catch (error) {
+                modalError.textContent = 'Une erreur est survenue. Veuillez réessayer.';
+                modalError.style.display = 'block';
+            }
+        });
+
+        document.getElementById('btnNewMessage')?.addEventListener('click', () => {
+            document.getElementById('modalMessageForm').reset();
+            document.getElementById('modalError').style.display = 'none';
+            document.getElementById('modalSuccess').style.display = 'none';
+            document.getElementById('modalFormContainer').style.display = 'block';
+        });
+
+        // Escape key closes modals
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                cartModal?.classList.remove('active');
+                contactModal?.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+        });
+
+        // =====================================================
+        // SERVICE WORKER & PUSH NOTIFICATIONS
+        // =====================================================
+
+        // Register service worker for offline support
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', async () => {
+                try {
+                    const registration = await navigator.serviceWorker.register('/sw.js');
+                    console.log('Service Worker registered:', registration.scope);
+
+                    // Cache menu data for offline use
+                    if (registration.active) {
+                        const menuData = await fetch('/api/room-service-menu.php').then(r => r.json());
+                        registration.active.postMessage({ type: 'CACHE_MENU', data: menuData });
+                    }
+                } catch (error) {
+                    console.log('Service Worker registration failed:', error);
+                }
+            });
+        }
+
+        // Push notification functions
+        const pushNotifications = {
+            async init() {
+                if (!('PushManager' in window)) {
+                    console.log('Push notifications not supported');
+                    return;
+                }
+
+                const permission = await Notification.requestPermission();
+                if (permission !== 'granted') {
+                    console.log('Push notification permission denied');
+                    return;
+                }
+
+                await this.subscribe();
+            },
+
+            async subscribe() {
+                try {
+                    const registration = await navigator.serviceWorker.ready;
+
+                    // Get VAPID public key
+                    const response = await fetch('/api/push-subscribe.php');
+                    const { publicKey } = await response.json();
+
+                    const subscription = await registration.pushManager.subscribe({
+                        userVisibleOnly: true,
+                        applicationServerKey: this.urlBase64ToUint8Array(publicKey)
+                    });
+
+                    // Send subscription to server
+                    await fetch('/api/push-subscribe.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(subscription.toJSON())
+                    });
+
+                    console.log('Push subscription successful');
+                    this.updateUI(true);
+                } catch (error) {
+                    console.error('Push subscription failed:', error);
+                }
+            },
+
+            urlBase64ToUint8Array(base64String) {
+                const padding = '='.repeat((4 - base64String.length % 4) % 4);
+                const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+                const rawData = window.atob(base64);
+                const outputArray = new Uint8Array(rawData.length);
+                for (let i = 0; i < rawData.length; ++i) {
+                    outputArray[i] = rawData.charCodeAt(i);
+                }
+                return outputArray;
+            },
+
+            updateUI(subscribed) {
+                const btn = document.getElementById('notificationToggle');
+                if (btn) {
+                    btn.textContent = subscribed ? 'Notifications activées' : 'Activer les notifications';
+                    btn.classList.toggle('active', subscribed);
+                }
+            }
+        };
+
+        // Initialize push notifications when user interacts (to avoid permission prompt on load)
+        document.getElementById('notificationToggle')?.addEventListener('click', () => {
+            pushNotifications.init();
+        });
+
+        // =====================================================
+        // ORDER HISTORY & QUICK REORDER
+        // =====================================================
+
+        // Order history toggle (expand/collapse)
+        const orderHistoryToggle = document.getElementById('orderHistoryToggle');
+        const orderHistoryList = document.getElementById('orderHistoryList');
+
+        orderHistoryToggle?.addEventListener('click', () => {
+            const isExpanded = orderHistoryList.classList.toggle('expanded');
+            orderHistoryToggle.classList.toggle('expanded', isExpanded);
+            orderHistoryToggle.querySelector('span').textContent = isExpanded ? 'Réduire' : 'Voir tout';
+        });
+
+        // Quick reorder buttons - add items to cart
+        document.querySelectorAll('.quick-reorder-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const itemId = btn.dataset.itemId;
+                const itemCard = document.querySelector(`[data-item-id="${itemId}"]`);
+
+                if (itemCard) {
+                    // Scroll to item category first
+                    const section = itemCard.closest('.menu-section');
+                    if (section) {
+                        const categoryKey = section.id.replace('section-', '');
+                        const categoryTab = document.querySelector(`.category-tab[data-category="${categoryKey}"]`);
+                        if (categoryTab) {
+                            categoryTab.click();
+                        }
+                    }
+
+                    // Add item to cart
+                    if (cart[itemId]) {
+                        cart[itemId].quantity++;
+                        const quantityEl = itemCard.querySelector('.quantity-value');
+                        const minusBtn = itemCard.querySelector('.btn-minus');
+                        quantityEl.textContent = cart[itemId].quantity;
+                        quantityEl.classList.add('has-items');
+                        minusBtn.disabled = false;
+                        updateCart();
+                    }
+
+                    // Visual feedback on button
+                    btn.textContent = '✓ Ajouté';
+                    btn.style.background = 'var(--color-primary)';
+                    btn.style.color = 'white';
+                    setTimeout(() => {
+                        btn.textContent = btn.dataset.originalText || btn.textContent;
+                        btn.style.background = '';
+                        btn.style.color = '';
+                    }, 1500);
+
+                    // Scroll to the item with smooth animation
+                    setTimeout(() => {
+                        itemCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        itemCard.style.animation = 'highlightItem 1s ease';
+                        setTimeout(() => itemCard.style.animation = '', 1000);
+                    }, 100);
+                }
+            });
+
+            // Store original text for restoration
+            btn.dataset.originalText = btn.textContent.trim();
+        });
+
+        // M1: Banner hide-on-scroll (desktop only)
+        const rsBannerEl = document.querySelector('.room-banner');
+        const rsHeaderEl = document.querySelector('.rs-header');
+        const rsCategoryTabsEl = document.querySelector('.category-tabs');
+        let rsLastScrollY = 0;
+
+        window.addEventListener('scroll', () => {
+            if (window.innerWidth < 768) return;
+            const y = window.scrollY;
+            const hide = y > 20 && y > rsLastScrollY;
+            rsBannerEl?.classList.toggle('hidden', hide);
+            rsHeaderEl?.classList.toggle('no-banner', hide);
+            rsCategoryTabsEl?.classList.toggle('no-banner', hide);
+            rsLastScrollY = y;
+        }, { passive: true });
+
+        // R1: Category tabs overflow fade indicator
+        function updateCategoryTabsFade() {
+            const tabs = document.querySelector('.category-tabs');
+            if (!tabs) return;
+            const hasMoreRight = tabs.scrollWidth > tabs.clientWidth + tabs.scrollLeft + 4;
+            tabs.classList.toggle('show-overflow-fade', hasMoreRight);
+        }
+        updateCategoryTabsFade();
+        document.querySelector('.category-tabs')?.addEventListener('scroll', updateCategoryTabsFade, { passive: true });
+        window.addEventListener('resize', updateCategoryTabsFade);
+
+        // Click on order history item to reorder all items from that order
+        document.querySelectorAll('.order-history-item').forEach(item => {
+            item.addEventListener('click', () => {
+                // Show a tooltip or feedback that this is a view-only for now
+                const orderId = item.dataset.orderId;
+                const orderItems = item.querySelector('.order-items').textContent;
+
+                // Simple feedback for now - could be extended to full reorder
+                const original = item.style.background;
+                item.style.background = 'var(--color-beige)';
+                setTimeout(() => {
+                    item.style.background = original;
+                }, 300);
+            });
+        });
+    </script>
 </body>
 </html>

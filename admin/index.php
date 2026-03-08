@@ -107,6 +107,11 @@ $msgStatusLabels = [
     'in_progress' => 'En cours',
     'resolved' => 'Résolu'
 ];
+
+// QR Analytics & Predictive Data
+$qrAnalytics = getAverageTimeFromScanToOrder(30);
+$predictiveSuggestions = getPredictivePreparationSuggestions();
+$estimatedDelivery = getEstimatedDeliveryTime();
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -506,6 +511,100 @@ $msgStatusLabels = [
                     </div>
                 </div>
                 <?php endif; ?>
+
+                <!-- QR Analytics & Kitchen Insights -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Analyses QR & Prévisions Cuisine</h2>
+                        <a href="room-service-stats.php" class="btn btn-sm">Voir les statistiques</a>
+                    </div>
+                    <div class="card-body">
+                        <div class="stats-grid">
+                            <!-- Scan to Order Analytics -->
+                            <div class="stat-card">
+                                <div class="stat-content">
+                                    <span class="stat-value"><?= $qrAnalytics['average_minutes'] ?? '—' ?><small style="font-size:0.5em">min</small></span>
+                                    <span class="stat-label">Temps moyen scan → commande</span>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-content">
+                                    <span class="stat-value"><?= $qrAnalytics['total_scans'] ?? 0 ?></span>
+                                    <span class="stat-label">Scans QR (30j)</span>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-content">
+                                    <span class="stat-value"><?= $qrAnalytics['conversion_rate'] ?? 0 ?>%</span>
+                                    <span class="stat-label">Taux de conversion</span>
+                                </div>
+                            </div>
+                            <div class="stat-card <?= $estimatedDelivery['load_level'] === 'busy' ? 'stat-card-alert' : '' ?>">
+                                <div class="stat-content">
+                                    <span class="stat-value"><?= $estimatedDelivery['estimated_minutes'] ?><small style="font-size:0.5em">min</small></span>
+                                    <span class="stat-label">Délai livraison estimé</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Predictive Suggestions -->
+                        <?php if (!empty($predictiveSuggestions['popular_items']) || !empty($predictiveSuggestions['peak_warnings'])): ?>
+                        <div style="margin-top: 1.5rem;">
+                            <h3 style="font-size: 1rem; margin-bottom: 1rem;">🔮 Suggestions de préparation</h3>
+
+                            <?php if (!empty($predictiveSuggestions['peak_warnings'])): ?>
+                            <div class="alert alert-warning" style="margin-bottom: 1rem; padding: 0.75rem 1rem; background: #FEF3CD; border-radius: 8px; display: flex; align-items: center; gap: 0.5rem;">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 20px; height: 20px; color: #856404;">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <line x1="12" y1="8" x2="12" y2="12"/>
+                                    <line x1="12" y1="16" x2="12.01" y2="16"/>
+                                </svg>
+                                <span style="color: #856404; font-size: 0.875rem;">
+                                    <?php foreach ($predictiveSuggestions['peak_warnings'] as $warning): ?>
+                                        <?= h($warning) ?><br>
+                                    <?php endforeach; ?>
+                                </span>
+                            </div>
+                            <?php endif; ?>
+
+                            <?php if (!empty($predictiveSuggestions['popular_items'])): ?>
+                            <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                                <?php foreach (array_slice($predictiveSuggestions['popular_items'], 0, 6) as $item): ?>
+                                <?php if (!empty($item['name']) && $item['name'] !== 'name'): ?>
+                                <div class="suggestion-chip" style="
+                                    background: var(--admin-bg);
+                                    border: 1px solid var(--admin-border);
+                                    border-radius: 20px;
+                                    padding: 0.5rem 1rem;
+                                    font-size: 0.85rem;
+                                    display: flex;
+                                    align-items: center;
+                                    gap: 0.5rem;
+                                ">
+                                    <span style="font-weight: 600;"><?= h($item['name']) ?></span>
+                                    <span style="color: var(--admin-text-light);">×<?= $item['order_count'] ?></span>
+                                </div>
+                                <?php endif; ?>
+                                <?php endforeach; ?>
+                            </div>
+                            <p style="font-size: 0.75rem; color: var(--admin-text-light); margin-top: 0.75rem;">
+                                Articles les plus commandés cette semaine — préparez les ingrédients à l'avance.
+                            </p>
+                            <?php endif; ?>
+
+                            <?php if (isset($predictiveSuggestions['predicted_volume'])): ?>
+                            <div style="margin-top: 1rem; padding: 0.75rem 1rem; background: #E8F5E9; border-radius: 8px;">
+                                <p style="color: #2E7D32; font-size: 0.875rem; margin: 0;">
+                                    <strong>📊 Prévision :</strong>
+                                    ~<?= $predictiveSuggestions['predicted_volume']['today'] ?? 0 ?> commandes attendues aujourd'hui
+                                    (basé sur <?= $predictiveSuggestions['predicted_volume']['same_day_avg'] ?? 0 ?> moy. ce jour de la semaine)
+                                </p>
+                            </div>
+                            <?php endif; ?>
+                        </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
 
             </div>
         </main>

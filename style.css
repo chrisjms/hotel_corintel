@@ -181,6 +181,87 @@ p {
   color: var(--color-primary);
 }
 
+/* Room Service Navigation Link */
+.nav-link-room-service {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.nav-qr-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.15rem 0.4rem;
+  background: var(--color-primary);
+  color: white;
+  border-radius: 4px;
+  font-size: 0.6rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  line-height: 1;
+}
+
+.nav-link-room-service:hover .nav-qr-badge {
+  background: var(--color-primary-dark);
+}
+
+/* Badge shown when room session is active (replaces QR badge) */
+.nav-room-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.15rem 0.4rem;
+  background: var(--color-accent);
+  color: white;
+  border-radius: 4px;
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  line-height: 1;
+}
+
+.nav-link-room-service:hover .nav-room-badge {
+  background: #4a6b4c;
+}
+
+/* Modal locked state — shown when no room session is active */
+.modal-locked {
+  text-align: center;
+  padding: 2.5rem 1.5rem 2rem;
+}
+.modal-locked-icon {
+  width: 68px;
+  height: 68px;
+  margin: 0 auto 1.25rem;
+  background: var(--color-cream);
+  border: 1px solid var(--color-beige);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.modal-locked-icon svg {
+  width: 30px;
+  height: 30px;
+  color: var(--color-primary);
+  opacity: 0.65;
+}
+.modal-locked h3 {
+  font-family: var(--font-heading);
+  font-size: 1.3rem;
+  color: var(--color-primary);
+  margin-bottom: 0.625rem;
+}
+.modal-locked p {
+  color: var(--color-text-light);
+  font-size: 0.925rem;
+  line-height: 1.65;
+  max-width: 290px;
+  margin: 0 auto;
+}
+
 .btn-book {
   background-color: var(--color-primary);
   color: var(--color-white);
@@ -417,16 +498,19 @@ p {
   z-index: 10;
   text-align: center;
   color: var(--color-white);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.40);
 }
 
 .page-hero-title {
   color: var(--color-white);
   margin-bottom: 1rem;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
 }
 
 .page-hero-subtitle {
   font-size: 1.2rem;
   opacity: 0.9;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.40);
 }
 
 /* ---------- Sections ---------- */
@@ -1323,6 +1407,10 @@ p {
   .intro-features {
     grid-template-columns: 1fr;
   }
+
+  .hero-subtitle {
+    letter-spacing: 2px;
+  }
 }
 
 /* ==========================================================================
@@ -1729,6 +1817,39 @@ p {
 
 .footer-links a:hover::before {
   width: 10px;
+}
+
+/* Room Service QR Badge */
+.footer-links .room-service-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.footer-links .qr-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.15rem 0.5rem;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 12px;
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.8);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.footer-links .qr-badge::before {
+  content: '';
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3E%3Crect x='3' y='3' width='7' height='7'/%3E%3Crect x='14' y='3' width='7' height='7'/%3E%3Crect x='3' y='14' width='7' height='7'/%3E%3Cpath d='M14 14h3v3h-3z M17 17h4v4h-4z M14 17h3v4h-3z M17 14h4v3h-4z'/%3E%3C/svg%3E");
+  background-size: contain;
+  background-repeat: no-repeat;
+  opacity: 0.8;
 }
 
 /* ---------- Contact Item Animations ---------- */
