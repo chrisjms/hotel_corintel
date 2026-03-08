@@ -19,6 +19,19 @@ define('AUTH_TOKEN_LIFETIME', 315360000);
 define('AUTH_TOKEN_NAME', 'hotel_admin_auth');
 define('SESSION_NAME', 'hotel_admin_session');
 
+/**
+ * Role-Based Access Control
+ */
+const ROLE_PERMISSIONS = [
+    'admin'     => ['*'],
+    'reception' => ['dashboard', 'orders', 'messages', 'stats'],
+];
+
+const ROLE_LABELS = [
+    'admin'     => 'Administrateur',
+    'reception' => 'Réception',
+];
+
 // Configure session before starting
 if (session_status() === PHP_SESSION_NONE) {
     session_name(SESSION_NAME);
@@ -96,7 +109,7 @@ function restoreSessionFromToken(string $token): bool {
 
     // Find valid token
     $stmt = $pdo->prepare('
-        SELECT pt.admin_id, a.username
+        SELECT pt.admin_id, a.username, a.role
         FROM persistent_tokens pt
         JOIN admins a ON a.id = pt.admin_id
         WHERE pt.token_hash = ?
@@ -108,6 +121,7 @@ function restoreSessionFromToken(string $token): bool {
         // Restore session
         $_SESSION['admin_id'] = $result['admin_id'];
         $_SESSION['admin_username'] = $result['username'];
+        $_SESSION['admin_role'] = $result['role'] ?? 'admin';
         $_SESSION['restored_from_token'] = true;
 
         // Update token last used time
@@ -210,6 +224,64 @@ function requireAuth(): void {
 }
 
 /**
+ * Get the current admin's role from session (with DB fallback for old sessions)
+ */
+function getCurrentAdminRole(): string {
+    if (!isset($_SESSION['admin_role']) && isset($_SESSION['admin_id'])) {
+        $pdo = getDatabase();
+        $stmt = $pdo->prepare('SELECT role FROM admins WHERE id = ?');
+        $stmt->execute([$_SESSION['admin_id']]);
+        $_SESSION['admin_role'] = $stmt->fetchColumn() ?: 'admin';
+    }
+    return $_SESSION['admin_role'] ?? 'admin';
+}
+
+/**
+ * Check if the current admin has a specific permission
+ */
+function hasPermission(string $permission): bool {
+    $role = getCurrentAdminRole();
+    $permissions = ROLE_PERMISSIONS[$role] ?? [];
+
+    if (in_array('*', $permissions, true)) {
+        return true;
+    }
+
+    return in_array($permission, $permissions, true);
+}
+
+/**
+ * Require a specific permission - redirect to dashboard if denied
+ */
+function requireRole(string $permission): void {
+    requireAuth();
+
+    if (!hasPermission($permission)) {
+        header('Location: index.php?access_denied=1');
+        exit;
+    }
+}
+
+/**
+ * Ensure the admins table has the role column (auto-migration)
+ */
+function ensureRoleColumn(): void {
+    static $checked = false;
+    if ($checked) return;
+    $checked = true;
+
+    $pdo = getDatabase();
+    try {
+        $stmt = $pdo->query("SHOW COLUMNS FROM admins LIKE 'role'");
+        if ($stmt->rowCount() === 0) {
+            $pdo->exec("ALTER TABLE admins ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'admin' AFTER email");
+        }
+    } catch (PDOException $e) {
+        // Table might not exist yet
+    }
+}
+
+/**
  * Check login attempts to prevent brute force
  */
 function checkLoginAttempts(string $ip): bool {
@@ -250,6 +322,7 @@ function clearLoginAttempts(string $ip): void {
  * Attempt to log in a user
  */
 function attemptLogin(string $username, string $password): array {
+    ensureRoleColumn();
     $ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
 
     // Check for too many attempts
@@ -272,7 +345,7 @@ function attemptLogin(string $username, string $password): array {
     $pdo = getDatabase();
 
     // Find user
-    $stmt = $pdo->prepare('SELECT id, username, password FROM admins WHERE username = ?');
+    $stmt = $pdo->prepare('SELECT id, username, password, role FROM admins WHERE username = ?');
     $stmt->execute([$username]);
     $admin = $stmt->fetch();
 
@@ -294,6 +367,7 @@ function attemptLogin(string $username, string $password): array {
     // Set session
     $_SESSION['admin_id'] = $admin['id'];
     $_SESSION['admin_username'] = $admin['username'];
+    $_SESSION['admin_role'] = $admin['role'] ?? 'admin';
     $_SESSION['login_time'] = time();
 
     // Regenerate session ID for security (only on login, not periodically)
@@ -345,7 +419,7 @@ function getCurrentAdmin(): ?array {
     }
 
     $pdo = getDatabase();
-    $stmt = $pdo->prepare('SELECT id, username, email, last_login FROM admins WHERE id = ?');
+    $stmt = $pdo->prepare('SELECT id, username, email, role, last_login FROM admins WHERE id = ?');
     $stmt->execute([$_SESSION['admin_id']]);
     return $stmt->fetch() ?: null;
 }

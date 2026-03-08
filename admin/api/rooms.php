@@ -8,8 +8,8 @@
 require_once __DIR__ . '/../../includes/auth.php';
 require_once __DIR__ . '/../../includes/functions.php';
 
-// Require authentication
-if (!isLoggedIn()) {
+// Require authentication + permission
+if (!isLoggedIn() || !hasPermission('rooms')) {
     http_response_code(401);
     echo json_encode(['error' => 'Non autorisé']);
     exit;

@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS admins (
     username VARCHAR(50) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
     email VARCHAR(100),
+    role VARCHAR(20) NOT NULL DEFAULT 'admin',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     last_login DATETIME NULL,
     INDEX idx_username (username)
@@ -55,9 +56,12 @@ CREATE TABLE IF NOT EXISTS persistent_tokens (
 
 -- Insert default admin (password: admin123 - CHANGE THIS IMMEDIATELY!)
 -- Password hash for 'admin123'
-INSERT INTO admins (username, password, email) VALUES
-('admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin@hotel-corintel.fr')
+INSERT INTO admins (username, password, email, role) VALUES
+('admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin@hotel-corintel.fr', 'admin')
 ON DUPLICATE KEY UPDATE username = username;
+
+-- Migration: Add role column to admins table (for existing installations)
+-- ALTER TABLE admins ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'admin' AFTER email;
 
 -- Insert default image slots for each section
 -- Home page images
