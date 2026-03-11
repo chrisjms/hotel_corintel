@@ -102,6 +102,11 @@ function isNavItemActive(array $item, string $currentPage): bool {
                 <h2><?= h($hotelName) ?></h2>
                 <span>Administration</span>
             </div>
+            <?php if (!empty($_SESSION['is_super_admin'])): ?>
+                <div style="background: #4299E1; color: #fff; text-align: center; padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.5px;">
+                    Session Super Admin
+                </div>
+            <?php endif; ?>
 
             <nav class="sidebar-nav">
 <?php foreach ($navGroups as $group):

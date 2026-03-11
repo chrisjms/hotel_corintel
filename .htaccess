@@ -25,6 +25,7 @@ RewriteRule ^js/ - [L]
 RewriteRule ^css/ - [L]
 RewriteRule ^images/ - [L]
 RewriteRule ^setup/ - [L]
+RewriteRule ^super-admin/ - [L]
 
 # Skip room-service (special page with its own functionality)
 RewriteRule ^room-service\.php$ - [L]

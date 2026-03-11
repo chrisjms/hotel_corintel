@@ -20,6 +20,9 @@ define('MAX_FILE_SIZE', 5 * 1024 * 1024); // 5MB
 define('ALLOWED_TYPES', ['image/jpeg', 'image/png', 'image/webp']);
 define('ALLOWED_EXTENSIONS', ['jpg', 'jpeg', 'png', 'webp']);
 
+// Super Admin cross-login secret (CHANGE THIS to a unique random string)
+define('SUPER_ADMIN_CROSS_LOGIN_SECRET', 'CHANGE_ME_TO_A_RANDOM_SECRET_STRING_64_CHARS_MINIMUM');
+
 /**
  * Get PDO database connection
  */

@@ -186,3 +186,88 @@ CREATE TABLE IF NOT EXISTS room_service_order_items (
     FOREIGN KEY (item_id) REFERENCES room_service_items(id) ON DELETE RESTRICT,
     INDEX idx_order (order_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =====================================================
+-- SUPER ADMIN SYSTEM
+-- =====================================================
+
+-- Super admin users (completely separate from hotel admins)
+CREATE TABLE IF NOT EXISTS super_admins (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    email VARCHAR(100),
+    is_active BOOLEAN DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    last_login DATETIME NULL,
+    INDEX idx_username (username)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Persistent auth tokens for super admin sessions
+CREATE TABLE IF NOT EXISTS super_persistent_tokens (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    super_admin_id INT NOT NULL,
+    token_hash VARCHAR(64) NOT NULL UNIQUE,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    last_used_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (super_admin_id) REFERENCES super_admins(id) ON DELETE CASCADE,
+    INDEX idx_super_admin (super_admin_id),
+    INDEX idx_token (token_hash)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Login attempts for super admin (stricter rate limiting)
+CREATE TABLE IF NOT EXISTS super_login_attempts (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    ip_address VARCHAR(45) NOT NULL,
+    attempted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_ip_time (ip_address, attempted_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Hotels registry
+CREATE TABLE IF NOT EXISTS hotels (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(200) NOT NULL,
+    slug VARCHAR(100) NOT NULL UNIQUE,
+    site_url VARCHAR(500),
+    admin_url VARCHAR(500),
+    db_host VARCHAR(200) NULL COMMENT 'Hotel DB host (NULL = same as platform)',
+    db_name VARCHAR(200) NULL COMMENT 'Hotel DB name (NULL = same as platform)',
+    db_user VARCHAR(200) NULL COMMENT 'Hotel DB user (NULL = same as platform)',
+    db_pass VARCHAR(500) NULL COMMENT 'Hotel DB password (NULL = same as platform)',
+    cross_login_secret VARCHAR(128) NULL COMMENT 'Per-hotel HMAC secret (NULL = use global)',
+    notes TEXT,
+    is_active BOOLEAN DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_slug (slug),
+    INDEX idx_active (is_active)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Cross-login token nonces (replay prevention)
+CREATE TABLE IF NOT EXISTS super_admin_login_tokens (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    token_nonce VARCHAR(64) NOT NULL UNIQUE,
+    used_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_nonce (token_nonce),
+    INDEX idx_used_at (used_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Audit log for super admin actions
+CREATE TABLE IF NOT EXISTS super_admin_audit_log (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    super_admin_id INT NOT NULL,
+    action VARCHAR(100) NOT NULL,
+    hotel_id INT NULL,
+    details TEXT,
+    ip_address VARCHAR(45),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_super_admin (super_admin_id),
+    INDEX idx_action (action),
+    INDEX idx_hotel (hotel_id),
+    INDEX idx_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Default super admin (password: superadmin123 - CHANGE THIS IMMEDIATELY!)
+INSERT INTO super_admins (username, password, email) VALUES
+('superadmin', '$2y$12$3/0cErCh4bDllLP3R6uaZu0m7rktACgRUD9tygpJC0gW88q7h9TDK', 'super@platform.com')
+ON DUPLICATE KEY UPDATE username = username;
