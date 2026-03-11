@@ -476,7 +476,7 @@ $contactInfo = getContactInfo();
             min-width: 0;
         }
         .order-date {
-            font-size: 0.7rem;
+            font-size: 0.75rem;
             color: var(--color-text-light);
             margin-bottom: 0.25rem;
         }
@@ -500,7 +500,7 @@ $contactInfo = getContactInfo();
             font-size: 0.9rem;
         }
         .order-status {
-            font-size: 0.65rem;
+            font-size: 0.75rem;
             padding: 0.125rem 0.5rem;
             border-radius: 10px;
             text-transform: uppercase;
@@ -536,12 +536,12 @@ $contactInfo = getContactInfo();
             gap: 0.5rem;
         }
         .quick-reorder-btn {
-            padding: 0.375rem 0.75rem;
+            padding: 0.5rem 1rem;
             background: white;
             border: 1px solid var(--color-primary);
             border-radius: 20px;
             color: var(--color-primary);
-            font-size: 0.75rem;
+            font-size: 0.8125rem;
             cursor: pointer;
             transition: all 0.2s;
         }
@@ -896,8 +896,8 @@ $contactInfo = getContactInfo();
             height: 24px;
         }
         .btn-close-cart {
-            width: 40px;
-            height: 40px;
+            width: 44px;
+            height: 44px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -955,8 +955,8 @@ $contactInfo = getContactInfo();
             color: var(--color-primary);
         }
         .btn-remove-item {
-            width: 36px;
-            height: 36px;
+            width: 44px;
+            height: 44px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -1238,6 +1238,14 @@ $contactInfo = getContactInfo();
             width: 20px;
             height: 20px;
             flex-shrink: 0;
+        }
+        .checkout-error {
+            background: rgba(220, 53, 69, 0.1);
+            color: #dc3545;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            margin-bottom: 0.75rem;
         }
 
         /* Service unavailable */
@@ -1703,6 +1711,7 @@ $contactInfo = getContactInfo();
                     <span class="cart-total-label">Total</span>
                     <span class="cart-total-value" id="cartTotalModal">0,00 €</span>
                 </div>
+                <div class="checkout-error" id="checkoutError" style="display:none;"></div>
                 <button type="button" class="btn-checkout" id="btnCheckout" disabled>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
@@ -1940,19 +1949,34 @@ $contactInfo = getContactInfo();
             }
         });
 
+        // Inline checkout error display
+        function showCheckoutError(msg) {
+            const el = document.getElementById('checkoutError');
+            if (el) {
+                el.textContent = msg;
+                el.style.display = 'block';
+                el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }
+        function hideCheckoutError() {
+            const el = document.getElementById('checkoutError');
+            if (el) el.style.display = 'none';
+        }
+
         // Checkout button
         btnCheckout?.addEventListener('click', () => {
             if (btnCheckout.disabled) return;
+            hideCheckoutError();
 
             const items = JSON.parse(orderItemsInput.value);
             if (items.length === 0) {
-                alert('Veuillez sélectionner au moins un article.');
+                showCheckoutError('Veuillez sélectionner au moins un article.');
                 return;
             }
 
             const deliveryDatetime = document.getElementById('delivery_datetime').value;
             if (!deliveryDatetime) {
-                alert('Veuillez indiquer la date et heure de livraison.');
+                showCheckoutError('Veuillez indiquer la date et heure de livraison.');
                 document.getElementById('delivery_datetime').focus();
                 return;
             }
@@ -1962,7 +1986,7 @@ $contactInfo = getContactInfo();
             const minTime = new Date();
             minTime.setMinutes(minTime.getMinutes() + 25);
             if (deliveryTime < minTime) {
-                alert('La livraison doit être prévue au moins 30 minutes à l\'avance.');
+                showCheckoutError('La livraison doit être prévue au moins 30 minutes à l\'avance.');
                 return;
             }
 

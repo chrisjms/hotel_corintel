@@ -1,35 +1,21 @@
-# Super Admin System - Implementation
+# Mobile UX Fixes - Implementation
 
-## Phase 1: Infrastructure
-- [x] Add SUPER_ADMIN_CROSS_LOGIN_SECRET to config/database.php
-- [x] Append super admin tables to setup/schema.sql
-- [x] Add RewriteRule to .htaccess
-- [x] Create super-admin/.htaccess
+## style.css
+- [x] `100vh` → `100dvh` with fallback on .hero, .page-hero, .nav-menu
+- [x] Hero min-height: 600→500px base, 500→400px at 768px
+- [x] Page hero min-height: 400→350px
+- [x] Modal input font-size: 0.95rem → 1rem (prevents iOS zoom)
+- [x] Touch target: .modal-close 36→44px
+- [x] Touch target: .carousel-dot padding+background-clip for 28px touch area
+- [x] Heading clamp() floors raised (h1: 2rem, h2: 1.5rem, h3: 1.25rem)
+- [x] Added :active states on .btn-primary, .btn-outline, .modal-close
 
-## Phase 2: Auth System
-- [x] Create super-admin/includes/super-auth.php
-- [x] Create super-admin/login.php
-- [x] Create super-admin/logout.php
-
-## Phase 3: Dashboard
-- [x] Create super-admin/super-admin-style.css
-- [x] Create super-admin/includes/sidebar.php
-- [x] Create super-admin/includes/super-functions.php
-- [x] Create super-admin/index.php (hotel list dashboard)
-- [x] Create super-admin/hotel-form.php (add/edit hotel)
-
-## Phase 4: Cross-Login
-- [x] Create super-admin/api/generate-cross-login.php
-- [x] Create admin/super-login.php
-- [x] Add super admin badge to admin/includes/sidebar.php
-
-## Phase 5: Audit & Polish
-- [x] Create super-admin/audit-log.php
-- [x] Create super-admin/settings.php
-- [x] PHP syntax validation: all 12 files pass
-
-## Review
-- All PHP files: 0 syntax errors
-- Existing code changes minimal: 3 files modified (config/database.php, .htaccess, admin/includes/sidebar.php)
-- 12 new files created in super-admin/ + 1 in admin/
-- 6 new database tables defined in schema.sql
+## room-service.php
+- [x] Touch target: .btn-close-cart 40→44px
+- [x] Touch target: .btn-remove-item 36→44px
+- [x] Touch target: .quick-reorder-btn padding 0.375→0.5rem, font 0.75→0.8125rem
+- [x] Small text: .order-date 0.7→0.75rem, .order-status 0.65→0.75rem
+- [x] Added .checkout-error CSS class
+- [x] Added #checkoutError div before checkout button
+- [x] Replaced 3 alert() calls with inline showCheckoutError()
+- [x] PHP syntax check: passed
