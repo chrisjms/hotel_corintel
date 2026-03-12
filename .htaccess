@@ -11,6 +11,9 @@ RewriteBase /
 # Security: Block access to sensitive directories
 RewriteRule ^config/ - [F,L]
 RewriteRule ^includes/ - [F,L]
+RewriteRule ^lang/ - [F,L]
+RewriteRule ^tools/ - [F,L]
+RewriteRule ^cache/ - [F,L]
 
 # Don't rewrite existing files or directories
 RewriteCond %{REQUEST_FILENAME} -f [OR]

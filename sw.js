@@ -3,20 +3,20 @@
  * Enables offline access to room service menu
  */
 
-const CACHE_VERSION = 'v1.0.0';
+const CACHE_VERSION = 'v1.1.0';
 const CACHE_NAME = `hotel-room-service-${CACHE_VERSION}`;
 
 // Assets to cache on install
 const STATIC_ASSETS = [
     '/style.css',
-    '/js/translations.js',
     '/js/i18n.js',
     '/js/animations.js'
 ];
 
 // API endpoints to cache
 const API_ENDPOINTS = [
-    '/api/room-service-menu.php'
+    '/api/room-service-menu.php',
+    '/api/translations.php'
 ];
 
 // Install event - cache static assets

@@ -267,7 +267,6 @@ $contactInfo = getContactInfo();
   </div>
 
   <!-- Scripts -->
-  <script src="js/translations.js"></script>
   <script src="js/i18n.js"></script>
   <script src="js/animations.js"></script>
   <script>

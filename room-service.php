@@ -1787,7 +1787,6 @@ $contactInfo = getContactInfo();
         window.categoryTranslations = <?= json_encode($allCategoryTranslations) ?>;
         window.defaultLang = '<?= getDefaultLanguage() ?>';
     </script>
-    <script src="js/translations.js"></script>
     <script src="js/i18n.js"></script>
     <script>
         // =====================================================
