@@ -72,18 +72,18 @@ if (php_sapi_name() !== 'cli' && !isset($_GET['confirm'])) {
 
         <div class="step">
             <h3>Étape 1 : Configurer la base de données</h3>
-            <p>Éditez le fichier <code>config/database.php</code> et renseignez vos informations de connexion MySQL :</p>
+            <p>Éditez le fichier <code>config/database.php</code> et renseignez vos informations de connexion PostgreSQL :</p>
             <pre>
-define('DB_HOST', 'localhost');       // Hôte MySQL (souvent localhost sur OVH)
+define('DB_HOST', 'localhost');       // Hôte PostgreSQL
 define('DB_NAME', 'votre_base');      // Nom de votre base de données
-define('DB_USER', 'votre_utilisateur'); // Utilisateur MySQL
-define('DB_PASS', 'votre_mot_de_passe'); // Mot de passe MySQL
+define('DB_USER', 'votre_utilisateur'); // Utilisateur PostgreSQL
+define('DB_PASS', 'votre_mot_de_passe'); // Mot de passe PostgreSQL
 define('SITE_URL', 'https://votre-domaine.com'); // URL de votre site</pre>
         </div>
 
         <div class="step">
             <h3>Étape 2 : Créer la base de données</h3>
-            <p>Dans phpMyAdmin (disponible depuis votre espace OVH), créez une nouvelle base de données ou utilisez une existante.</p>
+            <p>Créez une nouvelle base de données PostgreSQL ou utilisez une existante.</p>
         </div>
 
         <div class="step">
@@ -152,9 +152,9 @@ try {
         try {
             $pdo->exec($statement);
         } catch (PDOException $e) {
-            // Ignore duplicate key errors (expected for ON DUPLICATE KEY UPDATE)
-            if (strpos($e->getMessage(), 'Duplicate') === false &&
-                strpos($e->getMessage(), '1062') === false) {
+            // Ignore duplicate key errors (expected for ON CONFLICT)
+            if (strpos($e->getMessage(), 'duplicate key') === false &&
+                strpos($e->getMessage(), '23505') === false) {
                 throw $e;
             }
         }

@@ -1,19 +1,21 @@
 -- Guest Messages Table
--- Migration for guest messaging feature
--- Run this SQL in your MySQL database
+-- Migration for guest messaging feature (PostgreSQL)
 
 CREATE TABLE IF NOT EXISTS guest_messages (
-    id INT AUTO_INCREMENT PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     room_number VARCHAR(20) NOT NULL,
     guest_name VARCHAR(100) DEFAULT NULL,
     category VARCHAR(50) NOT NULL DEFAULT 'general',
     subject VARCHAR(255) DEFAULT NULL,
     message TEXT NOT NULL,
-    status ENUM('new', 'read', 'in_progress', 'resolved') NOT NULL DEFAULT 'new',
+    status VARCHAR(20) NOT NULL DEFAULT 'new' CHECK (status IN ('new', 'read', 'in_progress', 'resolved')),
     admin_notes TEXT DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_room_number (room_number),
-    INDEX idx_status (status),
-    INDEX idx_created_at (created_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_guest_messages_room_number ON guest_messages (room_number);
+CREATE INDEX IF NOT EXISTS idx_guest_messages_status ON guest_messages (status);
+CREATE INDEX IF NOT EXISTS idx_guest_messages_created_at ON guest_messages (created_at);
+
+CREATE TRIGGER update_guest_messages_updated_at BEFORE UPDATE ON guest_messages
+FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

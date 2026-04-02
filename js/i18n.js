@@ -3,8 +3,9 @@
  * Handles language switching and content translation
  *
  * To add a new language:
- * 1. Add the language to translations.js (in the languages object and as a full translation object)
- * 2. The system will automatically detect and include it in the language selector
+ * 1. Add the language file in lang/ directory (e.g., lang/de.php)
+ * 2. Add the language code to getSupportedLanguages() in includes/functions.php
+ * 3. The system will automatically detect and include it in the language selector
  */
 
 (function() {
@@ -14,11 +15,15 @@
     currentLang: 'fr',
     defaultLang: 'fr',
     storageKey: 'hotel_corintel_lang',
+    translations: null,
 
     /**
      * Initialize the i18n system
      */
-    init() {
+    async init() {
+      // Load translations from PHP API
+      await this.loadTranslations();
+
       // Get saved language or detect from browser
       this.currentLang = this.getSavedLanguage() || this.detectLanguage();
 
@@ -33,12 +38,29 @@
     },
 
     /**
+     * Load translations from PHP API endpoint
+     */
+    async loadTranslations() {
+      try {
+        const response = await fetch('api/translations.php');
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        this.translations = await response.json();
+      } catch (e) {
+        console.error('Failed to load translations:', e);
+        // Fallback: use window.translations if available (e.g., from service worker cache)
+        this.translations = window.translations || { languages: {}, fr: {} };
+      }
+      // Backward compatibility for inline scripts using window.translations
+      window.translations = this.translations;
+    },
+
+    /**
      * Get saved language from localStorage
      */
     getSavedLanguage() {
       try {
         const saved = localStorage.getItem(this.storageKey);
-        if (saved && window.translations && window.translations[saved]) {
+        if (saved && this.translations && this.translations[saved]) {
           return saved;
         }
       } catch (e) {
@@ -55,7 +77,7 @@
       const langCode = browserLang.split('-')[0].toLowerCase();
 
       // Check if we support this language
-      if (window.translations && window.translations[langCode]) {
+      if (this.translations && this.translations[langCode]) {
         return langCode;
       }
 
@@ -77,7 +99,7 @@
      * Create the language selector dropdown
      */
     createLanguageSelector() {
-      const languages = window.translations.languages;
+      const languages = this.translations.languages;
       const nav = document.querySelector('.nav-menu');
 
       if (!nav) return;
@@ -170,7 +192,7 @@
      */
     switchLanguage(lang) {
       if (lang === this.currentLang) return;
-      if (!window.translations[lang]) return;
+      if (!this.translations[lang]) return;
 
       this.currentLang = lang;
       this.saveLanguage(lang);
@@ -185,7 +207,7 @@
      * Update the language selector UI
      */
     updateLanguageSelector() {
-      const languages = window.translations.languages;
+      const languages = this.translations.languages;
       const currentLangData = languages[this.currentLang];
 
       // Update current button
@@ -213,7 +235,7 @@
      * Apply translations to all elements with data-i18n attribute
      */
     applyTranslations() {
-      const t = window.translations[this.currentLang];
+      const t = this.translations[this.currentLang];
       if (!t) return;
 
       // Translate elements with data-i18n attribute
@@ -453,7 +475,7 @@
      * Get a translation value programmatically
      */
     t(key) {
-      const t = window.translations[this.currentLang];
+      const t = this.translations[this.currentLang];
       const value = this.getNestedValue(t, key) || key;
       return this.replacePlaceholders(value);
     }

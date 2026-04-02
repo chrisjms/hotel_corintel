@@ -625,11 +625,11 @@ function getRoomServiceStats(): array {
     $stats['pending_orders'] = $stmt->fetchColumn();
 
     // Today's orders
-    $stmt = $pdo->query('SELECT COUNT(*) FROM room_service_orders WHERE DATE(created_at) = CURDATE()');
+    $stmt = $pdo->query('SELECT COUNT(*) FROM room_service_orders WHERE DATE(created_at) = CURRENT_DATE');
     $stats['today_orders'] = $stmt->fetchColumn();
 
     // Today's revenue
-    $stmt = $pdo->query('SELECT COALESCE(SUM(total_amount), 0) FROM room_service_orders WHERE DATE(created_at) = CURDATE() AND status != "cancelled"');
+    $stmt = $pdo->query('SELECT COALESCE(SUM(total_amount), 0) FROM room_service_orders WHERE DATE(created_at) = CURRENT_DATE AND status != \'cancelled\'');
     $stats['today_revenue'] = $stmt->fetchColumn();
 
     return $stats;
@@ -1122,7 +1122,7 @@ function saveItemTranslations(int $itemId, array $translations): bool {
             $stmt = $pdo->prepare('
                 INSERT INTO room_service_item_translations (item_id, language_code, name, description)
                 VALUES (?, ?, ?, ?)
-                ON DUPLICATE KEY UPDATE name = VALUES(name), description = VALUES(description)
+                ON CONFLICT (item_id, language_code) DO UPDATE SET name = EXCLUDED.name, description = EXCLUDED.description
             ');
             $success = $stmt->execute([$itemId, $langCode, $name, $description]) && $success;
         } catch (PDOException $e) {
@@ -1265,7 +1265,7 @@ function saveCategoryTranslations(string $categoryCode, array $translations): bo
             $stmt = $pdo->prepare('
                 INSERT INTO room_service_category_translations (category_code, language_code, name)
                 VALUES (?, ?, ?)
-                ON DUPLICATE KEY UPDATE name = VALUES(name)
+                ON CONFLICT (category_code, language_code) DO UPDATE SET name = EXCLUDED.name
             ');
             $success = $stmt->execute([$categoryCode, $langCode, $name]) && $success;
         } catch (PDOException $e) {
@@ -1539,13 +1539,13 @@ function getRoomServiceWeeklyRevenue(int $weeks = 12): array {
 
     $stmt = $pdo->prepare("
         SELECT
-            YEARWEEK(created_at, 1) as year_week,
+            TO_CHAR(created_at, 'IYYY-IW') as year_week,
             MIN(DATE(created_at)) as week_start,
             COUNT(*) as orders,
             COALESCE(SUM(CASE WHEN status != 'cancelled' THEN total_amount ELSE 0 END), 0) as revenue
         FROM room_service_orders
-        WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL ? WEEK)
-        GROUP BY YEARWEEK(created_at, 1)
+        WHERE created_at >= CURRENT_DATE - CAST(? AS INTEGER) * INTERVAL '1 week'
+        GROUP BY TO_CHAR(created_at, 'IYYY-IW')
         ORDER BY year_week ASC
     ");
     $stmt->execute([$weeks]);
@@ -1572,12 +1572,12 @@ function getRoomServiceMonthlyRevenue(int $months = 12): array {
 
     $stmt = $pdo->prepare("
         SELECT
-            DATE_FORMAT(created_at, '%Y-%m') as month,
+            TO_CHAR(created_at, 'YYYY-MM') as month,
             COUNT(*) as orders,
             COALESCE(SUM(CASE WHEN status != 'cancelled' THEN total_amount ELSE 0 END), 0) as revenue
         FROM room_service_orders
-        WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL ? MONTH)
-        GROUP BY DATE_FORMAT(created_at, '%Y-%m')
+        WHERE created_at >= CURRENT_DATE - CAST(? AS INTEGER) * INTERVAL '1 month'
+        GROUP BY TO_CHAR(created_at, 'YYYY-MM')
         ORDER BY month ASC
     ");
     $stmt->execute([$months]);
@@ -1609,12 +1609,12 @@ function getRoomServiceYearlyRevenue(?int $year = null): array {
     // Query monthly data for the specified year
     $stmt = $pdo->prepare("
         SELECT
-            MONTH(created_at) as month_num,
+            EXTRACT(MONTH FROM created_at) as month_num,
             COUNT(*) as orders,
             COALESCE(SUM(CASE WHEN status != 'cancelled' THEN total_amount ELSE 0 END), 0) as revenue
         FROM room_service_orders
-        WHERE YEAR(created_at) = ?
-        GROUP BY MONTH(created_at)
+        WHERE EXTRACT(YEAR FROM created_at) = ?
+        GROUP BY EXTRACT(MONTH FROM created_at)
         ORDER BY month_num ASC
     ");
     $stmt->execute([$year]);
@@ -1654,12 +1654,12 @@ function getRoomServicePeakHours(int $days = 30): array {
 
     $stmt = $pdo->prepare("
         SELECT
-            HOUR(delivery_datetime) as hour,
+            EXTRACT(HOUR FROM delivery_datetime) as hour,
             COUNT(*) as orders,
             COALESCE(SUM(CASE WHEN status != 'cancelled' THEN total_amount ELSE 0 END), 0) as revenue
         FROM room_service_orders
-        WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
-        GROUP BY HOUR(delivery_datetime)
+        WHERE created_at >= CURRENT_DATE - CAST(? AS INTEGER) * INTERVAL '1 day'
+        GROUP BY EXTRACT(HOUR FROM delivery_datetime)
         ORDER BY hour ASC
     ");
     $stmt->execute([$days]);
@@ -1711,22 +1711,23 @@ function getRoomServicePeakDays(int $weeks = 8): array {
 
     $stmt = $pdo->prepare("
         SELECT
-            DAYOFWEEK(created_at) as day_num,
+            EXTRACT(DOW FROM created_at) as day_num,
             COUNT(*) as orders,
             COALESCE(SUM(CASE WHEN status != 'cancelled' THEN total_amount ELSE 0 END), 0) as revenue
         FROM room_service_orders
-        WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL ? WEEK)
-        GROUP BY DAYOFWEEK(created_at)
+        WHERE created_at >= CURRENT_DATE - CAST(? AS INTEGER) * INTERVAL '1 week'
+        GROUP BY EXTRACT(DOW FROM created_at)
         ORDER BY day_num ASC
     ");
     $stmt->execute([$weeks]);
     $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+    // PostgreSQL DOW: 0=Sunday, 1=Monday, ..., 6=Saturday
     $dayNames = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
     $fullDayNames = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
 
-    // Fill all 7 days
-    $data = array_fill(1, 7, ['orders' => 0, 'revenue' => 0]);
+    // Fill all 7 days (0-6 for PostgreSQL DOW)
+    $data = array_fill(0, 7, ['orders' => 0, 'revenue' => 0]);
     foreach ($results as $row) {
         $data[(int)$row['day_num']] = [
             'orders' => (int)$row['orders'],
@@ -1735,13 +1736,13 @@ function getRoomServicePeakDays(int $weeks = 8): array {
     }
 
     $dailyData = [];
-    $peakDay = 1;
+    $peakDay = 0;
     $maxOrders = 0;
-    for ($d = 1; $d <= 7; $d++) {
+    for ($d = 0; $d <= 6; $d++) {
         $dailyData[] = [
             'day' => $d,
-            'label' => $dayNames[$d - 1],
-            'full_name' => $fullDayNames[$d - 1],
+            'label' => $dayNames[$d],
+            'full_name' => $fullDayNames[$d],
             'orders' => $data[$d]['orders'],
             'revenue' => $data[$d]['revenue']
         ];
@@ -1754,7 +1755,7 @@ function getRoomServicePeakDays(int $weeks = 8): array {
     return [
         'data' => $dailyData,
         'peak_day' => $peakDay,
-        'peak_day_name' => $fullDayNames[$peakDay - 1]
+        'peak_day_name' => $fullDayNames[$peakDay]
     ];
 }
 
@@ -1776,7 +1777,7 @@ function getRoomServiceTopItems(int $limit = 10, int $days = 30): array {
             COUNT(DISTINCT oi.order_id) as order_count
         FROM room_service_order_items oi
         JOIN room_service_orders o ON oi.order_id = o.id
-        WHERE o.created_at >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
+        WHERE o.created_at >= CURRENT_DATE - CAST(? AS INTEGER) * INTERVAL '1 day'
             AND o.status != 'cancelled'
         GROUP BY oi.item_id, oi.item_name
         ORDER BY total_quantity DESC
@@ -1803,7 +1804,7 @@ function getRoomServiceRevenueByCategory(int $days = 30): array {
         FROM room_service_order_items oi
         JOIN room_service_orders o ON oi.order_id = o.id
         LEFT JOIN room_service_items i ON oi.item_id = i.id
-        WHERE o.created_at >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
+        WHERE o.created_at >= CURRENT_DATE - CAST(? AS INTEGER) * INTERVAL '1 day'
             AND o.status != 'cancelled'
         GROUP BY COALESCE(i.category, 'general')
         ORDER BY total_revenue DESC
@@ -1837,7 +1838,7 @@ function getRoomServicePaymentBreakdown(int $days = 30): array {
             COUNT(*) as order_count,
             COALESCE(SUM(total_amount), 0) as total_revenue
         FROM room_service_orders
-        WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
+        WHERE created_at >= CURRENT_DATE - CAST(? AS INTEGER) * INTERVAL '1 day'
             AND status != 'cancelled'
         GROUP BY payment_method
         ORDER BY total_revenue DESC
@@ -1870,7 +1871,7 @@ function getRoomServiceStatusBreakdown(int $days = 30): array {
             COUNT(*) as order_count,
             COALESCE(SUM(total_amount), 0) as total_amount
         FROM room_service_orders
-        WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
+        WHERE created_at >= CURRENT_DATE - CAST(? AS INTEGER) * INTERVAL '1 day'
         GROUP BY status
         ORDER BY order_count DESC
     ");
@@ -1899,11 +1900,11 @@ function getRoomServiceBestPeriod(string $periodType = 'day', int $lookback = 30
 
     switch ($periodType) {
         case 'week':
-            $groupBy = 'YEARWEEK(created_at, 1)';
+            $groupBy = "TO_CHAR(created_at, 'IYYY-IW')";
             $dateFormat = '%Y-W%u';
             break;
         case 'month':
-            $groupBy = "DATE_FORMAT(created_at, '%Y-%m')";
+            $groupBy = "TO_CHAR(created_at, 'YYYY-MM')";
             $dateFormat = '%Y-%m';
             break;
         default:
@@ -1918,7 +1919,7 @@ function getRoomServiceBestPeriod(string $periodType = 'day', int $lookback = 30
             COUNT(*) as orders,
             COALESCE(SUM(CASE WHEN status != 'cancelled' THEN total_amount ELSE 0 END), 0) as revenue
         FROM room_service_orders
-        WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL ? {$periodType})
+        WHERE created_at >= CURRENT_DATE - CAST(? AS INTEGER) * INTERVAL '1 {$periodType}'
         GROUP BY {$groupBy}
         ORDER BY revenue DESC
         LIMIT 1
@@ -1954,7 +1955,7 @@ function getRoomServiceTopRooms(int $limit = 10, int $days = 30): array {
             COALESCE(SUM(CASE WHEN status != 'cancelled' THEN total_amount ELSE 0 END), 0) as total_revenue,
             COALESCE(AVG(CASE WHEN status != 'cancelled' THEN total_amount END), 0) as avg_order_value
         FROM room_service_orders
-        WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
+        WHERE created_at >= CURRENT_DATE - CAST(? AS INTEGER) * INTERVAL '1 day'
         GROUP BY room_number
         ORDER BY total_revenue DESC
         LIMIT ?
@@ -2113,7 +2114,7 @@ function getGuestMessagesStats(): array {
         $stats['in_progress'] = (int)$stmt->fetchColumn();
 
         // Today's messages
-        $stmt = $pdo->query('SELECT COUNT(*) FROM guest_messages WHERE DATE(created_at) = CURDATE()');
+        $stmt = $pdo->query('SELECT COUNT(*) FROM guest_messages WHERE DATE(created_at) = CURRENT_DATE');
         $stats['today'] = (int)$stmt->fetchColumn();
 
         return $stats;
@@ -2161,8 +2162,8 @@ function initSettingsTable(): void {
         CREATE TABLE IF NOT EXISTS settings (
             setting_key VARCHAR(100) PRIMARY KEY,
             setting_value TEXT,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
     ");
 }
 
@@ -2191,7 +2192,7 @@ function setSetting(string $key, string $value): bool {
         $stmt = $pdo->prepare('
             INSERT INTO settings (setting_key, setting_value)
             VALUES (?, ?)
-            ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)
+            ON CONFLICT (setting_key) DO UPDATE SET setting_value = EXCLUDED.setting_value
         ');
         return $stmt->execute([$key, $value]);
     } catch (PDOException $e) {
@@ -2632,25 +2633,25 @@ function initContentTables(): void {
     // Content sections configuration table
     $pdo->exec("
         CREATE TABLE IF NOT EXISTS content_sections (
-            id INT AUTO_INCREMENT PRIMARY KEY,
+            id SERIAL PRIMARY KEY,
             code VARCHAR(50) UNIQUE NOT NULL,
             name VARCHAR(100) NOT NULL,
             description TEXT,
             page VARCHAR(50) NOT NULL,
-            image_mode ENUM('required', 'optional', 'forbidden') DEFAULT 'optional',
+            image_mode VARCHAR(20) DEFAULT 'optional' CHECK (image_mode IN ('required', 'optional', 'forbidden')),
             max_blocks INT DEFAULT NULL,
-            has_title TINYINT(1) DEFAULT 1,
-            has_description TINYINT(1) DEFAULT 1,
-            has_link TINYINT(1) DEFAULT 0,
+            has_title BOOLEAN DEFAULT TRUE,
+            has_description BOOLEAN DEFAULT TRUE,
+            has_link BOOLEAN DEFAULT FALSE,
             sort_order INT DEFAULT 0,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        )
     ");
 
     // Content blocks table
     $pdo->exec("
         CREATE TABLE IF NOT EXISTS content_blocks (
-            id INT AUTO_INCREMENT PRIMARY KEY,
+            id SERIAL PRIMARY KEY,
             section_code VARCHAR(50) NOT NULL,
             title VARCHAR(255),
             description TEXT,
@@ -2659,14 +2660,14 @@ function initContentTables(): void {
             link_url VARCHAR(500),
             link_text VARCHAR(100),
             position INT DEFAULT 0,
-            is_active TINYINT(1) DEFAULT 1,
+            is_active BOOLEAN DEFAULT TRUE,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            INDEX idx_section (section_code),
-            INDEX idx_position (position),
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (section_code) REFERENCES content_sections(code) ON DELETE CASCADE
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        )
     ");
+    $pdo->exec("CREATE INDEX IF NOT EXISTS idx_content_blocks_section ON content_blocks(section_code)");
+    $pdo->exec("CREATE INDEX IF NOT EXISTS idx_content_blocks_position ON content_blocks(position)");
 
     // Add overlay columns to content_sections if not exist
     try {
@@ -2682,59 +2683,59 @@ function initContentTables(): void {
     } catch (PDOException $e) { /* Column may already exist */ }
 
     try {
-        $pdo->exec("ALTER TABLE content_sections ADD COLUMN has_overlay TINYINT(1) DEFAULT 0");
+        $pdo->exec("ALTER TABLE content_sections ADD COLUMN has_overlay BOOLEAN DEFAULT FALSE");
     } catch (PDOException $e) { /* Column may already exist */ }
 
     // Section overlay translations table
     $pdo->exec("
         CREATE TABLE IF NOT EXISTS section_overlay_translations (
-            id INT AUTO_INCREMENT PRIMARY KEY,
+            id SERIAL PRIMARY KEY,
             section_code VARCHAR(50) NOT NULL,
             language_code VARCHAR(5) NOT NULL,
             overlay_subtitle VARCHAR(255),
             overlay_title VARCHAR(255),
             overlay_description TEXT,
-            UNIQUE KEY unique_section_lang (section_code, language_code),
+            UNIQUE (section_code, language_code),
             FOREIGN KEY (section_code) REFERENCES content_sections(code) ON DELETE CASCADE
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        )
     ");
 
     // Add has_features flag to content_sections if not exist
     try {
-        $pdo->exec("ALTER TABLE content_sections ADD COLUMN has_features TINYINT(1) DEFAULT 0");
+        $pdo->exec("ALTER TABLE content_sections ADD COLUMN has_features BOOLEAN DEFAULT FALSE");
     } catch (PDOException $e) { /* Column may already exist */ }
 
     // Section features table (reusable for any section)
     $pdo->exec("
         CREATE TABLE IF NOT EXISTS section_features (
-            id INT AUTO_INCREMENT PRIMARY KEY,
+            id SERIAL PRIMARY KEY,
             section_code VARCHAR(50) NOT NULL,
             icon_code VARCHAR(50) NOT NULL,
             label VARCHAR(100) NOT NULL,
             position INT DEFAULT 0,
-            is_active TINYINT(1) DEFAULT 1,
+            is_active BOOLEAN DEFAULT TRUE,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            INDEX idx_section (section_code),
-            INDEX idx_position (position),
             FOREIGN KEY (section_code) REFERENCES content_sections(code) ON DELETE CASCADE
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        )
     ");
+    $pdo->exec("CREATE INDEX IF NOT EXISTS idx_section_features_section ON section_features(section_code)");
+    $pdo->exec("CREATE INDEX IF NOT EXISTS idx_section_features_position ON section_features(position)");
 
     // Section feature translations table
     $pdo->exec("
         CREATE TABLE IF NOT EXISTS section_feature_translations (
-            id INT AUTO_INCREMENT PRIMARY KEY,
+            id SERIAL PRIMARY KEY,
             feature_id INT NOT NULL,
             language_code VARCHAR(5) NOT NULL,
             label VARCHAR(100) NOT NULL,
-            UNIQUE KEY unique_feature_lang (feature_id, language_code),
+            UNIQUE (feature_id, language_code),
             FOREIGN KEY (feature_id) REFERENCES section_features(id) ON DELETE CASCADE
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        )
     ");
 
     // Add columns for dynamic sections support
     try {
-        $pdo->exec("ALTER TABLE content_sections ADD COLUMN is_dynamic TINYINT(1) DEFAULT 0");
+        $pdo->exec("ALTER TABLE content_sections ADD COLUMN is_dynamic BOOLEAN DEFAULT FALSE");
     } catch (PDOException $e) { /* Column may already exist */ }
 
     try {
@@ -2746,11 +2747,11 @@ function initContentTables(): void {
     } catch (PDOException $e) { /* Column may already exist */ }
 
     try {
-        $pdo->exec("ALTER TABLE content_sections ADD COLUMN has_services TINYINT(1) DEFAULT 0");
+        $pdo->exec("ALTER TABLE content_sections ADD COLUMN has_services BOOLEAN DEFAULT FALSE");
     } catch (PDOException $e) { /* Column may already exist */ }
 
     try {
-        $pdo->exec("ALTER TABLE content_sections ADD COLUMN has_gallery TINYINT(1) DEFAULT 0");
+        $pdo->exec("ALTER TABLE content_sections ADD COLUMN has_gallery BOOLEAN DEFAULT FALSE");
     } catch (PDOException $e) { /* Column may already exist */ }
 
     // Add background_color column for customizable section backgrounds
@@ -2778,110 +2779,110 @@ function initContentTables(): void {
     } catch (PDOException $e) { /* Column may already exist */ }
 
     try {
-        $pdo->exec("ALTER TABLE content_sections ADD COLUMN section_link_new_tab TINYINT(1) DEFAULT 1");
+        $pdo->exec("ALTER TABLE content_sections ADD COLUMN section_link_new_tab BOOLEAN DEFAULT TRUE");
     } catch (PDOException $e) { /* Column may already exist */ }
 
     // Section link text translations table
     $pdo->exec("
         CREATE TABLE IF NOT EXISTS section_link_translations (
-            id INT AUTO_INCREMENT PRIMARY KEY,
+            id SERIAL PRIMARY KEY,
             section_code VARCHAR(50) NOT NULL,
             language_code VARCHAR(5) NOT NULL,
             link_text VARCHAR(100) NOT NULL,
-            UNIQUE KEY unique_section_lang (section_code, language_code),
+            UNIQUE (section_code, language_code),
             FOREIGN KEY (section_code) REFERENCES content_sections(code) ON DELETE CASCADE
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        )
     ");
 
     // Section services table (reusable service cards for any section)
     $pdo->exec("
         CREATE TABLE IF NOT EXISTS section_services (
-            id INT AUTO_INCREMENT PRIMARY KEY,
+            id SERIAL PRIMARY KEY,
             section_code VARCHAR(50) NOT NULL,
             icon_code VARCHAR(50) NOT NULL,
             label VARCHAR(100) NOT NULL,
             description TEXT,
             position INT DEFAULT 0,
-            is_active TINYINT(1) DEFAULT 1,
+            is_active BOOLEAN DEFAULT TRUE,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            INDEX idx_section (section_code),
-            INDEX idx_position (position),
             FOREIGN KEY (section_code) REFERENCES content_sections(code) ON DELETE CASCADE
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        )
     ");
+    $pdo->exec("CREATE INDEX IF NOT EXISTS idx_section_services_section ON section_services(section_code)");
+    $pdo->exec("CREATE INDEX IF NOT EXISTS idx_section_services_position ON section_services(position)");
 
     // Section service translations table
     $pdo->exec("
         CREATE TABLE IF NOT EXISTS section_service_translations (
-            id INT AUTO_INCREMENT PRIMARY KEY,
+            id SERIAL PRIMARY KEY,
             service_id INT NOT NULL,
             language_code VARCHAR(5) NOT NULL,
             label VARCHAR(100) NOT NULL,
             description TEXT,
-            UNIQUE KEY unique_service_lang (service_id, language_code),
+            UNIQUE (service_id, language_code),
             FOREIGN KEY (service_id) REFERENCES section_services(id) ON DELETE CASCADE
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        )
     ");
 
     // Section gallery items table (for image gallery sections)
     $pdo->exec("
         CREATE TABLE IF NOT EXISTS section_gallery_items (
-            id INT AUTO_INCREMENT PRIMARY KEY,
+            id SERIAL PRIMARY KEY,
             section_code VARCHAR(50) NOT NULL,
             image_filename VARCHAR(255) NOT NULL,
             image_alt VARCHAR(255),
             title VARCHAR(100) NOT NULL,
             description TEXT,
             position INT DEFAULT 0,
-            is_active TINYINT(1) DEFAULT 1,
+            is_active BOOLEAN DEFAULT TRUE,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            INDEX idx_section (section_code),
-            INDEX idx_position (position),
             FOREIGN KEY (section_code) REFERENCES content_sections(code) ON DELETE CASCADE
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        )
     ");
+    $pdo->exec("CREATE INDEX IF NOT EXISTS idx_section_gallery_items_section ON section_gallery_items(section_code)");
+    $pdo->exec("CREATE INDEX IF NOT EXISTS idx_section_gallery_items_position ON section_gallery_items(position)");
 
     // Section gallery item translations table
     $pdo->exec("
         CREATE TABLE IF NOT EXISTS section_gallery_item_translations (
-            id INT AUTO_INCREMENT PRIMARY KEY,
+            id SERIAL PRIMARY KEY,
             item_id INT NOT NULL,
             language_code VARCHAR(5) NOT NULL,
             title VARCHAR(100) NOT NULL,
             description TEXT,
-            UNIQUE KEY unique_item_lang (item_id, language_code),
+            UNIQUE (item_id, language_code),
             FOREIGN KEY (item_id) REFERENCES section_gallery_items(id) ON DELETE CASCADE
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        )
     ");
 
     // Section templates table - defines reusable section templates
     $pdo->exec("
         CREATE TABLE IF NOT EXISTS section_templates (
-            id INT AUTO_INCREMENT PRIMARY KEY,
+            id SERIAL PRIMARY KEY,
             code VARCHAR(50) UNIQUE NOT NULL,
             name VARCHAR(100) NOT NULL,
             description TEXT,
-            image_mode ENUM('required', 'optional', 'forbidden') DEFAULT 'optional',
+            image_mode VARCHAR(20) DEFAULT 'optional' CHECK (image_mode IN ('required', 'optional', 'forbidden')),
             max_blocks INT DEFAULT 1,
-            has_title TINYINT(1) DEFAULT 0,
-            has_description TINYINT(1) DEFAULT 0,
-            has_link TINYINT(1) DEFAULT 0,
-            has_overlay TINYINT(1) DEFAULT 1,
-            has_features TINYINT(1) DEFAULT 1,
-            has_services TINYINT(1) DEFAULT 0,
+            has_title BOOLEAN DEFAULT FALSE,
+            has_description BOOLEAN DEFAULT FALSE,
+            has_link BOOLEAN DEFAULT FALSE,
+            has_overlay BOOLEAN DEFAULT TRUE,
+            has_features BOOLEAN DEFAULT TRUE,
+            has_services BOOLEAN DEFAULT FALSE,
             css_class VARCHAR(100) DEFAULT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        )
     ");
 
     // Add has_services column to section_templates if not exists
     try {
-        $pdo->exec("ALTER TABLE section_templates ADD COLUMN has_services TINYINT(1) DEFAULT 0");
+        $pdo->exec("ALTER TABLE section_templates ADD COLUMN has_services BOOLEAN DEFAULT FALSE");
     } catch (PDOException $e) { /* Column may already exist */ }
 
     // Add has_gallery column to section_templates if not exists
     try {
-        $pdo->exec("ALTER TABLE section_templates ADD COLUMN has_gallery TINYINT(1) DEFAULT 0");
+        $pdo->exec("ALTER TABLE section_templates ADD COLUMN has_gallery BOOLEAN DEFAULT FALSE");
     } catch (PDOException $e) { /* Column may already exist */ }
 
     // Seed default templates
@@ -2915,9 +2916,10 @@ function seedContentSections(): void {
     ];
 
     $stmt = $pdo->prepare("
-        INSERT IGNORE INTO content_sections
+        INSERT INTO content_sections
         (code, name, description, page, image_mode, max_blocks, has_title, has_description, has_link, sort_order)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT (code) DO NOTHING
     ");
 
     foreach ($sections as $section) {
@@ -4483,7 +4485,7 @@ function migrateImagesToContentBlocks(): array {
 
     try {
         // Check if old images table exists
-        $stmt = $pdo->query("SHOW TABLES LIKE 'images'");
+        $stmt = $pdo->query("SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'images'");
         if (!$stmt->fetch()) {
             return ['migrated' => 0, 'errors' => ['Table images non trouvée.']];
         }
@@ -4637,10 +4639,10 @@ function saveSectionOverlayTranslations(string $sectionCode, array $translations
             $stmt = $pdo->prepare('
                 INSERT INTO section_overlay_translations (section_code, language_code, overlay_subtitle, overlay_title, overlay_description)
                 VALUES (?, ?, ?, ?, ?)
-                ON DUPLICATE KEY UPDATE
-                    overlay_subtitle = VALUES(overlay_subtitle),
-                    overlay_title = VALUES(overlay_title),
-                    overlay_description = VALUES(overlay_description)
+                ON CONFLICT (section_code, language_code) DO UPDATE SET
+                    overlay_subtitle = EXCLUDED.overlay_subtitle,
+                    overlay_title = EXCLUDED.overlay_title,
+                    overlay_description = EXCLUDED.overlay_description
             ');
             $success = $stmt->execute([$sectionCode, $langCode, $subtitle, $title, $description]) && $success;
         } catch (PDOException $e) {
@@ -5528,7 +5530,7 @@ function saveSectionFeatureTranslations(int $featureId, array $translations): bo
             $stmt = $pdo->prepare('
                 INSERT INTO section_feature_translations (feature_id, language_code, label)
                 VALUES (?, ?, ?)
-                ON DUPLICATE KEY UPDATE label = VALUES(label)
+                ON CONFLICT (feature_id, language_code) DO UPDATE SET label = EXCLUDED.label
             ');
             $success = $stmt->execute([$featureId, $langCode, $label]) && $success;
         } catch (PDOException $e) {
@@ -5731,7 +5733,7 @@ function saveSectionServiceTranslations(int $serviceId, array $translations): bo
             $stmt = $pdo->prepare('
                 INSERT INTO section_service_translations (service_id, language_code, label, description)
                 VALUES (?, ?, ?, ?)
-                ON DUPLICATE KEY UPDATE label = VALUES(label), description = VALUES(description)
+                ON CONFLICT (service_id, language_code) DO UPDATE SET label = EXCLUDED.label, description = EXCLUDED.description
             ');
             $success = $stmt->execute([$serviceId, $langCode, $label, $description]) && $success;
         } catch (PDOException $e) {
@@ -5938,7 +5940,7 @@ function saveSectionGalleryItemTranslations(int $itemId, array $translations): b
             $stmt = $pdo->prepare('
                 INSERT INTO section_gallery_item_translations (item_id, language_code, title, description)
                 VALUES (?, ?, ?, ?)
-                ON DUPLICATE KEY UPDATE title = VALUES(title), description = VALUES(description)
+                ON CONFLICT (item_id, language_code) DO UPDATE SET title = EXCLUDED.title, description = EXCLUDED.description
             ');
             $success = $stmt->execute([$itemId, $langCode, $title, $description]) && $success;
         } catch (PDOException $e) {
@@ -7144,15 +7146,15 @@ function getQrScanStatistics(): array {
         $totalScans = (int) $stmt->fetchColumn();
 
         // Scans today
-        $stmt = $pdo->query("SELECT COUNT(*) FROM qr_scans WHERE DATE(scanned_at) = CURDATE()");
+        $stmt = $pdo->query("SELECT COUNT(*) FROM qr_scans WHERE DATE(scanned_at) = CURRENT_DATE");
         $scansToday = (int) $stmt->fetchColumn();
 
         // Scans this week
-        $stmt = $pdo->query("SELECT COUNT(*) FROM qr_scans WHERE scanned_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)");
+        $stmt = $pdo->query("SELECT COUNT(*) FROM qr_scans WHERE scanned_at >= NOW() - INTERVAL '7 days'");
         $scansThisWeek = (int) $stmt->fetchColumn();
 
         // Scans this month
-        $stmt = $pdo->query("SELECT COUNT(*) FROM qr_scans WHERE scanned_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)");
+        $stmt = $pdo->query("SELECT COUNT(*) FROM qr_scans WHERE scanned_at >= NOW() - INTERVAL '30 days'");
         $scansThisMonth = (int) $stmt->fetchColumn();
 
         // Most scanned rooms
@@ -7169,7 +7171,7 @@ function getQrScanStatistics(): array {
         $stmt = $pdo->query("
             SELECT DATE(scanned_at) as scan_date, COUNT(*) as count
             FROM qr_scans
-            WHERE scanned_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+            WHERE scanned_at >= NOW() - INTERVAL '30 days'
             GROUP BY DATE(scanned_at)
             ORDER BY scan_date ASC
         ");
@@ -7177,9 +7179,9 @@ function getQrScanStatistics(): array {
 
         // Scans per hour (distribution)
         $stmt = $pdo->query("
-            SELECT HOUR(scanned_at) as hour, COUNT(*) as count
+            SELECT EXTRACT(HOUR FROM scanned_at) as hour, COUNT(*) as count
             FROM qr_scans
-            GROUP BY HOUR(scanned_at)
+            GROUP BY EXTRACT(HOUR FROM scanned_at)
             ORDER BY hour ASC
         ");
         $hourlyDistribution = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -7259,7 +7261,7 @@ function getEstimatedDeliveryTime(): array {
             SELECT COUNT(*) as pending_count
             FROM room_service_orders
             WHERE status IN ('pending', 'confirmed', 'preparing')
-            AND created_at >= DATE_SUB(NOW(), INTERVAL 2 HOUR)
+            AND created_at >= NOW() - INTERVAL '2 hours'
         ");
         $pendingOrders = (int) $stmt->fetchColumn();
 
@@ -7268,7 +7270,7 @@ function getEstimatedDeliveryTime(): array {
             SELECT AVG(TIMESTAMPDIFF(MINUTE, created_at, updated_at)) as avg_time
             FROM room_service_orders
             WHERE status = 'delivered'
-            AND updated_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+            AND updated_at >= NOW() - INTERVAL '7 days'
         ");
         $avgPrepTime = (float) $stmt->fetchColumn() ?: 20; // Default 20 min
 
@@ -7344,8 +7346,8 @@ function getAverageTimeFromScanToOrder(int $days = 30): array {
             FROM room_service_orders o
             INNER JOIN qr_scans qs ON o.room_id = qs.room_id
                 AND qs.scanned_at <= o.created_at
-                AND qs.scanned_at >= DATE_SUB(o.created_at, INTERVAL 2 HOUR)
-            WHERE o.created_at >= DATE_SUB(NOW(), INTERVAL :days DAY)
+                AND qs.scanned_at >= o.created_at - INTERVAL '2 hours'
+            WHERE o.created_at >= NOW() - CAST(:days AS INTEGER) * INTERVAL '1 day'
             AND o.status != 'cancelled'
         ");
         $stmt->execute(['days' => $days]);
@@ -7355,7 +7357,7 @@ function getAverageTimeFromScanToOrder(int $days = 30): array {
         $stmtScans = $pdo->prepare("
             SELECT COUNT(*) as total_scans
             FROM qr_scans
-            WHERE scanned_at >= DATE_SUB(NOW(), INTERVAL :days DAY)
+            WHERE scanned_at >= NOW() - CAST(:days AS INTEGER) * INTERVAL '1 day'
         ");
         $stmtScans->execute(['days' => $days]);
         $totalScans = (int) $stmtScans->fetchColumn();
@@ -7364,7 +7366,7 @@ function getAverageTimeFromScanToOrder(int $days = 30): array {
         $stmtOrders = $pdo->prepare("
             SELECT COUNT(*) as total_orders
             FROM room_service_orders
-            WHERE created_at >= DATE_SUB(NOW(), INTERVAL :days DAY)
+            WHERE created_at >= NOW() - CAST(:days AS INTEGER) * INTERVAL '1 day'
             AND status != 'cancelled'
         ");
         $stmtOrders->execute(['days' => $days]);
@@ -7402,8 +7404,7 @@ function getAverageTimeFromScanToOrder(int $days = 30): array {
 function getPredictivePreparationSuggestions(): array {
     $pdo = getDatabase();
     $currentHour = (int) date('H');
-    $currentDay = (int) date('N'); // 1=Monday, 7=Sunday
-    $mysqlDay = $currentDay % 7 + 1; // MySQL DAYOFWEEK: 1=Sunday, 2=Monday, etc.
+    $pgDay = (int)date('w'); // PostgreSQL DOW: 0=Sunday, 1=Monday, etc.
 
     $result = [
         'popular_items' => [],
@@ -7420,7 +7421,7 @@ function getPredictivePreparationSuggestions(): array {
                 COUNT(*) as order_count
             FROM room_service_orders
             WHERE status IN ('delivered', 'preparing', 'confirmed')
-            AND created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+            AND created_at >= NOW() - INTERVAL '7 days'
             GROUP BY name
             ORDER BY order_count DESC
             LIMIT 6
@@ -7435,10 +7436,10 @@ function getPredictivePreparationSuggestions(): array {
                 COUNT(*) / 4.0 as avg_per_day
             FROM room_service_orders
             WHERE status = 'delivered'
-            AND created_at >= DATE_SUB(NOW(), INTERVAL 28 DAY)
-            AND DAYOFWEEK(created_at) = :day
+            AND created_at >= NOW() - INTERVAL '28 days'
+            AND EXTRACT(DOW FROM created_at) = :day
         ");
-        $stmt->execute(['day' => $mysqlDay]);
+        $stmt->execute(['day' => $pgDay]);
         $volumeData = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($volumeData && $volumeData['avg_per_day'] > 0) {
@@ -7786,12 +7787,12 @@ function initPagesTable(): void {
     $pdo = getDatabase();
 
     // Check if pages table exists
-    $stmt = $pdo->query("SHOW TABLES LIKE 'pages'");
+    $stmt = $pdo->query("SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'pages'");
     if ($stmt->rowCount() === 0) {
         // Create pages table
         $pdo->exec("
             CREATE TABLE IF NOT EXISTS pages (
-                id INT AUTO_INCREMENT PRIMARY KEY,
+                id SERIAL PRIMARY KEY,
                 slug VARCHAR(50) NOT NULL UNIQUE,
                 code VARCHAR(50) NOT NULL UNIQUE,
                 title VARCHAR(100) NOT NULL,
@@ -7800,22 +7801,22 @@ function initPagesTable(): void {
                 meta_description VARCHAR(300) DEFAULT NULL,
                 meta_keywords VARCHAR(255) DEFAULT NULL,
                 hero_section_code VARCHAR(50) DEFAULT NULL,
-                page_type ENUM('standard', 'home', 'contact', 'special') NOT NULL DEFAULT 'standard',
+                page_type VARCHAR(20) NOT NULL DEFAULT 'standard' CHECK (page_type IN ('standard', 'home', 'contact', 'special')),
                 template VARCHAR(50) DEFAULT 'default',
                 display_order INT NOT NULL DEFAULT 0,
-                show_in_nav TINYINT(1) NOT NULL DEFAULT 1,
-                is_active TINYINT(1) NOT NULL DEFAULT 1,
+                show_in_nav BOOLEAN NOT NULL DEFAULT TRUE,
+                is_active BOOLEAN NOT NULL DEFAULT TRUE,
                 i18n_nav_key VARCHAR(100) DEFAULT NULL,
                 i18n_hero_title_key VARCHAR(100) DEFAULT NULL,
                 i18n_hero_subtitle_key VARCHAR(100) DEFAULT NULL,
-                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                INDEX idx_slug (slug),
-                INDEX idx_code (code),
-                INDEX idx_display_order (display_order),
-                INDEX idx_active (is_active)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
         ");
+        $pdo->exec("CREATE INDEX IF NOT EXISTS idx_pages_slug ON pages(slug)");
+        $pdo->exec("CREATE INDEX IF NOT EXISTS idx_pages_code ON pages(code)");
+        $pdo->exec("CREATE INDEX IF NOT EXISTS idx_pages_display_order ON pages(display_order)");
+        $pdo->exec("CREATE INDEX IF NOT EXISTS idx_pages_active ON pages(is_active)");
 
         // Seed default pages
         seedDefaultPages();
@@ -7836,8 +7837,9 @@ function seedDefaultPages(): void {
     ];
 
     $stmt = $pdo->prepare("
-        INSERT IGNORE INTO pages (slug, code, title, nav_title, page_type, display_order, i18n_nav_key, hero_section_code, i18n_hero_title_key, i18n_hero_subtitle_key)
+        INSERT INTO pages (slug, code, title, nav_title, page_type, display_order, i18n_nav_key, hero_section_code, i18n_hero_title_key, i18n_hero_subtitle_key)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT (slug) DO NOTHING
     ");
 
     foreach ($defaultPages as $page) {

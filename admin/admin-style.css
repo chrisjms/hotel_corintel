@@ -22,6 +22,24 @@
     --admin-transition: 0.2s ease;
 }
 
+/* Dark Mode */
+[data-theme="dark"] {
+    --admin-primary: #C4935A;
+    --admin-primary-dark: #D4A76A;
+    --admin-secondary: #8B95A5;
+    --admin-success: #68D391;
+    --admin-error: #FC8181;
+    --admin-warning: #F6AD55;
+    --admin-bg: #1A1D23;
+    --admin-sidebar: #13161B;
+    --admin-card: #242830;
+    --admin-border: #2D3340;
+    --admin-text: #E2E8F0;
+    --admin-text-light: #8B95A5;
+    --admin-shadow: 0 1px 3px rgba(0,0,0,0.4);
+    --admin-shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.4);
+}
+
 /* Reset & Base */
 *, *::before, *::after {
     box-sizing: border-box;
@@ -1037,6 +1055,150 @@ a:hover {
 
 .login-footer a:hover {
     color: var(--admin-primary);
+}
+
+/* Theme Toggle */
+.theme-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.5rem 0;
+    margin-bottom: 0.75rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: rgba(255,255,255,0.7);
+    font-size: 0.875rem;
+    font-family: inherit;
+    transition: color var(--admin-transition);
+}
+
+.theme-toggle:hover {
+    color: #fff;
+}
+
+.theme-toggle svg {
+    width: 16px;
+    height: 16px;
+}
+
+.theme-toggle .icon-sun,
+.theme-toggle .theme-label-dark {
+    display: none;
+}
+
+[data-theme="dark"] .theme-toggle .icon-sun {
+    display: inline;
+}
+
+[data-theme="dark"] .theme-toggle .icon-moon {
+    display: none;
+}
+
+[data-theme="dark"] .theme-toggle .theme-label-light {
+    display: none;
+}
+
+[data-theme="dark"] .theme-toggle .theme-label-dark {
+    display: inline;
+}
+
+/* Dark mode refinements */
+[data-theme="dark"] .stat-icon {
+    background: rgba(196, 147, 90, 0.15);
+}
+
+[data-theme="dark"] .message-preview-item {
+    background: var(--admin-card);
+}
+
+[data-theme="dark"] .message-preview-item:hover {
+    background: rgba(196, 147, 90, 0.08);
+}
+
+[data-theme="dark"] .message-preview-item.message-unread {
+    background: rgba(66, 153, 225, 0.12);
+}
+
+[data-theme="dark"] .message-preview-item.message-unread:hover {
+    background: rgba(66, 153, 225, 0.18);
+}
+
+[data-theme="dark"] .section-card:hover,
+[data-theme="dark"] .quick-action:hover {
+    background: rgba(196, 147, 90, 0.1);
+}
+
+[data-theme="dark"] .section-tab:hover {
+    background: rgba(196, 147, 90, 0.15);
+}
+
+[data-theme="dark"] .btn-outline {
+    border-color: var(--admin-border);
+    color: var(--admin-text);
+}
+
+[data-theme="dark"] .btn-outline:hover {
+    background: rgba(196, 147, 90, 0.1);
+    border-color: var(--admin-primary);
+    color: var(--admin-primary);
+}
+
+[data-theme="dark"] .image-preview {
+    background: #1A1D23;
+}
+
+[data-theme="dark"] .upload-area:hover,
+[data-theme="dark"] .upload-area.dragover {
+    background: rgba(196, 147, 90, 0.08);
+}
+
+[data-theme="dark"] .data-table tbody tr:hover {
+    background: rgba(255,255,255,0.03);
+}
+
+[data-theme="dark"] .data-table tbody tr.row-unread {
+    background: rgba(66, 153, 225, 0.1);
+}
+
+[data-theme="dark"] .data-table tbody tr.row-unread:hover {
+    background: rgba(66, 153, 225, 0.15);
+}
+
+[data-theme="dark"] .alert-success {
+    background: rgba(104, 211, 145, 0.12);
+    color: #68D391;
+    border-color: rgba(104, 211, 145, 0.25);
+}
+
+[data-theme="dark"] .alert-error {
+    background: rgba(252, 129, 129, 0.12);
+    color: #FC8181;
+    border-color: rgba(252, 129, 129, 0.25);
+}
+
+[data-theme="dark"] .security-notice {
+    background: rgba(246, 173, 85, 0.1);
+    border-color: rgba(246, 173, 85, 0.25);
+}
+
+[data-theme="dark"] .modal-close:hover {
+    background: var(--admin-border);
+}
+
+[data-theme="dark"] .login-page {
+    background: linear-gradient(135deg, #0D0F12 0%, #1A1D23 100%);
+}
+
+[data-theme="dark"] .nav-item.active {
+    background: rgba(196, 147, 90, 0.2);
+}
+
+[data-theme="dark"] .form-group input:focus,
+[data-theme="dark"] .form-group textarea:focus,
+[data-theme="dark"] .form-group select:focus {
+    box-shadow: 0 0 0 3px rgba(196, 147, 90, 0.15);
 }
 
 /* Mobile Menu Toggle */

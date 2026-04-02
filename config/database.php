@@ -3,14 +3,13 @@
  * Database Configuration
  * Hotel Corintel - Admin System
  *
- * Update these values with your OVH MySQL credentials
+ * Update these values with your PostgreSQL credentials
  */
 
-define('DB_HOST', 'hothelvhothello.mysql.db');
+define('DB_HOST', 'hothelvhothello.postgresql.db');
 define('DB_NAME', 'hothelvhothello');
 define('DB_USER', 'hothelvhothello');
 define('DB_PASS', 'Toutesdesputes33');
-define('DB_CHARSET', 'utf8mb4');
 
 // Site configuration
 define('SITE_URL', 'https://hothello.ovh/corintel');
@@ -19,6 +18,9 @@ define('UPLOAD_URL', SITE_URL . '/uploads/');
 define('MAX_FILE_SIZE', 5 * 1024 * 1024); // 5MB
 define('ALLOWED_TYPES', ['image/jpeg', 'image/png', 'image/webp']);
 define('ALLOWED_EXTENSIONS', ['jpg', 'jpeg', 'png', 'webp']);
+
+// Super Admin cross-login secret (CHANGE THIS to a unique random string)
+define('SUPER_ADMIN_CROSS_LOGIN_SECRET', 'CHANGE_ME_TO_A_RANDOM_SECRET_STRING_64_CHARS_MINIMUM');
 
 /**
  * Get PDO database connection
@@ -29,10 +31,9 @@ function getDatabase(): PDO {
     if ($pdo === null) {
         try {
             $dsn = sprintf(
-                'mysql:host=%s;dbname=%s;charset=%s',
+                'pgsql:host=%s;dbname=%s',
                 DB_HOST,
-                DB_NAME,
-                DB_CHARSET
+                DB_NAME
             );
 
             $options = [
@@ -42,6 +43,7 @@ function getDatabase(): PDO {
             ];
 
             $pdo = new PDO($dsn, DB_USER, DB_PASS, $options);
+            $pdo->exec("SET client_encoding = 'UTF8'");
         } catch (PDOException $e) {
             error_log('Database connection failed: ' . $e->getMessage());
             die('Database connection error. Please check your configuration.');

@@ -1,50 +1,137 @@
-# Hôtel Corintel - Project Context
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview
 
-A hotel website for Hôtel Corintel (Bordeaux, France) with two main parts:
-- **Client-facing site**: Public pages for guests (home, services, room service, activities, contact)
-- **Admin panel**: Dashboard for hotel staff to manage orders, messages, and content
+Hotel website. Two main surfaces:
+- **Client site**: Public guest-facing pages (home, services, activities, contact, room service)
+- **Admin panel**: Staff dashboard for managing orders, messages, rooms, content, and settings
 
 ## Tech Stack
 
 | Layer | Technology |
 |-------|------------|
-| Backend | PHP (no framework) |
+| Backend | PHP (no framework), Apache with mod_rewrite |
 | Frontend | HTML5, CSS3, Vanilla JavaScript |
-| Database | MySQL with PDO |
-| i18n | Custom JS-based system (4 languages: FR, EN, ES, IT) |
+| Database | MySQL/MariaDB with PDO (utf8mb4) |
+| i18n | Custom JS-based system (FR, EN, ES, IT) |
+| Hosting | OVH shared hosting |
 
-**Do NOT introduce:**
-- PHP frameworks (Laravel, Symfony, etc.)
-- JavaScript frameworks (React, Vue, Angular, etc.)
-- CSS frameworks (Bootstrap, Tailwind, etc.)
-- Node.js or npm-based build tools
-- Composer dependencies (unless absolutely necessary)
+**Do NOT introduce** PHP frameworks, JS frameworks, CSS frameworks, Node.js/npm, or Composer dependencies.
 
-## Project Structure
+## Development
 
+```bash
+# Run locally (PHP built-in server)
+php -S localhost:8000
+
+# First-time setup (creates all DB tables + default admin account)
+# Via browser: visit setup/install.php?confirm=1
+# Via CLI: php setup/install.php
 ```
-/
-├── index.php, services.php, contact.php, etc.  # Client pages
-├── style.css                                    # Main stylesheet
-├── js/
-│   ├── translations.js                          # i18n strings
-│   ├── i18n.js                                  # i18n system
-│   └── animations.js                            # Scroll animations
-├── includes/
-│   ├── functions.php                            # Helper functions
-│   ├── auth.php                                 # Authentication
-│   └── images-helper.php                        # Image utilities
-├── admin/
-│   ├── index.php                                # Admin dashboard
-│   ├── admin-style.css                          # Admin styles
-│   ├── room-service-*.php                       # Order/message management
-│   └── api/                                     # Admin API endpoints
-├── config/
-│   └── database.php                             # DB configuration
-└── uploads/                                     # User uploads
+
+No build step, no bundler, no preprocessor. Edit PHP/JS/CSS files directly.
+
+## Architecture
+
+### Routing
+
+File-based routing with `.htaccess` rewrites:
+- Static pages: `index.php`, `services.php`, `activites.php`, `contact.php`, `room-service.php`
+- Dynamic pages: URLs like `/my-page` rewrite to `page.php?slug=my-page` (looked up in `pages` DB table)
+- Admin: `/admin/*` served directly (no rewrite)
+- APIs: `/api/*` and `/admin/api/*` served directly
+
+### Database Connection
+
+Singleton pattern in `config/database.php` via `getDatabase(): PDO`. Every file that needs DB access does:
+```php
+require_once __DIR__ . '/../config/database.php';  // or via includes/functions.php
+$pdo = getDatabase();
 ```
+
+### Key Include Files
+
+- `includes/functions.php` — All helper functions (images, room service, orders, messages, content, pages, QR tokens). This is the main utility file.
+- `includes/auth.php` — Admin authentication (session + persistent token cookies)
+- `includes/images-helper.php` — `img()`, `imgTag()` shorthand for image rendering with fallbacks
+- `includes/content-helper.php` — `content()`, `contentFirst()`, `contentImage()` for dynamic content blocks
+
+### QR Code → Room Service Flow
+
+1. Admin generates QR codes per room in `admin/rooms.php` using HMAC-SHA256 tokens
+2. Guest scans QR → `scan.php?room=X&token=TOKEN` validates token, sets `$_SESSION['room_service_access']`
+3. All 5 client pages check `getRoomServiceSession()` to show room badge in nav + unlock contact modal
+4. `room-service.php` uses `checkRoomServiceAccess()` (checks session OR URL params)
+5. Cart stored client-side in localStorage; order submitted via POST
+
+### Content System (Three Layers)
+
+1. **Legacy images** (`images` table): Section + position slots, accessed via `img($section, $position)`
+2. **Content blocks** (`content_sections` + `content_blocks` tables): Hero sections and dynamic blocks with translations
+3. **Dynamic sections** (`section_templates`, `section_features`, etc.): Full page sections with multilingual support, loaded via `getDynamicSectionsWithData($pageCode)`
+
+### i18n System
+
+- Static strings: `js/translations.js` (nested objects per language) + `js/i18n.js` (applies translations)
+- HTML attributes: `data-i18n="key.subkey"` (innerHTML), `data-i18n-placeholder` (inputs), `data-i18n-aria`, `data-i18n-title`
+- DB-driven translations: Hero overlays and dynamic sections stored in translation tables, injected as `window.heroOverlayTranslations` / `window.dynamicSectionsTranslations`
+- Language detection: Browser language → localStorage (`hotel_corintel_lang`) → defaults to French
+
+### Admin Real-Time Updates
+
+No WebSockets. Polling via `setInterval` (every 5s) to:
+- `admin/api/dashboard-updates.php` — order/message counts
+- `admin/api/orders-updates.php` — order status changes
+- `admin/api/messages-updates.php` — message status changes
+
+### Auth System
+
+- Session-based (`hotel_admin_session`) with persistent token cookies (`hotel_admin_auth`)
+- All admin pages call `requireAuth()` at top
+- Rate limiting: 5 login attempts per IP per 15 minutes
+- Persistent tokens: SHA256-hashed in `persistent_tokens` table
+
+## Code Conventions
+
+### CSS Variables (Client)
+```css
+--color-primary: #8B6F47;       /* Warm brown */
+--color-primary-dark: #6B5635;
+--color-accent: #5C7C5E;        /* Sage green */
+--color-cream: #FAF6F0;         /* Background */
+--font-heading: 'Cormorant Garamond', serif;
+--font-body: 'Lato', sans-serif;
+```
+
+### CSS Variables (Admin)
+```css
+--admin-primary: #8B5A2B;
+--admin-sidebar: #1A202C;
+--admin-bg: #F7FAFC;
+```
+
+### Naming
+- CSS: kebab-case
+- JavaScript: camelCase
+- PHP functions: camelCase
+- Database columns: snake_case
+
+### Security
+- PDO prepared statements for all queries
+- `htmlspecialchars()` for all output
+- Server-side validation required on all forms
+- Return JSON for AJAX requests (`X-Requested-With: XMLHttpRequest`)
+
+### Page Pattern
+
+Each client page is self-contained: includes its own dependencies, inline JS, and calls `getRoomServiceSession()` at top. The contact modal and mobile nav JS are duplicated across all 5 pages (not extracted to shared file). `page.php` has fully inline scripts since it has no shared JS file.
+
+## Status Workflows
+
+- **Orders**: pending → confirmed → preparing → delivered (or cancelled)
+- **Messages**: new → read → in_progress → resolved
 
 ## Key Features
 
@@ -70,16 +157,6 @@ A hotel website for Hôtel Corintel (Bordeaux, France) with two main parts:
 - Keep PHP files self-contained (each page includes its own dependencies)
 - Use PDO prepared statements for all database queries
 
-### CSS Variables (Client Site)
-```css
---color-primary: #8B6F47       /* Warm brown */
---color-primary-dark: #6B5635  /* Darker brown */
---color-accent: #5C7C5E        /* Sage green */
---color-cream: #FAF6F0         /* Background */
---font-heading: 'Cormorant Garamond', serif
---font-body: 'Lato', sans-serif
-```
-
 ### i18n
 - Add translations to `js/translations.js` for all 4 languages
 - Use `data-i18n="key.subkey"` attributes in HTML
@@ -90,15 +167,6 @@ A hotel website for Hôtel Corintel (Bordeaux, France) with two main parts:
 - Server-side validation always required
 - Return JSON for AJAX requests
 - Use `htmlspecialchars()` for all output
-
-## Database Tables
-
-Key tables:
-- `room_service_items` - Menu items
-- `room_service_orders` - Orders with items (JSON)
-- `guest_messages` - Messages to reception
-- `images` - Dynamic images by section
-- `settings` - Admin settings
 
 ## UX Constraints
 

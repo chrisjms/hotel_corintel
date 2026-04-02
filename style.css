@@ -74,9 +74,9 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--color-text);
 }
 
-h1 { font-size: clamp(2.5rem, 5vw, 4rem); }
-h2 { font-size: clamp(2rem, 4vw, 3rem); }
-h3 { font-size: clamp(1.5rem, 3vw, 2rem); }
+h1 { font-size: clamp(2rem, 5vw, 4rem); }
+h2 { font-size: clamp(1.5rem, 4vw, 3rem); }
+h3 { font-size: clamp(1.25rem, 3vw, 2rem); }
 h4 { font-size: 1.25rem; }
 
 p {
@@ -298,7 +298,8 @@ p {
 .hero {
   position: relative;
   height: 100vh;
-  min-height: 600px;
+  height: 100dvh;
+  min-height: 500px;
   margin-top: var(--header-height);
   overflow: hidden;
 }
@@ -428,6 +429,11 @@ p {
   box-shadow: var(--shadow-medium);
 }
 
+.btn-primary:active {
+  transform: scale(0.97);
+  box-shadow: none;
+}
+
 .btn-outline {
   background-color: transparent;
   color: var(--color-white);
@@ -437,6 +443,10 @@ p {
 .btn-outline:hover {
   background-color: var(--color-white);
   color: var(--color-text);
+}
+
+.btn-outline:active {
+  transform: scale(0.97);
 }
 
 /* Carousel Navigation */
@@ -457,6 +467,9 @@ p {
   background-color: rgba(255, 255, 255, 0.5);
   cursor: pointer;
   transition: var(--transition);
+  padding: 8px;
+  margin: -8px;
+  background-clip: content-box;
 }
 
 .carousel-dot.active,
@@ -469,7 +482,8 @@ p {
 .page-hero {
   position: relative;
   height: 50vh;
-  min-height: 400px;
+  height: 50dvh;
+  min-height: 350px;
   margin-top: var(--header-height);
   display: flex;
   align-items: center;
@@ -1330,6 +1344,7 @@ p {
     width: 80%;
     max-width: 300px;
     height: 100vh;
+    height: 100dvh;
     background-color: var(--color-white);
     flex-direction: column;
     justify-content: center;
@@ -1360,7 +1375,7 @@ p {
   }
 
   .hero {
-    min-height: 500px;
+    min-height: 400px;
   }
 
   .hero-content {
@@ -2149,8 +2164,8 @@ p {
 }
 
 .modal-close {
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2165,6 +2180,10 @@ p {
 .modal-close:hover {
   background: var(--color-beige);
   color: var(--color-text);
+}
+
+.modal-close:active {
+  background: var(--color-beige);
 }
 
 .modal-close svg {
@@ -2208,7 +2227,7 @@ p {
   padding: 0.75rem 1rem;
   border: 1px solid var(--color-beige);
   border-radius: 6px;
-  font-size: 0.95rem;
+  font-size: 1rem;
   font-family: var(--font-body);
   transition: var(--transition);
   background: var(--color-white);
