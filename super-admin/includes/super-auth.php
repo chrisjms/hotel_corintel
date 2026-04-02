@@ -114,7 +114,7 @@ function superRestoreSessionFromToken(string $token): bool {
         SELECT pt.super_admin_id, a.username
         FROM super_persistent_tokens pt
         JOIN super_admins a ON a.id = pt.super_admin_id
-        WHERE pt.token_hash = ? AND a.is_active = 1
+        WHERE pt.token_hash = ? AND a.is_active = TRUE
     ');
     $stmt->execute([hash('sha256', $token)]);
     $result = $stmt->fetch();
@@ -258,7 +258,7 @@ function superAttemptLogin(string $username, string $password): array {
     }
 
     $pdo = getSuperDatabase();
-    $stmt = $pdo->prepare('SELECT id, username, password FROM super_admins WHERE username = ? AND is_active = 1');
+    $stmt = $pdo->prepare('SELECT id, username, password FROM super_admins WHERE username = ? AND is_active = TRUE');
     $stmt->execute([$username]);
     $admin = $stmt->fetch();
 

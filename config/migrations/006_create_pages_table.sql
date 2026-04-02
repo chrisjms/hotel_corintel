@@ -63,16 +63,24 @@ ON CONFLICT (slug) DO UPDATE SET title = EXCLUDED.title;
 
 -- =====================================================
 -- Add page_id to content_sections for future use
+-- (only if table exists — it is created dynamically by the PHP application)
 -- =====================================================
-ALTER TABLE content_sections ADD COLUMN IF NOT EXISTS page_id INT DEFAULT NULL;
-CREATE INDEX IF NOT EXISTS idx_content_sections_page_id ON content_sections (page_id);
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.tables
+        WHERE table_schema = 'public' AND table_name = 'content_sections'
+    ) THEN
+        ALTER TABLE content_sections ADD COLUMN IF NOT EXISTS page_id INT DEFAULT NULL;
+        CREATE INDEX IF NOT EXISTS idx_content_sections_page_id ON content_sections (page_id);
 
--- Update existing sections with page_id based on page code
-UPDATE content_sections
-SET page_id = p.id
-FROM pages p
-WHERE content_sections.page = p.code
-AND content_sections.page_id IS NULL;
+        UPDATE content_sections
+        SET page_id = p.id
+        FROM pages p
+        WHERE content_sections.page = p.code
+        AND content_sections.page_id IS NULL;
+    END IF;
+END $$;
 
 -- =====================================================
 -- Page translations table
