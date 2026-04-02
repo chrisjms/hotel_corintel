@@ -18,7 +18,7 @@ function ensureHotelsTable(): void {
 
     $pdo->exec('
         CREATE TABLE IF NOT EXISTS hotels (
-            id INT AUTO_INCREMENT PRIMARY KEY,
+            id SERIAL PRIMARY KEY,
             name VARCHAR(200) NOT NULL,
             slug VARCHAR(100) NOT NULL UNIQUE,
             site_url VARCHAR(500),
@@ -29,39 +29,39 @@ function ensureHotelsTable(): void {
             db_pass VARCHAR(500) NULL,
             cross_login_secret VARCHAR(128) NULL,
             notes TEXT,
-            is_active BOOLEAN DEFAULT 1,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            INDEX idx_slug (slug),
-            INDEX idx_active (is_active)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            is_active BOOLEAN DEFAULT TRUE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
     ');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_hotels_slug ON hotels (slug)');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_hotels_active ON hotels (is_active)');
 
     $pdo->exec('
         CREATE TABLE IF NOT EXISTS super_admin_login_tokens (
-            id INT AUTO_INCREMENT PRIMARY KEY,
+            id SERIAL PRIMARY KEY,
             token_nonce VARCHAR(64) NOT NULL UNIQUE,
-            used_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            INDEX idx_nonce (token_nonce),
-            INDEX idx_used_at (used_at)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
     ');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_super_admin_login_tokens_nonce ON super_admin_login_tokens (token_nonce)');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_super_admin_login_tokens_used_at ON super_admin_login_tokens (used_at)');
 
     $pdo->exec('
         CREATE TABLE IF NOT EXISTS super_admin_audit_log (
-            id INT AUTO_INCREMENT PRIMARY KEY,
+            id SERIAL PRIMARY KEY,
             super_admin_id INT NOT NULL,
             action VARCHAR(100) NOT NULL,
             hotel_id INT NULL,
             details TEXT,
             ip_address VARCHAR(45),
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            INDEX idx_super_admin (super_admin_id),
-            INDEX idx_action (action),
-            INDEX idx_hotel (hotel_id),
-            INDEX idx_created (created_at)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
     ');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_super_admin_audit_log_admin ON super_admin_audit_log (super_admin_id)');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_super_admin_audit_log_action ON super_admin_audit_log (action)');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_super_admin_audit_log_hotel ON super_admin_audit_log (hotel_id)');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_super_admin_audit_log_created ON super_admin_audit_log (created_at)');
 }
 
 // --- Hotel CRUD ---

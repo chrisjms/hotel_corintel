@@ -31,7 +31,7 @@ try {
     $rsTodayTotal = $stmtTodayTotal->fetchColumn();
 
     // Orders by status
-    $stmtByStatus = $pdo->query("SELECT status, COUNT(*) as count FROM room_service_orders WHERE DATE(created_at) = CURDATE() GROUP BY status");
+    $stmtByStatus = $pdo->query("SELECT status, COUNT(*) as count FROM room_service_orders WHERE DATE(created_at) = CURRENT_DATE GROUP BY status");
     while ($row = $stmtByStatus->fetch(PDO::FETCH_ASSOC)) {
         $rsStatusCounts[$row['status']] = (int)$row['count'];
     }

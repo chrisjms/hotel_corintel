@@ -59,7 +59,7 @@ function getOrdersForExport($status, $sortBy, $sortOrder, $deliveryDate, $dateFr
         $pdo = getDatabase();
 
         $sql = "SELECT o.*,
-                GROUP_CONCAT(CONCAT(oi.item_name, ' x', oi.quantity) SEPARATOR ', ') as items_summary
+                STRING_AGG(CONCAT(oi.item_name, ' x', oi.quantity), ', ') as items_summary
                 FROM room_service_orders o
                 LEFT JOIN room_service_order_items oi ON o.id = oi.order_id
                 WHERE 1=1";

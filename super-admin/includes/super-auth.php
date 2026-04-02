@@ -68,37 +68,37 @@ function ensureSuperAdminTables(): void {
 
     $pdo->exec('
         CREATE TABLE IF NOT EXISTS super_admins (
-            id INT AUTO_INCREMENT PRIMARY KEY,
+            id SERIAL PRIMARY KEY,
             username VARCHAR(50) NOT NULL UNIQUE,
             password VARCHAR(255) NOT NULL,
             email VARCHAR(100),
-            is_active BOOLEAN DEFAULT 1,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            last_login DATETIME NULL,
-            INDEX idx_username (username)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            is_active BOOLEAN DEFAULT TRUE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            last_login TIMESTAMP NULL
+        )
     ');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_super_admins_username ON super_admins (username)');
 
     $pdo->exec('
         CREATE TABLE IF NOT EXISTS super_persistent_tokens (
-            id INT AUTO_INCREMENT PRIMARY KEY,
+            id SERIAL PRIMARY KEY,
             super_admin_id INT NOT NULL,
             token_hash VARCHAR(64) NOT NULL UNIQUE,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            last_used_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            INDEX idx_super_admin (super_admin_id),
-            INDEX idx_token (token_hash)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            last_used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
     ');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_super_persistent_tokens_admin ON super_persistent_tokens (super_admin_id)');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_super_persistent_tokens_token ON super_persistent_tokens (token_hash)');
 
     $pdo->exec('
         CREATE TABLE IF NOT EXISTS super_login_attempts (
-            id INT AUTO_INCREMENT PRIMARY KEY,
+            id SERIAL PRIMARY KEY,
             ip_address VARCHAR(45) NOT NULL,
-            attempted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            INDEX idx_ip_time (ip_address, attempted_at)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            attempted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
     ');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_super_login_attempts_ip_time ON super_login_attempts (ip_address, attempted_at)');
 }
 
 /**
@@ -214,10 +214,10 @@ function superCheckLoginAttempts(string $ip): bool {
     ensureSuperAdminTables();
     $pdo = getSuperDatabase();
 
-    $stmt = $pdo->prepare('DELETE FROM super_login_attempts WHERE attempted_at < DATE_SUB(NOW(), INTERVAL 30 MINUTE)');
+    $stmt = $pdo->prepare("DELETE FROM super_login_attempts WHERE attempted_at < NOW() - INTERVAL '30 minutes'");
     $stmt->execute();
 
-    $stmt = $pdo->prepare('SELECT COUNT(*) FROM super_login_attempts WHERE ip_address = ? AND attempted_at > DATE_SUB(NOW(), INTERVAL 30 MINUTE)');
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM super_login_attempts WHERE ip_address = ? AND attempted_at > NOW() - INTERVAL '30 minutes'");
     $stmt->execute([$ip]);
 
     return $stmt->fetchColumn() < 3;

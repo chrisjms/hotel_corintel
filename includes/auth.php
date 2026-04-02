@@ -85,15 +85,15 @@ function ensurePersistentTokensTable(): void {
     $pdo = getDatabase();
     $pdo->exec('
         CREATE TABLE IF NOT EXISTS persistent_tokens (
-            id INT AUTO_INCREMENT PRIMARY KEY,
+            id SERIAL PRIMARY KEY,
             admin_id INT NOT NULL,
             token_hash VARCHAR(64) NOT NULL UNIQUE,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            last_used_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            INDEX idx_admin (admin_id),
-            INDEX idx_token (token_hash)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            last_used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
     ');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_persistent_tokens_admin ON persistent_tokens (admin_id)');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_persistent_tokens_token ON persistent_tokens (token_hash)');
 }
 
 /**
@@ -272,9 +272,9 @@ function ensureRoleColumn(): void {
 
     $pdo = getDatabase();
     try {
-        $stmt = $pdo->query("SHOW COLUMNS FROM admins LIKE 'role'");
+        $stmt = $pdo->query("SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'admins' AND column_name = 'role'");
         if ($stmt->rowCount() === 0) {
-            $pdo->exec("ALTER TABLE admins ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'admin' AFTER email");
+            $pdo->exec("ALTER TABLE admins ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'admin'");
         }
     } catch (PDOException $e) {
         // Table might not exist yet
@@ -288,11 +288,11 @@ function checkLoginAttempts(string $ip): bool {
     $pdo = getDatabase();
 
     // Clean old attempts (older than 15 minutes)
-    $stmt = $pdo->prepare('DELETE FROM login_attempts WHERE attempted_at < DATE_SUB(NOW(), INTERVAL 15 MINUTE)');
+    $stmt = $pdo->prepare("DELETE FROM login_attempts WHERE attempted_at < NOW() - INTERVAL '15 minutes'");
     $stmt->execute();
 
     // Count recent attempts
-    $stmt = $pdo->prepare('SELECT COUNT(*) FROM login_attempts WHERE ip_address = ? AND attempted_at > DATE_SUB(NOW(), INTERVAL 15 MINUTE)');
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM login_attempts WHERE ip_address = ? AND attempted_at > NOW() - INTERVAL '15 minutes'");
     $stmt->execute([$ip]);
     $attempts = $stmt->fetchColumn();
 

@@ -3,14 +3,13 @@
  * Database Configuration
  * Hotel Corintel - Admin System
  *
- * Update these values with your OVH MySQL credentials
+ * Update these values with your PostgreSQL credentials
  */
 
-define('DB_HOST', 'hothelvhothello.mysql.db');
+define('DB_HOST', 'hothelvhothello.postgresql.db');
 define('DB_NAME', 'hothelvhothello');
 define('DB_USER', 'hothelvhothello');
 define('DB_PASS', 'Toutesdesputes33');
-define('DB_CHARSET', 'utf8mb4');
 
 // Site configuration
 define('SITE_URL', 'https://hothello.ovh/corintel');
@@ -32,10 +31,9 @@ function getDatabase(): PDO {
     if ($pdo === null) {
         try {
             $dsn = sprintf(
-                'mysql:host=%s;dbname=%s;charset=%s',
+                'pgsql:host=%s;dbname=%s',
                 DB_HOST,
-                DB_NAME,
-                DB_CHARSET
+                DB_NAME
             );
 
             $options = [
@@ -45,6 +43,7 @@ function getDatabase(): PDO {
             ];
 
             $pdo = new PDO($dsn, DB_USER, DB_PASS, $options);
+            $pdo->exec("SET client_encoding = 'UTF8'");
         } catch (PDOException $e) {
             error_log('Database connection failed: ' . $e->getMessage());
             die('Database connection error. Please check your configuration.');

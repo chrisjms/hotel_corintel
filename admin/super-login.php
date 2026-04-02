@@ -58,16 +58,16 @@ $pdo = getDatabase();
 // Ensure nonce table exists
 $pdo->exec('
     CREATE TABLE IF NOT EXISTS super_admin_login_tokens (
-        id INT AUTO_INCREMENT PRIMARY KEY,
+        id SERIAL PRIMARY KEY,
         token_nonce VARCHAR(64) NOT NULL UNIQUE,
-        used_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        INDEX idx_nonce (token_nonce),
-        INDEX idx_used_at (used_at)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
 ');
+$pdo->exec('CREATE INDEX IF NOT EXISTS idx_super_admin_login_tokens_nonce ON super_admin_login_tokens (token_nonce)');
+$pdo->exec('CREATE INDEX IF NOT EXISTS idx_super_admin_login_tokens_used_at ON super_admin_login_tokens (used_at)');
 
 // Clean old nonces (older than 5 minutes)
-$pdo->exec('DELETE FROM super_admin_login_tokens WHERE used_at < DATE_SUB(NOW(), INTERVAL 5 MINUTE)');
+$pdo->exec("DELETE FROM super_admin_login_tokens WHERE used_at < NOW() - INTERVAL '5 minutes'");
 
 // Try to insert nonce (will fail if already used)
 try {

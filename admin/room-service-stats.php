@@ -60,7 +60,7 @@ try {
     $stmtByRoom = $pdo->prepare("
         SELECT room_number, COUNT(*) as msg_count
         FROM guest_messages
-        WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+        WHERE created_at >= NOW() - INTERVAL '30 days'
         GROUP BY room_number
         ORDER BY msg_count DESC
         LIMIT 5
@@ -72,7 +72,7 @@ try {
     $stmtByCategory = $pdo->prepare("
         SELECT category, COUNT(*) as msg_count
         FROM guest_messages
-        WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+        WHERE created_at >= NOW() - INTERVAL '30 days'
         GROUP BY category
         ORDER BY msg_count DESC
     ");
@@ -80,16 +80,16 @@ try {
     $msgByCategory = $stmtByCategory->fetchAll(PDO::FETCH_ASSOC);
 
     // Total messages (last 30 days)
-    $stmtTotal = $pdo->prepare("SELECT COUNT(*) FROM guest_messages WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)");
+    $stmtTotal = $pdo->prepare("SELECT COUNT(*) FROM guest_messages WHERE created_at >= NOW() - INTERVAL '30 days'");
     $stmtTotal->execute();
     $msgTotalCount = (int)$stmtTotal->fetchColumn();
 
     // This month vs last month comparison
-    $stmtThisMonth = $pdo->prepare("SELECT COUNT(*) FROM guest_messages WHERE MONTH(created_at) = MONTH(NOW()) AND YEAR(created_at) = YEAR(NOW())");
+    $stmtThisMonth = $pdo->prepare("SELECT COUNT(*) FROM guest_messages WHERE EXTRACT(MONTH FROM created_at) = EXTRACT(MONTH FROM NOW()) AND EXTRACT(YEAR FROM created_at) = EXTRACT(YEAR FROM NOW())");
     $stmtThisMonth->execute();
     $msgThisMonth = (int)$stmtThisMonth->fetchColumn();
 
-    $stmtLastMonth = $pdo->prepare("SELECT COUNT(*) FROM guest_messages WHERE MONTH(created_at) = MONTH(DATE_SUB(NOW(), INTERVAL 1 MONTH)) AND YEAR(created_at) = YEAR(DATE_SUB(NOW(), INTERVAL 1 MONTH))");
+    $stmtLastMonth = $pdo->prepare("SELECT COUNT(*) FROM guest_messages WHERE EXTRACT(MONTH FROM created_at) = EXTRACT(MONTH FROM NOW() - INTERVAL '1 month') AND EXTRACT(YEAR FROM created_at) = EXTRACT(YEAR FROM NOW() - INTERVAL '1 month')");
     $stmtLastMonth->execute();
     $msgLastMonth = (int)$stmtLastMonth->fetchColumn();
 

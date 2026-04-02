@@ -117,7 +117,7 @@ try {
     $stmtStatusCounts = $pdo->query("
         SELECT status, COUNT(*) as count
         FROM room_service_orders
-        WHERE DATE(created_at) = CURDATE()
+        WHERE DATE(created_at) = CURRENT_DATE
         GROUP BY status
     ");
     $statusCounts = ['pending' => 0, 'confirmed' => 0, 'preparing' => 0, 'delivered' => 0, 'cancelled' => 0];
