@@ -14,11 +14,41 @@ Hotel website. Two main surfaces:
 |-------|------------|
 | Backend | PHP (no framework), Apache with mod_rewrite |
 | Frontend | HTML5, CSS3, Vanilla JavaScript |
-| Database | MySQL/MariaDB with PDO (utf8mb4) |
+| Database | PostgreSQL via Supabase (PDO, `pgsql:` driver) |
+| File storage | Cloudflare R2 |
 | i18n | Custom JS-based system (FR, EN, ES, IT) |
-| Hosting | OVH shared hosting |
+| Hosting | VPS OVH Starter (~6€/mois) |
+| SSL | Certbot / Let's Encrypt (wildcard via DNS challenge API OVH) |
 
 **Do NOT introduce** PHP frameworks, JS frameworks, CSS frameworks, Node.js/npm, or Composer dependencies.
+
+## Infrastructure
+
+### Serveur VPS OVH
+- **Offre** : VPS Starter (2 vCPU, 2 Go RAM, 20 Go SSD), OS Ubuntu 24
+- **Stack** : Apache + PHP + Certbot
+- **Déploiement** : SSH manuel (`git pull`)
+- **Virtual hosts** : 1 par site (vitrine, superadmin, et 2 par hôtel : client + admin)
+
+### Noms de domaine (OVH)
+- Domaine principal : `hothello.ovh`
+- Wildcard DNS : `*.hothello.ovh` → IP du VPS
+
+| Sous-domaine | Usage |
+|---|---|
+| `hothello.ovh` | Site vitrine |
+| `superadmin.hothello.ovh` | Super admin |
+| `[hotel].hothello.ovh` | Site client de chaque hôtel |
+| `admin-[hotel].hothello.ovh` | Panel admin de chaque hôtel |
+
+### Base de données — Supabase (PostgreSQL)
+- Connexion via pgBouncer pooler : port `6543`, `sslmode=require`, `ATTR_EMULATE_PREPARES => true`
+- Config dans `config/database.php` (DSN `pgsql:`)
+- **Booléens** : PostgreSQL retourne `'t'`/`'f'` via PDO. Dans le code PHP, utiliser `filter_var($val, FILTER_VALIDATE_BOOLEAN)` pour tester les valeurs booléennes récupérées de la DB. Dans les requêtes SQL, utiliser `= TRUE` / `= FALSE` (jamais `= 1` / `= 0`).
+- **Intervalles de date** : utiliser `NOW() - INTERVAL '15 minutes'` (jamais `DATE_SUB`)
+- **Agrégation** : `STRING_AGG()` (jamais `GROUP_CONCAT`)
+- **Auto-incrément** : `SERIAL` (jamais `AUTO_INCREMENT`)
+- **Schéma** : `setup/schema.sql` + migrations dans `config/migrations/`
 
 ## Development
 
@@ -26,9 +56,10 @@ Hotel website. Two main surfaces:
 # Run locally (PHP built-in server)
 php -S localhost:8000
 
-# First-time setup (creates all DB tables + default admin account)
-# Via browser: visit setup/install.php?confirm=1
-# Via CLI: php setup/install.php
+# First-time setup : exécuter les fichiers SQL dans cet ordre via Supabase SQL Editor
+# 1. setup/schema.sql
+# 2. setup/003_create_guest_messages_table.sql
+# 3. config/migrations/003 à 008 (dans l'ordre numérique)
 ```
 
 No build step, no bundler, no preprocessor. Edit PHP/JS/CSS files directly.
@@ -50,6 +81,8 @@ Singleton pattern in `config/database.php` via `getDatabase(): PDO`. Every file 
 require_once __DIR__ . '/../config/database.php';  // or via includes/functions.php
 $pdo = getDatabase();
 ```
+
+Connexion PostgreSQL via Supabase pgBouncer (port 6543). `ATTR_EMULATE_PREPARES => true` obligatoire en mode transaction pgBouncer.
 
 ### Key Include Files
 

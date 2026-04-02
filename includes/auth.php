@@ -87,6 +87,7 @@ function ensurePersistentTokensTable(): void {
         CREATE TABLE IF NOT EXISTS persistent_tokens (
             id SERIAL PRIMARY KEY,
             admin_id INT NOT NULL,
+            hotel_id INT NOT NULL DEFAULT 1,
             token_hash VARCHAR(64) NOT NULL UNIQUE,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             last_used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -111,10 +112,11 @@ function restoreSessionFromToken(string $token): bool {
     $stmt = $pdo->prepare('
         SELECT pt.admin_id, a.username, a.role
         FROM persistent_tokens pt
-        JOIN admins a ON a.id = pt.admin_id
-        WHERE pt.token_hash = ?
+        JOIN admins a ON a.id = pt.admin_id AND a.hotel_id = ?
+        WHERE pt.token_hash = ? AND pt.hotel_id = ?
     ');
-    $stmt->execute([hash('sha256', $token)]);
+    $hotelId = getHotelId();
+    $stmt->execute([$hotelId, hash('sha256', $token), $hotelId]);
     $result = $stmt->fetch();
 
     if ($result) {
@@ -122,11 +124,12 @@ function restoreSessionFromToken(string $token): bool {
         $_SESSION['admin_id'] = $result['admin_id'];
         $_SESSION['admin_username'] = $result['username'];
         $_SESSION['admin_role'] = $result['role'] ?? 'admin';
+        $_SESSION['hotel_id'] = getHotelId();
         $_SESSION['restored_from_token'] = true;
 
         // Update token last used time
-        $stmt = $pdo->prepare('UPDATE persistent_tokens SET last_used_at = NOW() WHERE token_hash = ?');
-        $stmt->execute([hash('sha256', $token)]);
+        $stmt = $pdo->prepare('UPDATE persistent_tokens SET last_used_at = NOW() WHERE token_hash = ? AND hotel_id = ?');
+        $stmt->execute([hash('sha256', $token), getHotelId()]);
 
         return true;
     }
@@ -147,16 +150,16 @@ function createPersistentToken(int $adminId): string {
     $token = bin2hex(random_bytes(32));
     $tokenHash = hash('sha256', $token);
 
-    // Remove any existing tokens for this admin (one token per admin)
-    $stmt = $pdo->prepare('DELETE FROM persistent_tokens WHERE admin_id = ?');
-    $stmt->execute([$adminId]);
+    // Remove any existing tokens for this admin (one token per admin per hotel)
+    $stmt = $pdo->prepare('DELETE FROM persistent_tokens WHERE admin_id = ? AND hotel_id = ?');
+    $stmt->execute([$adminId, getHotelId()]);
 
     // Store new token
     $stmt = $pdo->prepare('
-        INSERT INTO persistent_tokens (admin_id, token_hash, created_at, last_used_at)
-        VALUES (?, ?, NOW(), NOW())
+        INSERT INTO persistent_tokens (admin_id, hotel_id, token_hash, created_at, last_used_at)
+        VALUES (?, ?, ?, NOW(), NOW())
     ');
-    $stmt->execute([$adminId, $tokenHash]);
+    $stmt->execute([$adminId, getHotelId(), $tokenHash]);
 
     // Set cookie
     $isSecure = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on';
@@ -182,8 +185,8 @@ function createPersistentToken(int $adminId): string {
 function deletePersistentToken(int $adminId): void {
     ensurePersistentTokensTable();
     $pdo = getDatabase();
-    $stmt = $pdo->prepare('DELETE FROM persistent_tokens WHERE admin_id = ?');
-    $stmt->execute([$adminId]);
+    $stmt = $pdo->prepare('DELETE FROM persistent_tokens WHERE admin_id = ? AND hotel_id = ?');
+    $stmt->execute([$adminId, getHotelId()]);
     clearPersistentTokenCookie();
 }
 
@@ -229,8 +232,8 @@ function requireAuth(): void {
 function getCurrentAdminRole(): string {
     if (!isset($_SESSION['admin_role']) && isset($_SESSION['admin_id'])) {
         $pdo = getDatabase();
-        $stmt = $pdo->prepare('SELECT role FROM admins WHERE id = ?');
-        $stmt->execute([$_SESSION['admin_id']]);
+        $stmt = $pdo->prepare('SELECT role FROM admins WHERE id = ? AND hotel_id = ?');
+        $stmt->execute([$_SESSION['admin_id'], getHotelId()]);
         $_SESSION['admin_role'] = $stmt->fetchColumn() ?: 'admin';
     }
     return $_SESSION['admin_role'] ?? 'admin';
@@ -288,12 +291,12 @@ function checkLoginAttempts(string $ip): bool {
     $pdo = getDatabase();
 
     // Clean old attempts (older than 15 minutes)
-    $stmt = $pdo->prepare("DELETE FROM login_attempts WHERE attempted_at < NOW() - INTERVAL '15 minutes'");
-    $stmt->execute();
+    $stmt = $pdo->prepare("DELETE FROM login_attempts WHERE attempted_at < NOW() - INTERVAL '15 minutes' AND hotel_id = ?");
+    $stmt->execute([getHotelId()]);
 
     // Count recent attempts
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM login_attempts WHERE ip_address = ? AND attempted_at > NOW() - INTERVAL '15 minutes'");
-    $stmt->execute([$ip]);
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM login_attempts WHERE ip_address = ? AND hotel_id = ? AND attempted_at > NOW() - INTERVAL '15 minutes'");
+    $stmt->execute([$ip, getHotelId()]);
     $attempts = $stmt->fetchColumn();
 
     // Allow max 5 attempts per 15 minutes
@@ -305,8 +308,8 @@ function checkLoginAttempts(string $ip): bool {
  */
 function recordLoginAttempt(string $ip): void {
     $pdo = getDatabase();
-    $stmt = $pdo->prepare('INSERT INTO login_attempts (ip_address) VALUES (?)');
-    $stmt->execute([$ip]);
+    $stmt = $pdo->prepare('INSERT INTO login_attempts (ip_address, hotel_id) VALUES (?, ?)');
+    $stmt->execute([$ip, getHotelId()]);
 }
 
 /**
@@ -314,8 +317,8 @@ function recordLoginAttempt(string $ip): void {
  */
 function clearLoginAttempts(string $ip): void {
     $pdo = getDatabase();
-    $stmt = $pdo->prepare('DELETE FROM login_attempts WHERE ip_address = ?');
-    $stmt->execute([$ip]);
+    $stmt = $pdo->prepare('DELETE FROM login_attempts WHERE ip_address = ? AND hotel_id = ?');
+    $stmt->execute([$ip, getHotelId()]);
 }
 
 /**
@@ -345,8 +348,8 @@ function attemptLogin(string $username, string $password): array {
     $pdo = getDatabase();
 
     // Find user
-    $stmt = $pdo->prepare('SELECT id, username, password, role FROM admins WHERE username = ?');
-    $stmt->execute([$username]);
+    $stmt = $pdo->prepare('SELECT id, username, password, role FROM admins WHERE username = ? AND hotel_id = ?');
+    $stmt->execute([$username, getHotelId()]);
     $admin = $stmt->fetch();
 
     if (!$admin || !password_verify($password, $admin['password'])) {
@@ -361,13 +364,14 @@ function attemptLogin(string $username, string $password): array {
     clearLoginAttempts($ip);
 
     // Update last login
-    $stmt = $pdo->prepare('UPDATE admins SET last_login = NOW() WHERE id = ?');
-    $stmt->execute([$admin['id']]);
+    $stmt = $pdo->prepare('UPDATE admins SET last_login = NOW() WHERE id = ? AND hotel_id = ?');
+    $stmt->execute([$admin['id'], getHotelId()]);
 
     // Set session
     $_SESSION['admin_id'] = $admin['id'];
     $_SESSION['admin_username'] = $admin['username'];
     $_SESSION['admin_role'] = $admin['role'] ?? 'admin';
+    $_SESSION['hotel_id'] = getHotelId();
     $_SESSION['login_time'] = time();
 
     // Regenerate session ID for security (only on login, not periodically)
@@ -419,8 +423,8 @@ function getCurrentAdmin(): ?array {
     }
 
     $pdo = getDatabase();
-    $stmt = $pdo->prepare('SELECT id, username, email, role, last_login FROM admins WHERE id = ?');
-    $stmt->execute([$_SESSION['admin_id']]);
+    $stmt = $pdo->prepare('SELECT id, username, email, role, last_login FROM admins WHERE id = ? AND hotel_id = ?');
+    $stmt->execute([$_SESSION['admin_id'], getHotelId()]);
     return $stmt->fetch() ?: null;
 }
 
@@ -431,8 +435,8 @@ function changePassword(int $adminId, string $currentPassword, string $newPasswo
     $pdo = getDatabase();
 
     // Get current hash
-    $stmt = $pdo->prepare('SELECT password FROM admins WHERE id = ?');
-    $stmt->execute([$adminId]);
+    $stmt = $pdo->prepare('SELECT password FROM admins WHERE id = ? AND hotel_id = ?');
+    $stmt->execute([$adminId, getHotelId()]);
     $admin = $stmt->fetch();
 
     if (!$admin || !password_verify($currentPassword, $admin['password'])) {
@@ -452,8 +456,8 @@ function changePassword(int $adminId, string $currentPassword, string $newPasswo
 
     // Update password
     $hash = password_hash($newPassword, PASSWORD_DEFAULT);
-    $stmt = $pdo->prepare('UPDATE admins SET password = ? WHERE id = ?');
-    $stmt->execute([$hash, $adminId]);
+    $stmt = $pdo->prepare('UPDATE admins SET password = ? WHERE id = ? AND hotel_id = ?');
+    $stmt->execute([$hash, $adminId, getHotelId()]);
 
     return [
         'success' => true,

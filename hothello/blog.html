@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Hothello Blog - Insights, guides, and tips to help your hotel thrive in the digital age.">
+    <title>Blog | Hothello - Digital Solutions for Hospitality</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <span hidden data-i18n-title="meta.title.blog"></span>
+    <span hidden data-i18n-meta-description="meta.description.blog"></span>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container header__inner">
+            <a href="index.html" class="logo">
+                <span class="logo__icon">H</span>
+                <span class="logo__text">Hothello</span>
+            </a>
+
+            <nav class="nav nav--center">
+                <ul class="nav__list">
+                    <li><a href="index.html" class="nav__link" data-i18n="nav.home">Home</a></li>
+                    <li><a href="services.html" class="nav__link" data-i18n="nav.services">Services</a></li>
+                    <li><a href="pricing.html" class="nav__link" data-i18n="nav.pricing">Pricing</a></li>
+                    <li><a href="blog.html" class="nav__link nav__link--active" data-i18n="nav.blog">Blog</a></li>
+                    <li><a href="contact.html" class="nav__link" data-i18n="nav.contact">Contact</a></li>
+                </ul>
+            </nav>
+
+            <div class="header__actions">
+                <div class="lang-switcher">
+                    <button class="lang-switcher__btn" aria-label="Change language">
+                        <svg class="lang-switcher__globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="2" y1="12" x2="22" y2="12"/>
+                            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                        </svg>
+                        <span class="lang-switcher__current">EN</span>
+                        <svg class="lang-switcher__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"/>
+                        </svg>
+                    </button>
+                    <div class="lang-switcher__dropdown">
+                        <button class="lang-switcher__option active" data-lang="en">
+                            <span>English</span>
+                        </button>
+                        <button class="lang-switcher__option" data-lang="fr">
+                            <span>Français</span>
+                        </button>
+                    </div>
+                </div>
+
+                <button class="nav__toggle" aria-label="Toggle navigation">
+                    <span class="nav__toggle-bar"></span>
+                    <span class="nav__toggle-bar"></span>
+                    <span class="nav__toggle-bar"></span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <!-- Page Hero -->
+        <section class="page-hero">
+            <div class="container">
+                <h1 class="page-hero__title" data-i18n="blog.pageTitle">Blog & Resources</h1>
+                <p class="page-hero__description" data-i18n="blog.pageDescription">
+                    Insights, guides, and tips to help your hotel thrive in the digital age.
+                </p>
+            </div>
+        </section>
+
+        <!-- Blog Articles -->
+        <section class="section">
+            <div class="container">
+                <div class="grid grid--3">
+                    <!-- Article 1 -->
+                    <a href="#" class="blog-card">
+                        <div class="blog-card__image">
+                            <div class="image-placeholder image-placeholder--card"></div>
+                        </div>
+                        <div class="blog-card__body">
+                            <span class="blog-card__tag" data-i18n="blog.article1.tag">Room Service</span>
+                            <h3 class="blog-card__title" data-i18n="blog.article1.title">5 Ways Digital Room Service Boosts Revenue</h3>
+                            <p class="blog-card__excerpt" data-i18n="blog.article1.excerpt">
+                                Discover how hotels are increasing room service orders by up to 40% with digital menus and online ordering — and why guests prefer it.
+                            </p>
+                            <div class="blog-card__footer">
+                                <span class="blog-card__date" data-i18n="blog.article1.date">February 2025</span>
+                                <span class="blog-card__read-more" data-i18n="blog.readMore">Read Article</span>
+                            </div>
+                        </div>
+                    </a>
+
+                    <!-- Article 2 -->
+                    <a href="#" class="blog-card">
+                        <div class="blog-card__image">
+                            <div class="image-placeholder image-placeholder--card"></div>
+                        </div>
+                        <div class="blog-card__body">
+                            <span class="blog-card__tag" data-i18n="blog.article2.tag">Communication</span>
+                            <h3 class="blog-card__title" data-i18n="blog.article2.title">Going Paperless: A Hotel's Guide to Digital Guest Communication</h3>
+                            <p class="blog-card__excerpt" data-i18n="blog.article2.excerpt">
+                                How to replace printed flyers, directories, and brochures with digital alternatives that save money and delight guests.
+                            </p>
+                            <div class="blog-card__footer">
+                                <span class="blog-card__date" data-i18n="blog.article2.date">January 2025</span>
+                                <span class="blog-card__read-more" data-i18n="blog.readMore">Read Article</span>
+                            </div>
+                        </div>
+                    </a>
+
+                    <!-- Article 3 -->
+                    <a href="#" class="blog-card">
+                        <div class="blog-card__image">
+                            <div class="image-placeholder image-placeholder--card"></div>
+                        </div>
+                        <div class="blog-card__body">
+                            <span class="blog-card__tag" data-i18n="blog.article3.tag">Industry Insights</span>
+                            <h3 class="blog-card__title" data-i18n="blog.article3.title">The Real Cost of Outdated Hotel Systems</h3>
+                            <p class="blog-card__excerpt" data-i18n="blog.article3.excerpt">
+                                Paper waste, staff inefficiency, and missed guest expectations — we break down the hidden costs of not going digital.
+                            </p>
+                            <div class="blog-card__footer">
+                                <span class="blog-card__date" data-i18n="blog.article3.date">December 2024</span>
+                                <span class="blog-card__read-more" data-i18n="blog.readMore">Read Article</span>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA Section -->
+        <section class="cta">
+            <div class="container">
+                <h2 class="cta__title" data-i18n="cta.transform">Ready to Transform Your Hotel?</h2>
+                <p class="cta__description" data-i18n="cta.transformDescription">
+                    Let's discuss how Hothello can help you deliver exceptional guest experiences while simplifying your operations.
+                </p>
+                <div style="display: flex; gap: var(--space-4); justify-content: center; flex-wrap: wrap;">
+                    <a href="contact.html" class="btn btn--outline-white btn--large" data-i18n="cta.getInTouch">Get in Touch</a>
+                    <a href="pricing.html" class="btn btn--secondary btn--large" data-i18n="cta.viewPricing">View Pricing</a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer__grid">
+                <div class="footer__brand">
+                    <a href="index.html" class="logo">
+                        <span class="logo__icon">H</span>
+                        <span class="logo__text">Hothello</span>
+                    </a>
+                    <p data-i18n="footer.description">
+                        Digital transformation solutions for hospitality establishments. Built by two friends committed to delivering modern, reliable, and efficient software.
+                    </p>
+                </div>
+
+                <div class="footer__column">
+                    <h4 data-i18n="footer.navigation">Navigation</h4>
+                    <ul class="footer__links">
+                        <li><a href="index.html" class="footer__link" data-i18n="nav.home">Home</a></li>
+                        <li><a href="services.html" class="footer__link" data-i18n="nav.services">Services</a></li>
+                        <li><a href="pricing.html" class="footer__link" data-i18n="nav.pricing">Pricing</a></li>
+                        <li><a href="blog.html" class="footer__link" data-i18n="nav.blog">Blog</a></li>
+                        <li><a href="contact.html" class="footer__link" data-i18n="nav.contact">Contact</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer__column">
+                    <h4 data-i18n="footer.servicesTitle">Services</h4>
+                    <ul class="footer__links">
+                        <li><a href="services.html#communication" class="footer__link" data-i18n="services.communication.title">Smooth Communication</a></li>
+                        <li><a href="services.html#management" class="footer__link" data-i18n="services.management.title">Centralized Management</a></li>
+                        <li><a href="services.html#room-service" class="footer__link" data-i18n="services.roomService.title">Room Service</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer__column">
+                    <h4 data-i18n="footer.contactTitle">Contact</h4>
+                    <div class="footer__contact-item">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                            <polyline points="22,6 12,13 2,6"/>
+                        </svg>
+                        <span>contact@hothello.com</span>
+                    </div>
+                    <div class="footer__contact-item">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                            <circle cx="12" cy="10" r="3"/>
+                        </svg>
+                        <span>France</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="footer__bottom">
+                <p data-i18n="footer.copyright">&copy; 2025 Hothello. All rights reserved.</p>
+                <div class="footer__legal">
+                    <a href="#" data-i18n="footer.privacy">Privacy Policy</a>
+                    <a href="#" data-i18n="footer.terms">Terms of Service</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/main.js"></script>
+</body>
+</html>

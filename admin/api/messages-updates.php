@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../../bootstrap.php';
 /**
  * Messages Page Real-Time Updates API
  * Returns current messages list with filters

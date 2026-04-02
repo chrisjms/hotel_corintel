@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../bootstrap.php';
 /**
  * Admin Dashboard
  * Hotel Corintel
@@ -26,24 +27,25 @@ try {
     $today = date('Y-m-d');
 
     // Total orders today
-    $stmtTodayTotal = $pdo->prepare("SELECT COUNT(*) FROM room_service_orders WHERE DATE(created_at) = ?");
-    $stmtTodayTotal->execute([$today]);
+    $stmtTodayTotal = $pdo->prepare("SELECT COUNT(*) FROM room_service_orders WHERE DATE(created_at) = ? AND hotel_id = ?");
+    $stmtTodayTotal->execute([$today, getHotelId()]);
     $rsTodayTotal = $stmtTodayTotal->fetchColumn();
 
     // Orders by status
-    $stmtByStatus = $pdo->query("SELECT status, COUNT(*) as count FROM room_service_orders WHERE DATE(created_at) = CURRENT_DATE GROUP BY status");
+    $stmtByStatus = $pdo->prepare("SELECT status, COUNT(*) as count FROM room_service_orders WHERE DATE(created_at) = CURRENT_DATE AND hotel_id = ? GROUP BY status");
+    $stmtByStatus->execute([getHotelId()]);
     while ($row = $stmtByStatus->fetch(PDO::FETCH_ASSOC)) {
         $rsStatusCounts[$row['status']] = (int)$row['count'];
     }
 
     // Upcoming deliveries (not delivered/cancelled, delivery in the future)
-    $stmtUpcoming = $pdo->prepare("SELECT COUNT(*) FROM room_service_orders WHERE delivery_datetime >= NOW() AND status NOT IN ('delivered', 'cancelled')");
-    $stmtUpcoming->execute();
+    $stmtUpcoming = $pdo->prepare("SELECT COUNT(*) FROM room_service_orders WHERE delivery_datetime >= NOW() AND status NOT IN ('delivered', 'cancelled') AND hotel_id = ?");
+    $stmtUpcoming->execute([getHotelId()]);
     $rsUpcomingCount = $stmtUpcoming->fetchColumn();
 
     // 3 most urgent orders (nearest delivery, not delivered/cancelled)
-    $stmtUrgent = $pdo->prepare("SELECT id, room_number, delivery_datetime, status FROM room_service_orders WHERE delivery_datetime >= NOW() AND status NOT IN ('delivered', 'cancelled') ORDER BY delivery_datetime ASC LIMIT 3");
-    $stmtUrgent->execute();
+    $stmtUrgent = $pdo->prepare("SELECT id, room_number, delivery_datetime, status FROM room_service_orders WHERE delivery_datetime >= NOW() AND status NOT IN ('delivered', 'cancelled') AND hotel_id = ? ORDER BY delivery_datetime ASC LIMIT 3");
+    $stmtUrgent->execute([getHotelId()]);
     $rsUrgentOrders = $stmtUrgent->fetchAll(PDO::FETCH_ASSOC);
 
     $rsEnabled = true;
@@ -71,18 +73,18 @@ try {
     $today = date('Y-m-d');
 
     // Total messages today
-    $stmtMsgTotal = $pdo->prepare("SELECT COUNT(*) FROM guest_messages WHERE DATE(created_at) = ?");
-    $stmtMsgTotal->execute([$today]);
+    $stmtMsgTotal = $pdo->prepare("SELECT COUNT(*) FROM guest_messages WHERE DATE(created_at) = ? AND hotel_id = ?");
+    $stmtMsgTotal->execute([$today, getHotelId()]);
     $msgTodayTotal = (int)$stmtMsgTotal->fetchColumn();
 
     // Unread messages today
-    $stmtMsgNew = $pdo->prepare("SELECT COUNT(*) FROM guest_messages WHERE DATE(created_at) = ? AND status = 'new'");
-    $stmtMsgNew->execute([$today]);
+    $stmtMsgNew = $pdo->prepare("SELECT COUNT(*) FROM guest_messages WHERE DATE(created_at) = ? AND status = 'new' AND hotel_id = ?");
+    $stmtMsgNew->execute([$today, getHotelId()]);
     $msgTodayNew = (int)$stmtMsgNew->fetchColumn();
 
     // 3 most recent messages
-    $stmtRecent = $pdo->prepare("SELECT id, room_number, guest_name, category, subject, message, status, created_at FROM guest_messages ORDER BY created_at DESC LIMIT 3");
-    $stmtRecent->execute();
+    $stmtRecent = $pdo->prepare("SELECT id, room_number, guest_name, category, subject, message, status, created_at FROM guest_messages WHERE hotel_id = ? ORDER BY created_at DESC LIMIT 3");
+    $stmtRecent->execute([getHotelId()]);
     $msgRecentMessages = $stmtRecent->fetchAll(PDO::FETCH_ASSOC);
 
     $msgEnabled = true;

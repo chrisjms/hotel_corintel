@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../bootstrap.php';
 /**
  * Room Service Statistics
  * Hotel Corintel - Admin Panel
@@ -60,37 +61,37 @@ try {
     $stmtByRoom = $pdo->prepare("
         SELECT room_number, COUNT(*) as msg_count
         FROM guest_messages
-        WHERE created_at >= NOW() - INTERVAL '30 days'
+        WHERE created_at >= NOW() - INTERVAL '30 days' AND hotel_id = ?
         GROUP BY room_number
         ORDER BY msg_count DESC
         LIMIT 5
     ");
-    $stmtByRoom->execute();
+    $stmtByRoom->execute([getHotelId()]);
     $msgByRoom = $stmtByRoom->fetchAll(PDO::FETCH_ASSOC);
 
     // Messages by category (last 30 days)
     $stmtByCategory = $pdo->prepare("
         SELECT category, COUNT(*) as msg_count
         FROM guest_messages
-        WHERE created_at >= NOW() - INTERVAL '30 days'
+        WHERE created_at >= NOW() - INTERVAL '30 days' AND hotel_id = ?
         GROUP BY category
         ORDER BY msg_count DESC
     ");
-    $stmtByCategory->execute();
+    $stmtByCategory->execute([getHotelId()]);
     $msgByCategory = $stmtByCategory->fetchAll(PDO::FETCH_ASSOC);
 
     // Total messages (last 30 days)
-    $stmtTotal = $pdo->prepare("SELECT COUNT(*) FROM guest_messages WHERE created_at >= NOW() - INTERVAL '30 days'");
-    $stmtTotal->execute();
+    $stmtTotal = $pdo->prepare("SELECT COUNT(*) FROM guest_messages WHERE created_at >= NOW() - INTERVAL '30 days' AND hotel_id = ?");
+    $stmtTotal->execute([getHotelId()]);
     $msgTotalCount = (int)$stmtTotal->fetchColumn();
 
     // This month vs last month comparison
-    $stmtThisMonth = $pdo->prepare("SELECT COUNT(*) FROM guest_messages WHERE EXTRACT(MONTH FROM created_at) = EXTRACT(MONTH FROM NOW()) AND EXTRACT(YEAR FROM created_at) = EXTRACT(YEAR FROM NOW())");
-    $stmtThisMonth->execute();
+    $stmtThisMonth = $pdo->prepare("SELECT COUNT(*) FROM guest_messages WHERE EXTRACT(MONTH FROM created_at) = EXTRACT(MONTH FROM NOW()) AND EXTRACT(YEAR FROM created_at) = EXTRACT(YEAR FROM NOW()) AND hotel_id = ?");
+    $stmtThisMonth->execute([getHotelId()]);
     $msgThisMonth = (int)$stmtThisMonth->fetchColumn();
 
-    $stmtLastMonth = $pdo->prepare("SELECT COUNT(*) FROM guest_messages WHERE EXTRACT(MONTH FROM created_at) = EXTRACT(MONTH FROM NOW() - INTERVAL '1 month') AND EXTRACT(YEAR FROM created_at) = EXTRACT(YEAR FROM NOW() - INTERVAL '1 month')");
-    $stmtLastMonth->execute();
+    $stmtLastMonth = $pdo->prepare("SELECT COUNT(*) FROM guest_messages WHERE EXTRACT(MONTH FROM created_at) = EXTRACT(MONTH FROM NOW() - INTERVAL '1 month') AND EXTRACT(YEAR FROM created_at) = EXTRACT(YEAR FROM NOW() - INTERVAL '1 month') AND hotel_id = ?");
+    $stmtLastMonth->execute([getHotelId()]);
     $msgLastMonth = (int)$stmtLastMonth->fetchColumn();
 
     $msgStatsEnabled = true;

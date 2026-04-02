@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/bootstrap.php';
 /**
  * QR Code Scan Entry Point - Hôtel Corintel
  *

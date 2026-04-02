@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../bootstrap.php';
 /**
  * Content Management
  * Hotel Corintel
@@ -14,7 +15,8 @@ seedSectionTemplates();
 
 // Fix existing gallery sections that are missing has_gallery flag
 $pdo = getDatabase();
-$pdo->exec("UPDATE content_sections SET has_gallery = 1 WHERE template_type = 'gallery_style' AND has_gallery = 0");
+$stmtFixGallery = $pdo->prepare("UPDATE content_sections SET has_gallery = 1 WHERE template_type = 'gallery_style' AND has_gallery = 0 AND hotel_id = ?");
+$stmtFixGallery->execute([getHotelId()]);
 
 $admin = getCurrentAdmin();
 $unreadMessages = getUnreadMessagesCount();
@@ -899,8 +901,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
                 if ($page) {
                     $pdo = getDatabase();
-                    $stmt = $pdo->prepare("UPDATE pages SET show_in_nav = ? WHERE id = ?");
-                    $stmt->execute([$showInNav, $pageId]);
+                    $stmt = $pdo->prepare("UPDATE pages SET show_in_nav = ? WHERE id = ? AND hotel_id = ?");
+                    $stmt->execute([$showInNav, $pageId, getHotelId()]);
                     header('Content-Type: application/json');
                     echo json_encode(['success' => true]);
                     exit;

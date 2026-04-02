@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../bootstrap.php';
 /**
  * Room Service Categories Management
  * Hotel Corintel - Full CRUD for categories

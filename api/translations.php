@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../bootstrap.php';
 /**
  * Translations API Endpoint
  * Serves static translations as JSON for the client-side i18n engine.

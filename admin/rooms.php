@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../bootstrap.php';
 /**
  * Hotel Rooms Management
  * Hotel Corintel - CRUD for rooms

@@ -237,3 +237,74 @@ function getCrossLoginUrl(array $hotel, int $superAdminId): ?string {
     $token = generateCrossLoginToken($hotel, $superAdminId);
     return $adminUrl . '/super-login.php?token=' . urlencode($token);
 }
+
+// --- Hotel Provisioning ---
+
+/**
+ * Provision default data for a newly created hotel.
+ * Seeds admin user, room service categories, default pages, image slots.
+ */
+function provisionHotelData(int $hotelId): void {
+    $pdo = getSuperDatabase();
+
+    // 1. Default admin user (admin / admin123)
+    $adminHash = password_hash('admin123', PASSWORD_DEFAULT);
+    $stmt = $pdo->prepare('
+        INSERT INTO admins (username, password, email, role, hotel_id)
+        VALUES (?, ?, ?, ?, ?)
+        ON CONFLICT (username, hotel_id) DO NOTHING
+    ');
+    $stmt->execute(['admin', $adminHash, '', 'admin', $hotelId]);
+
+    // 2. Default room service categories
+    $categories = [
+        ['breakfast', 'Petit-déjeuner', '07:00', '11:00', 1],
+        ['lunch', 'Déjeuner', '12:00', '14:30', 2],
+        ['dinner', 'Dîner', '19:00', '22:00', 3],
+        ['snacks', 'Snacks', null, null, 4],
+        ['drinks', 'Boissons', null, null, 5],
+        ['desserts', 'Desserts', '12:00', '22:00', 6],
+        ['general', 'Général', null, null, 7],
+    ];
+    $stmt = $pdo->prepare('
+        INSERT INTO room_service_categories (code, name, time_start, time_end, position, hotel_id)
+        VALUES (?, ?, ?, ?, ?, ?)
+        ON CONFLICT (code, hotel_id) DO NOTHING
+    ');
+    foreach ($categories as $cat) {
+        $stmt->execute([$cat[0], $cat[1], $cat[2], $cat[3], $cat[4], $hotelId]);
+    }
+
+    // 3. Default pages
+    $pages = [
+        ['home', 'home', 'Accueil', 'Accueil', 1, true],
+        ['services', 'services', 'Services', 'Services', 2, true],
+        ['activities', 'activities', 'Activités', 'Activités', 3, true],
+        ['contact', 'contact', 'Contact', 'Contact', 4, true],
+        ['room-service', 'room-service', 'Room Service', 'Room Service', 5, false],
+    ];
+    $stmt = $pdo->prepare('
+        INSERT INTO pages (slug, code, title, nav_title, display_order, show_in_nav, is_active, hotel_id)
+        VALUES (?, ?, ?, ?, ?, ?, TRUE, ?)
+        ON CONFLICT (slug, hotel_id) DO NOTHING
+    ');
+    foreach ($pages as $p) {
+        $stmt->execute([$p[0], $p[1], $p[2], $p[3], $p[4], $p[5] ? 'true' : 'false', $hotelId]);
+    }
+
+    // 4. Create uploads directory for this hotel
+    $uploadsDir = __DIR__ . '/../../uploads/hotel_' . $hotelId . '/';
+    if (!is_dir($uploadsDir)) {
+        @mkdir($uploadsDir, 0755, true);
+    }
+}
+
+/**
+ * Generate default site_url and admin_url from hotel slug
+ */
+function getDefaultHotelUrls(string $slug): array {
+    return [
+        'site_url' => 'https://' . $slug . '.hothello.ovh',
+        'admin_url' => 'https://admin-' . $slug . '.hothello.ovh',
+    ];
+}

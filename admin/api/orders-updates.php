@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../../bootstrap.php';
 /**
  * Orders Page Real-Time Updates API
  * Returns current orders list with filters

@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/bootstrap.php';
 /**
  * Room Service Page - Hôtel Corintel
  * QR-code protected access for hotel guests

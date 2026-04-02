@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../bootstrap.php';
 /**
  * Room Service Orders Export
  * Generates CSV and PDF exports with filtering
@@ -62,8 +63,8 @@ function getOrdersForExport($status, $sortBy, $sortOrder, $deliveryDate, $dateFr
                 STRING_AGG(CONCAT(oi.item_name, ' x', oi.quantity), ', ') as items_summary
                 FROM room_service_orders o
                 LEFT JOIN room_service_order_items oi ON o.id = oi.order_id
-                WHERE 1=1";
-        $params = [];
+                WHERE o.hotel_id = ?";
+        $params = [getHotelId()];
 
         // Status filter
         if ($status !== 'all') {

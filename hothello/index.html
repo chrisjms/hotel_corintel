@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Hothello - Digital transformation solutions for hospitality establishments. Modern, reliable software tailored for hotels.">
+    <meta name="keywords" content="hotel software, hospitality digital transformation, hotel management, room service digital">
+    <title>Hothello | Digital Solutions for Hospitality</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Translation metadata -->
+    <span hidden data-i18n-title="meta.title.home"></span>
+    <span hidden data-i18n-meta-description="meta.description.home"></span>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header header--transparent">
+        <div class="container header__inner">
+            <a href="index.html" class="logo">
+                <span class="logo__icon">H</span>
+                <span class="logo__text">Hothello</span>
+            </a>
+
+            <nav class="nav nav--center">
+                <ul class="nav__list">
+                    <li><a href="index.html" class="nav__link nav__link--active" data-i18n="nav.home">Home</a></li>
+                    <li><a href="services.html" class="nav__link" data-i18n="nav.services">Services</a></li>
+                    <li><a href="pricing.html" class="nav__link" data-i18n="nav.pricing">Pricing</a></li>
+                    <li><a href="blog.html" class="nav__link" data-i18n="nav.blog">Blog</a></li>
+                    <li><a href="contact.html" class="nav__link" data-i18n="nav.contact">Contact</a></li>
+                </ul>
+            </nav>
+
+            <div class="header__actions">
+                <!-- Language Switcher -->
+                <div class="lang-switcher">
+                    <button class="lang-switcher__btn" aria-label="Change language">
+                        <svg class="lang-switcher__globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="2" y1="12" x2="22" y2="12"/>
+                            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                        </svg>
+                        <span class="lang-switcher__current">EN</span>
+                        <svg class="lang-switcher__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"/>
+                        </svg>
+                    </button>
+                    <div class="lang-switcher__dropdown">
+                        <button class="lang-switcher__option active" data-lang="en">
+                            <span>English</span>
+                        </button>
+                        <button class="lang-switcher__option" data-lang="fr">
+                            <span>Français</span>
+                        </button>
+                    </div>
+                </div>
+
+                <button class="nav__toggle" aria-label="Toggle navigation">
+                    <span class="nav__toggle-bar"></span>
+                    <span class="nav__toggle-bar"></span>
+                    <span class="nav__toggle-bar"></span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <!-- Hero Section -->
+        <section class="hero">
+            <div class="hero__background">
+                <div class="image-placeholder image-placeholder--hero">
+                    <!-- Placeholder for hero image: Luxury hotel lobby or reception -->
+                </div>
+                <div class="hero__background-overlay"></div>
+            </div>
+
+            <div class="container">
+                <div class="hero__content">
+                    <span class="hero__label">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                        </svg>
+                        <span data-i18n="hero.label">Digital Transformation for Hospitality</span>
+                    </span>
+                    <h1 class="hero__title">
+                        <span data-i18n="hero.title">Simplify Your Hotel's</span> <span data-i18n="hero.titleHighlight">Digital Journey</span>
+                    </h1>
+                    <p class="hero__description" data-i18n="hero.description">
+                        Hothello delivers modern, reliable, and efficient software solutions tailored to your establishment. Built by two hospitality enthusiasts committed to excellence, for professionals like you.
+                    </p>
+                    <div class="hero__actions">
+                        <a href="contact.html" class="btn btn--primary btn--large">
+                            <span data-i18n="hero.cta">Start Your Transformation</span>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="5" y1="12" x2="19" y2="12"/>
+                                <polyline points="12 5 19 12 12 19"/>
+                            </svg>
+                        </a>
+                        <a href="services.html" class="btn btn--outline-white btn--large" data-i18n="hero.ctaSecondary">Discover Our Services</a>
+                    </div>
+
+                    <div class="hero__stats">
+                        <div class="hero__stat">
+                            <span class="hero__stat-value">+40%</span>
+                            <span class="hero__stat-label" data-i18n="hero.stats.satisfaction">Guest Satisfaction</span>
+                        </div>
+                        <div class="hero__stat">
+                            <span class="hero__stat-value">-60%</span>
+                            <span class="hero__stat-label" data-i18n="hero.stats.paper">Paper Usage</span>
+                        </div>
+                        <div class="hero__stat">
+                            <span class="hero__stat-value">24/7</span>
+                            <span class="hero__stat-label" data-i18n="hero.stats.access">Digital Access</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Mission / Value Proposition -->
+        <section class="section">
+            <div class="container">
+                <div class="section__header">
+                    <span class="section__label" data-i18n="mission.label">Why Hothello</span>
+                    <h2 class="section__title" data-i18n="mission.title">Built for Hospitality Excellence</h2>
+                    <p class="section__description" data-i18n="mission.description">
+                        We understand the unique challenges of hotel management. Our solutions are designed with one goal: helping you deliver exceptional guest experiences while streamlining operations.
+                    </p>
+                </div>
+
+                <div class="features">
+                    <div class="feature">
+                        <div class="feature__icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                            </svg>
+                        </div>
+                        <h3 class="feature__title" data-i18n="mission.performance.title">Performance</h3>
+                        <p class="feature__description" data-i18n="mission.performance.description">
+                            Fast, responsive solutions that streamline your daily operations and boost efficiency across all departments.
+                        </p>
+                    </div>
+
+                    <div class="feature">
+                        <div class="feature__icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <path d="M12 6v6l4 2"/>
+                            </svg>
+                        </div>
+                        <h3 class="feature__title" data-i18n="mission.clarity.title">Clarity</h3>
+                        <p class="feature__description" data-i18n="mission.clarity.description">
+                            Intuitive interfaces that require no technical expertise. Clear information for your guests, simple management for your staff.
+                        </p>
+                    </div>
+
+                    <div class="feature">
+                        <div class="feature__icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                            </svg>
+                        </div>
+                        <h3 class="feature__title" data-i18n="mission.experience.title">Guest Experience</h3>
+                        <p class="feature__description" data-i18n="mission.experience.description">
+                            Put your guests first with digital tools that enhance comfort, satisfaction, and memorable stays.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Trusted By -->
+        <section class="trust-bar">
+            <div class="container">
+                <p class="trust-bar__label" data-i18n="trustBar.label">Trusted by hospitality professionals</p>
+                <div class="trust-bar__logos">
+                    <span class="trust-bar__logo">Grand Palace Hotel</span>
+                    <span class="trust-bar__logo">Le Rivage Resort</span>
+                    <span class="trust-bar__logo">Maison Belle Vue</span>
+                    <span class="trust-bar__logo">Domaine des Pins</span>
+                    <span class="trust-bar__logo">Hôtel & Spa Lumière</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Services Preview -->
+        <section class="section section--gray">
+            <div class="container">
+                <div class="section__header">
+                    <span class="section__label" data-i18n="services.label">Our Services</span>
+                    <h2 class="section__title" data-i18n="services.title">Digital Solutions That Deliver</h2>
+                    <p class="section__description" data-i18n="services.description">
+                        Comprehensive tools designed to modernize every aspect of your hotel operations, from guest communication to room service.
+                    </p>
+                </div>
+
+                <div class="grid grid--3">
+                    <!-- Service 1 -->
+                    <div class="service-card">
+                        <div class="service-card__icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                            </svg>
+                        </div>
+                        <h3 class="service-card__title" data-i18n="services.communication.title">Smooth Communication</h3>
+                        <p class="service-card__description" data-i18n="services.communication.description">
+                            Replace outdated paper flyers with elegant digital platforms. Provide guests with clear, accessible information about your establishment and local area.
+                        </p>
+                        <ul class="service-card__features">
+                            <li class="service-card__feature" data-i18n="services.communication.features.portals">Digital guest information portals</li>
+                            <li class="service-card__feature" data-i18n="services.communication.features.language">Multi-language support</li>
+                            <li class="service-card__feature" data-i18n="services.communication.features.updates">Real-time content updates</li>
+                        </ul>
+                    </div>
+
+                    <!-- Service 2 -->
+                    <div class="service-card">
+                        <div class="service-card__icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                <line x1="3" y1="9" x2="21" y2="9"/>
+                                <line x1="9" y1="21" x2="9" y2="9"/>
+                            </svg>
+                        </div>
+                        <h3 class="service-card__title" data-i18n="services.management.title">Centralized Management</h3>
+                        <p class="service-card__description" data-i18n="services.management.description">
+                            Take control with intuitive admin dashboards. Manage all your content, services, and guest interactions from a single, unified platform.
+                        </p>
+                        <ul class="service-card__features">
+                            <li class="service-card__feature" data-i18n="services.management.features.dashboard">Unified admin dashboard</li>
+                            <li class="service-card__feature" data-i18n="services.management.features.cms">Content management system</li>
+                            <li class="service-card__feature" data-i18n="services.management.features.staff">Staff access management</li>
+                        </ul>
+                    </div>
+
+                    <!-- Service 3 -->
+                    <div class="service-card">
+                        <div class="service-card__icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M18 8h1a4 4 0 0 1 0 8h-1"/>
+                                <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/>
+                                <line x1="6" y1="1" x2="6" y2="4"/>
+                                <line x1="10" y1="1" x2="10" y2="4"/>
+                                <line x1="14" y1="1" x2="14" y2="4"/>
+                            </svg>
+                        </div>
+                        <h3 class="service-card__title" data-i18n="services.roomService.title">Optimized Room Service</h3>
+                        <p class="service-card__description" data-i18n="services.roomService.description">
+                            Transform room service with online ordering systems. Improve workflows, reduce wait times, and enhance guest comfort throughout their stay.
+                        </p>
+                        <ul class="service-card__features">
+                            <li class="service-card__feature" data-i18n="services.roomService.features.menus">Digital menu presentation</li>
+                            <li class="service-card__feature" data-i18n="services.roomService.features.ordering">Online ordering system</li>
+                            <li class="service-card__feature" data-i18n="services.roomService.features.tracking">Order tracking & notifications</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="text-center" style="margin-top: var(--space-12);">
+                    <a href="services.html" class="btn btn--primary btn--large">
+                        <span data-i18n="services.exploreAll">Explore All Services</span>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="5" y1="12" x2="19" y2="12"/>
+                            <polyline points="12 5 19 12 12 19"/>
+                        </svg>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- About / Story Section -->
+        <section class="section">
+            <div class="container">
+                <div class="split">
+                    <div class="split__image">
+                        <div class="image-placeholder image-placeholder--tall">
+                            <!-- Placeholder: Two professionals working together / Hotel team -->
+                        </div>
+                    </div>
+                    <div class="split__content">
+                        <span class="section__label" data-i18n="story.label">Our Story</span>
+                        <h2 data-i18n="story.title">Built by Two Friends, For Hospitality Professionals</h2>
+                        <p class="text-lead" data-i18n="story.lead">
+                            Hothello was born from a shared passion for hospitality and technology.
+                        </p>
+                        <p data-i18n="story.p1">
+                            We saw firsthand how hotels struggled with outdated systems, paper-based processes, and fragmented tools. We knew there had to be a better way.
+                        </p>
+                        <p data-i18n="story.p2">
+                            Today, we're committed to delivering modern, reliable, and efficient software solutions tailored to each establishment. Every feature we build is designed with hotel managers and their guests in mind.
+                        </p>
+                        <div class="icon-list" style="margin-top: var(--space-8);">
+                            <div class="icon-list__item">
+                                <div class="icon-list__icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="20 6 9 17 4 12"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <strong data-i18n="story.tailored">Tailored solutions</strong> — <span data-i18n="story.tailoredDesc">No one-size-fits-all. We adapt to your needs.</span>
+                                </div>
+                            </div>
+                            <div class="icon-list__item">
+                                <div class="icon-list__icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="20 6 9 17 4 12"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <strong data-i18n="story.support">Personal support</strong> — <span data-i18n="story.supportDesc">Direct communication, no ticket queues.</span>
+                                </div>
+                            </div>
+                            <div class="icon-list__item">
+                                <div class="icon-list__icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="20 6 9 17 4 12"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <strong data-i18n="story.improvement">Continuous improvement</strong> — <span data-i18n="story.improvementDesc">We evolve with your business.</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Testimonials -->
+        <section class="section section--gray">
+            <div class="container">
+                <div class="section__header">
+                    <span class="section__label" data-i18n="testimonials.label">What Our Clients Say</span>
+                </div>
+
+                <div class="testimonials-grid">
+                    <div class="quote">
+                        <p class="quote__text" data-i18n="testimonials.quote1">
+                            "Hothello transformed how we communicate with our guests. The digital transition was seamless, and our team adapted quickly. We've seen a significant improvement in guest satisfaction scores."
+                        </p>
+                        <p class="quote__author" data-i18n="testimonials.author1">Marie Laurent</p>
+                        <p class="quote__role" data-i18n="testimonials.role1">General Manager, Boutique Hotel & Spa</p>
+                    </div>
+
+                    <div class="quote">
+                        <p class="quote__text" data-i18n="testimonials.quote3">
+                            "Since switching to Hothello's digital room service, orders increased by 40% and our kitchen errors dropped to nearly zero. The ROI was evident within the first month."
+                        </p>
+                        <p class="quote__author" data-i18n="testimonials.author3">Sophie Durand</p>
+                        <p class="quote__role" data-i18n="testimonials.role3">Operations Director, Hôtel & Resort Les Terrasses</p>
+                    </div>
+
+                    <div class="quote">
+                        <p class="quote__text" data-i18n="testimonials.quote4">
+                            "We eliminated over 10,000 printed pages per year and our guests love having everything on their phones. The multilingual support alone saved us countless hours of translation work."
+                        </p>
+                        <p class="quote__author" data-i18n="testimonials.author4">Jean-Marc Tessier</p>
+                        <p class="quote__role" data-i18n="testimonials.role4">Owner, Maison d'Hôtes du Parc</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA Section -->
+        <section class="cta">
+            <div class="container">
+                <h2 class="cta__title" data-i18n="cta.transform">Ready to Transform Your Hotel?</h2>
+                <p class="cta__description" data-i18n="cta.transformDescription">
+                    Let's discuss how Hothello can help you deliver exceptional guest experiences while simplifying your operations.
+                </p>
+                <div style="display: flex; gap: var(--space-4); justify-content: center; flex-wrap: wrap;">
+                    <a href="contact.html" class="btn btn--outline-white btn--large" data-i18n="cta.getInTouch">Get in Touch</a>
+                    <a href="pricing.html" class="btn btn--secondary btn--large" data-i18n="cta.viewPricing">View Pricing</a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer__grid">
+                <div class="footer__brand">
+                    <a href="index.html" class="logo">
+                        <span class="logo__icon">H</span>
+                        <span class="logo__text">Hothello</span>
+                    </a>
+                    <p data-i18n="footer.description">
+                        Digital transformation solutions for hospitality establishments. Built by two friends committed to delivering modern, reliable, and efficient software.
+                    </p>
+                </div>
+
+                <div class="footer__column">
+                    <h4 data-i18n="footer.navigation">Navigation</h4>
+                    <ul class="footer__links">
+                        <li><a href="index.html" class="footer__link" data-i18n="nav.home">Home</a></li>
+                        <li><a href="services.html" class="footer__link" data-i18n="nav.services">Services</a></li>
+                        <li><a href="pricing.html" class="footer__link" data-i18n="nav.pricing">Pricing</a></li>
+                        <li><a href="contact.html" class="footer__link" data-i18n="nav.contact">Contact</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer__column">
+                    <h4 data-i18n="footer.servicesTitle">Services</h4>
+                    <ul class="footer__links">
+                        <li><a href="services.html#communication" class="footer__link" data-i18n="services.communication.title">Smooth Communication</a></li>
+                        <li><a href="services.html#management" class="footer__link" data-i18n="services.management.title">Centralized Management</a></li>
+                        <li><a href="services.html#room-service" class="footer__link" data-i18n="services.roomService.title">Room Service</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer__column">
+                    <h4 data-i18n="footer.contactTitle">Contact</h4>
+                    <div class="footer__contact-item">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                            <polyline points="22,6 12,13 2,6"/>
+                        </svg>
+                        <span>contact@hothello.com</span>
+                    </div>
+                    <div class="footer__contact-item">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                            <circle cx="12" cy="10" r="3"/>
+                        </svg>
+                        <span>France</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="footer__bottom">
+                <p data-i18n="footer.copyright">&copy; 2025 Hothello. All rights reserved.</p>
+                <div class="footer__legal">
+                    <a href="#" data-i18n="footer.privacy">Privacy Policy</a>
+                    <a href="#" data-i18n="footer.terms">Terms of Service</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/main.js"></script>
+</body>
+</html>

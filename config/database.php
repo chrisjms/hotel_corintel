@@ -12,10 +12,7 @@ define('DB_NAME', 'postgres');
 define('DB_USER', 'postgres.afiixohjgnguomglpulr');
 define('DB_PASS', 'Toutesdesputes33');
 
-// Site configuration
-define('SITE_URL', 'https://hothello.ovh/corintel');
-define('UPLOAD_DIR', __DIR__ . '/../uploads/');
-define('UPLOAD_URL', SITE_URL . '/uploads/');
+// Site configuration (SITE_URL, UPLOAD_DIR, UPLOAD_URL are now dynamic in bootstrap.php)
 define('MAX_FILE_SIZE', 5 * 1024 * 1024); // 5MB
 define('ALLOWED_TYPES', ['image/jpeg', 'image/png', 'image/webp']);
 define('ALLOWED_EXTENSIONS', ['jpg', 'jpeg', 'png', 'webp']);

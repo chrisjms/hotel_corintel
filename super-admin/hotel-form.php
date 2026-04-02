@@ -32,6 +32,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'is_active' => isset($_POST['is_active']) ? 1 : 0,
         ];
 
+        // Auto-fill URLs from slug if empty
+        $slug = trim($data['slug'] ?? '');
+        if (empty($slug)) {
+            $slug = preg_replace('/[^a-z0-9-]/', '', strtolower(str_replace(' ', '-', $data['name'])));
+        }
+        if (empty($data['site_url']) && !empty($slug)) {
+            $urls = getDefaultHotelUrls($slug);
+            $data['site_url'] = $urls['site_url'];
+        }
+        if (empty($data['admin_url']) && !empty($slug)) {
+            $urls = $urls ?? getDefaultHotelUrls($slug);
+            $data['admin_url'] = $urls['admin_url'];
+        }
+
         if ($isEdit) {
             $result = updateHotel($editId, $data);
             if ($result['success']) {
@@ -40,7 +54,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             $result = createHotel($data);
             if ($result['success']) {
-                logAudit($_SESSION['super_admin_id'], 'hotel_created', $result['id'] ?? null, json_encode(['name' => $data['name']]));
+                // Provision default data for the new hotel
+                $newHotelId = (int)($result['id'] ?? 0);
+                if ($newHotelId > 0) {
+                    provisionHotelData($newHotelId);
+                }
+                logAudit($_SESSION['super_admin_id'], 'hotel_created', $newHotelId, json_encode(['name' => $data['name']]));
                 header('Location: index.php');
                 exit;
             }
@@ -190,22 +209,39 @@ $formData = [
     if (overlay) overlay.addEventListener('click', closeSidebar);
     if (closeBtn) closeBtn.addEventListener('click', closeSidebar);
 
-    // Auto-generate slug from name
+    // Auto-generate slug from name + auto-fill URLs
     const nameInput = document.getElementById('name');
     const slugInput = document.getElementById('slug');
+    const siteUrlInput = document.getElementById('site_url');
+    const adminUrlInput = document.getElementById('admin_url');
+
+    function updateUrlsFromSlug(slug) {
+        if (siteUrlInput && !siteUrlInput.dataset.manual && slug) {
+            siteUrlInput.value = 'https://' + slug + '.hothello.ovh';
+        }
+        if (adminUrlInput && !adminUrlInput.dataset.manual && slug) {
+            adminUrlInput.value = 'https://admin-' + slug + '.hothello.ovh';
+        }
+    }
+
     if (nameInput && slugInput) {
         nameInput.addEventListener('input', function() {
             if (!slugInput.dataset.manual) {
-                slugInput.value = this.value.toLowerCase()
+                const slug = this.value.toLowerCase()
                     .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
                     .replace(/[^a-z0-9]+/g, '-')
                     .replace(/^-|-$/g, '');
+                slugInput.value = slug;
+                updateUrlsFromSlug(slug);
             }
         });
         slugInput.addEventListener('input', function() {
             this.dataset.manual = '1';
+            updateUrlsFromSlug(this.value);
         });
     }
+    if (siteUrlInput) siteUrlInput.addEventListener('input', function() { this.dataset.manual = '1'; });
+    if (adminUrlInput) adminUrlInput.addEventListener('input', function() { this.dataset.manual = '1'; });
     </script>
 </body>
 </html>

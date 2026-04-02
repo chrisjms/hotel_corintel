@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../../bootstrap.php';
 /**
  * Rooms Management API
  * Handles AJAX operations for room management

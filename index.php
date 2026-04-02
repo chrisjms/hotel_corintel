@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/bootstrap.php';
 /**
  * Home Page - Hôtel Corintel
  * Dynamically loads images from database

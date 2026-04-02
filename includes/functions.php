@@ -25,8 +25,8 @@ if (!defined('ALLOWED_EXTENSIONS')) {
  */
 function getImagesBySection(string $section): array {
     $pdo = getDatabase();
-    $stmt = $pdo->prepare('SELECT * FROM images WHERE section = ? ORDER BY position ASC');
-    $stmt->execute([$section]);
+    $stmt = $pdo->prepare('SELECT * FROM images WHERE section = ? AND hotel_id = ? ORDER BY position ASC');
+    $stmt->execute([$section, getHotelId()]);
     return $stmt->fetchAll();
 }
 
@@ -35,8 +35,8 @@ function getImagesBySection(string $section): array {
  */
 function getImage(string $section, int $position): ?array {
     $pdo = getDatabase();
-    $stmt = $pdo->prepare('SELECT * FROM images WHERE section = ? AND position = ?');
-    $stmt->execute([$section, $position]);
+    $stmt = $pdo->prepare('SELECT * FROM images WHERE section = ? AND position = ? AND hotel_id = ?');
+    $stmt->execute([$section, $position, getHotelId()]);
     return $stmt->fetch() ?: null;
 }
 
@@ -45,8 +45,8 @@ function getImage(string $section, int $position): ?array {
  */
 function getImageById(int $id): ?array {
     $pdo = getDatabase();
-    $stmt = $pdo->prepare('SELECT * FROM images WHERE id = ?');
-    $stmt->execute([$id]);
+    $stmt = $pdo->prepare('SELECT * FROM images WHERE id = ? AND hotel_id = ?');
+    $stmt->execute([$id, getHotelId()]);
     return $stmt->fetch() ?: null;
 }
 
@@ -72,8 +72,8 @@ function getImageUrl(string $section, int $position, string $fallback = ''): str
  */
 function updateImage(int $id, string $filename, ?string $title = null, ?string $altText = null): bool {
     $pdo = getDatabase();
-    $stmt = $pdo->prepare('UPDATE images SET filename = ?, title = ?, alt_text = ?, updated_at = NOW() WHERE id = ?');
-    return $stmt->execute([$filename, $title, $altText, $id]);
+    $stmt = $pdo->prepare('UPDATE images SET filename = ?, title = ?, alt_text = ?, updated_at = NOW() WHERE id = ? AND hotel_id = ?');
+    return $stmt->execute([$filename, $title, $altText, $id, getHotelId()]);
 }
 
 /**
@@ -309,12 +309,13 @@ function timeAgo(?string $datetime): string {
  */
 function getRoomServiceItems(bool $activeOnly = false): array {
     $pdo = getDatabase();
-    $sql = 'SELECT * FROM room_service_items';
+    $sql = 'SELECT * FROM room_service_items WHERE hotel_id = ?';
     if ($activeOnly) {
-        $sql .= ' WHERE is_active = TRUE';
+        $sql .= ' AND is_active = TRUE';
     }
     $sql .= ' ORDER BY position ASC, id ASC';
-    $stmt = $pdo->query($sql);
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([getHotelId()]);
     return $stmt->fetchAll();
 }
 
@@ -323,8 +324,8 @@ function getRoomServiceItems(bool $activeOnly = false): array {
  */
 function getRoomServiceItemById(int $id): ?array {
     $pdo = getDatabase();
-    $stmt = $pdo->prepare('SELECT * FROM room_service_items WHERE id = ?');
-    $stmt->execute([$id]);
+    $stmt = $pdo->prepare('SELECT * FROM room_service_items WHERE id = ? AND hotel_id = ?');
+    $stmt->execute([$id, getHotelId()]);
     return $stmt->fetch() ?: null;
 }
 
@@ -334,8 +335,8 @@ function getRoomServiceItemById(int $id): ?array {
 function createRoomServiceItem(array $data): int|false {
     $pdo = getDatabase();
     $stmt = $pdo->prepare('
-        INSERT INTO room_service_items (name, description, price, image, category, is_active, position)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO room_service_items (name, description, price, image, category, is_active, position, hotel_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     ');
     $success = $stmt->execute([
         $data['name'],
@@ -344,7 +345,8 @@ function createRoomServiceItem(array $data): int|false {
         $data['image'] ?? null,
         $data['category'] ?? 'general',
         $data['is_active'] ?? 1,
-        $data['position'] ?? 0
+        $data['position'] ?? 0,
+        getHotelId()
     ]);
     return $success ? (int)$pdo->lastInsertId() : false;
 }
@@ -357,7 +359,7 @@ function updateRoomServiceItem(int $id, array $data): bool {
     $stmt = $pdo->prepare('
         UPDATE room_service_items
         SET name = ?, description = ?, price = ?, image = ?, category = ?, is_active = ?, position = ?
-        WHERE id = ?
+        WHERE id = ? AND hotel_id = ?
     ');
     return $stmt->execute([
         $data['name'],
@@ -367,7 +369,8 @@ function updateRoomServiceItem(int $id, array $data): bool {
         $data['category'] ?? 'general',
         $data['is_active'] ?? 1,
         $data['position'] ?? 0,
-        $id
+        $id,
+        getHotelId()
     ]);
 }
 
@@ -376,8 +379,8 @@ function updateRoomServiceItem(int $id, array $data): bool {
  */
 function toggleRoomServiceItemStatus(int $id): bool {
     $pdo = getDatabase();
-    $stmt = $pdo->prepare('UPDATE room_service_items SET is_active = NOT is_active WHERE id = ?');
-    return $stmt->execute([$id]);
+    $stmt = $pdo->prepare('UPDATE room_service_items SET is_active = NOT is_active WHERE id = ? AND hotel_id = ?');
+    return $stmt->execute([$id, getHotelId()]);
 }
 
 /**
@@ -386,13 +389,13 @@ function toggleRoomServiceItemStatus(int $id): bool {
 function deleteRoomServiceItem(int $id): bool {
     $pdo = getDatabase();
     // Check if item is used in any order
-    $stmt = $pdo->prepare('SELECT COUNT(*) FROM room_service_order_items WHERE item_id = ?');
-    $stmt->execute([$id]);
+    $stmt = $pdo->prepare('SELECT COUNT(*) FROM room_service_order_items WHERE item_id = ? AND hotel_id = ?');
+    $stmt->execute([$id, getHotelId()]);
     if ($stmt->fetchColumn() > 0) {
         return false; // Cannot delete, item is used in orders
     }
-    $stmt = $pdo->prepare('DELETE FROM room_service_items WHERE id = ?');
-    return $stmt->execute([$id]);
+    $stmt = $pdo->prepare('DELETE FROM room_service_items WHERE id = ? AND hotel_id = ?');
+    return $stmt->execute([$id, getHotelId()]);
 }
 
 /**
@@ -437,8 +440,8 @@ function handleRoomServiceItemImageUpload(array $file, int $itemId): array {
 
     $relativePath = 'uploads/' . $newFilename;
     $pdo = getDatabase();
-    $stmt = $pdo->prepare('UPDATE room_service_items SET image = ? WHERE id = ?');
-    if (!$stmt->execute([$relativePath, $itemId])) {
+    $stmt = $pdo->prepare('UPDATE room_service_items SET image = ? WHERE id = ? AND hotel_id = ?');
+    if (!$stmt->execute([$relativePath, $itemId, getHotelId()])) {
         @unlink($uploadPath);
         return ['valid' => false, 'message' => 'Erreur lors de la mise à jour de la base de données.'];
     }
@@ -453,7 +456,8 @@ function getRoomServiceOrders(string $status = '', string $sortBy = 'created_at'
     $pdo = getDatabase();
     $sql = 'SELECT * FROM room_service_orders';
     $params = [];
-    $conditions = [];
+    $conditions = ['hotel_id = ?'];
+    $params[] = getHotelId();
 
     if ($status && $status !== 'all') {
         $conditions[] = 'status = ?';
@@ -465,9 +469,7 @@ function getRoomServiceOrders(string $status = '', string $sortBy = 'created_at'
         $params[] = $deliveryDate;
     }
 
-    if (!empty($conditions)) {
-        $sql .= ' WHERE ' . implode(' AND ', $conditions);
-    }
+    $sql .= ' WHERE ' . implode(' AND ', $conditions);
 
     // Validate sort column
     $allowedSortColumns = ['created_at', 'delivery_datetime', 'total_amount', 'room_number'];
@@ -487,8 +489,8 @@ function getRoomServiceOrders(string $status = '', string $sortBy = 'created_at'
  */
 function getRoomServiceOrderById(int $id): ?array {
     $pdo = getDatabase();
-    $stmt = $pdo->prepare('SELECT * FROM room_service_orders WHERE id = ?');
-    $stmt->execute([$id]);
+    $stmt = $pdo->prepare('SELECT * FROM room_service_orders WHERE id = ? AND hotel_id = ?');
+    $stmt->execute([$id, getHotelId()]);
     return $stmt->fetch() ?: null;
 }
 
@@ -497,8 +499,8 @@ function getRoomServiceOrderById(int $id): ?array {
  */
 function getRoomServiceOrderItems(int $orderId): array {
     $pdo = getDatabase();
-    $stmt = $pdo->prepare('SELECT * FROM room_service_order_items WHERE order_id = ? ORDER BY id ASC');
-    $stmt->execute([$orderId]);
+    $stmt = $pdo->prepare('SELECT * FROM room_service_order_items WHERE order_id = ? AND hotel_id = ? ORDER BY id ASC');
+    $stmt->execute([$orderId, getHotelId()]);
     return $stmt->fetchAll();
 }
 
@@ -519,8 +521,8 @@ function createRoomServiceOrder(array $orderData, array $items): int|false {
 
         // Create order
         $stmt = $pdo->prepare('
-            INSERT INTO room_service_orders (room_number, guest_name, phone, total_amount, payment_method, delivery_datetime, notes)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO room_service_orders (room_number, guest_name, phone, total_amount, payment_method, delivery_datetime, notes, hotel_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         ');
         $stmt->execute([
             $orderData['room_number'],
@@ -529,14 +531,15 @@ function createRoomServiceOrder(array $orderData, array $items): int|false {
             $total,
             $orderData['payment_method'] ?? 'room_charge',
             $orderData['delivery_datetime'],
-            $orderData['notes'] ?? null
+            $orderData['notes'] ?? null,
+            getHotelId()
         ]);
         $orderId = (int)$pdo->lastInsertId();
 
         // Create order items
         $stmt = $pdo->prepare('
-            INSERT INTO room_service_order_items (order_id, item_id, item_name, item_price, quantity, subtotal)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO room_service_order_items (order_id, item_id, item_name, item_price, quantity, subtotal, hotel_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
         ');
         foreach ($items as $item) {
             $subtotal = $item['price'] * $item['quantity'];
@@ -546,7 +549,8 @@ function createRoomServiceOrder(array $orderData, array $items): int|false {
                 $item['name'],
                 $item['price'],
                 $item['quantity'],
-                $subtotal
+                $subtotal,
+                getHotelId()
             ]);
         }
 
@@ -597,8 +601,8 @@ function updateRoomServiceOrderStatus(int $id, string $status): bool {
         return false;
     }
     $pdo = getDatabase();
-    $stmt = $pdo->prepare('UPDATE room_service_orders SET status = ? WHERE id = ?');
-    return $stmt->execute([$status, $id]);
+    $stmt = $pdo->prepare('UPDATE room_service_orders SET status = ? WHERE id = ? AND hotel_id = ?');
+    return $stmt->execute([$status, $id, getHotelId()]);
 }
 
 /**
@@ -609,27 +613,33 @@ function getRoomServiceStats(): array {
     $stats = [];
 
     // Total items
-    $stmt = $pdo->query('SELECT COUNT(*) FROM room_service_items');
+    $stmt = $pdo->prepare('SELECT COUNT(*) FROM room_service_items WHERE hotel_id = ?');
+    $stmt->execute([getHotelId()]);
     $stats['total_items'] = $stmt->fetchColumn();
 
     // Active items
-    $stmt = $pdo->query('SELECT COUNT(*) FROM room_service_items WHERE is_active = TRUE');
+    $stmt = $pdo->prepare('SELECT COUNT(*) FROM room_service_items WHERE is_active = TRUE AND hotel_id = ?');
+    $stmt->execute([getHotelId()]);
     $stats['active_items'] = $stmt->fetchColumn();
 
     // Total orders
-    $stmt = $pdo->query('SELECT COUNT(*) FROM room_service_orders');
+    $stmt = $pdo->prepare('SELECT COUNT(*) FROM room_service_orders WHERE hotel_id = ?');
+    $stmt->execute([getHotelId()]);
     $stats['total_orders'] = $stmt->fetchColumn();
 
     // Pending orders
-    $stmt = $pdo->query('SELECT COUNT(*) FROM room_service_orders WHERE status = "pending"');
+    $stmt = $pdo->prepare('SELECT COUNT(*) FROM room_service_orders WHERE status = \'pending\' AND hotel_id = ?');
+    $stmt->execute([getHotelId()]);
     $stats['pending_orders'] = $stmt->fetchColumn();
 
     // Today's orders
-    $stmt = $pdo->query('SELECT COUNT(*) FROM room_service_orders WHERE DATE(created_at) = CURRENT_DATE');
+    $stmt = $pdo->prepare('SELECT COUNT(*) FROM room_service_orders WHERE DATE(created_at) = CURRENT_DATE AND hotel_id = ?');
+    $stmt->execute([getHotelId()]);
     $stats['today_orders'] = $stmt->fetchColumn();
 
     // Today's revenue
-    $stmt = $pdo->query('SELECT COALESCE(SUM(total_amount), 0) FROM room_service_orders WHERE DATE(created_at) = CURRENT_DATE AND status != \'cancelled\'');
+    $stmt = $pdo->prepare('SELECT COALESCE(SUM(total_amount), 0) FROM room_service_orders WHERE DATE(created_at) = CURRENT_DATE AND status != \'cancelled\' AND hotel_id = ?');
+    $stmt->execute([getHotelId()]);
     $stats['today_revenue'] = $stmt->fetchColumn();
 
     return $stats;
@@ -642,7 +652,8 @@ function getRoomServiceStats(): array {
 function getRoomServiceCategories(): array {
     try {
         $pdo = getDatabase();
-        $stmt = $pdo->query('SELECT code, name FROM room_service_categories WHERE is_active = TRUE ORDER BY position ASC');
+        $stmt = $pdo->prepare('SELECT code, name FROM room_service_categories WHERE is_active = TRUE AND hotel_id = ? ORDER BY position ASC');
+        $stmt->execute([getHotelId()]);
         $categories = [];
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
             $categories[$row['code']] = $row['name'];
@@ -671,7 +682,8 @@ function getRoomServiceCategories(): array {
 function getRoomServiceCategoriesAll(): array {
     try {
         $pdo = getDatabase();
-        $stmt = $pdo->query('SELECT * FROM room_service_categories ORDER BY position ASC');
+        $stmt = $pdo->prepare('SELECT * FROM room_service_categories WHERE hotel_id = ? ORDER BY position ASC');
+        $stmt->execute([getHotelId()]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     } catch (PDOException $e) {
         return [];
@@ -683,8 +695,8 @@ function getRoomServiceCategoriesAll(): array {
  */
 function getRoomServiceCategoryByCode(string $code): ?array {
     $pdo = getDatabase();
-    $stmt = $pdo->prepare('SELECT * FROM room_service_categories WHERE code = ?');
-    $stmt->execute([$code]);
+    $stmt = $pdo->prepare('SELECT * FROM room_service_categories WHERE code = ? AND hotel_id = ?');
+    $stmt->execute([$code, getHotelId()]);
     return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
 }
 
@@ -696,12 +708,13 @@ function updateCategoryTimeWindow(string $code, ?string $timeStart, ?string $tim
     $stmt = $pdo->prepare('
         UPDATE room_service_categories
         SET time_start = ?, time_end = ?, updated_at = NOW()
-        WHERE code = ?
+        WHERE code = ? AND hotel_id = ?
     ');
     return $stmt->execute([
         $timeStart ?: null,
         $timeEnd ?: null,
-        $code
+        $code,
+        getHotelId()
     ]);
 }
 
@@ -714,15 +727,15 @@ function createRoomServiceCategory(array $data): int|false {
     $pdo = getDatabase();
 
     // Check if code already exists
-    $stmt = $pdo->prepare('SELECT id FROM room_service_categories WHERE code = ?');
-    $stmt->execute([$data['code']]);
+    $stmt = $pdo->prepare('SELECT id FROM room_service_categories WHERE code = ? AND hotel_id = ?');
+    $stmt->execute([$data['code'], getHotelId()]);
     if ($stmt->fetch()) {
         return false; // Code already exists
     }
 
     $stmt = $pdo->prepare('
-        INSERT INTO room_service_categories (code, name, time_start, time_end, position, is_active)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO room_service_categories (code, name, time_start, time_end, position, is_active, hotel_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
     ');
     $success = $stmt->execute([
         $data['code'],
@@ -730,7 +743,8 @@ function createRoomServiceCategory(array $data): int|false {
         $data['time_start'] ?? null,
         $data['time_end'] ?? null,
         $data['position'] ?? 0,
-        $data['is_active'] ?? 1
+        $data['is_active'] ?? 1,
+        getHotelId()
     ]);
     return $success ? (int)$pdo->lastInsertId() : false;
 }
@@ -746,8 +760,8 @@ function updateRoomServiceCategory(string $code, array $data): bool {
 
     // If code is being changed, check if new code already exists
     if (isset($data['new_code']) && $data['new_code'] !== $code) {
-        $stmt = $pdo->prepare('SELECT id FROM room_service_categories WHERE code = ? AND code != ?');
-        $stmt->execute([$data['new_code'], $code]);
+        $stmt = $pdo->prepare('SELECT id FROM room_service_categories WHERE code = ? AND code != ? AND hotel_id = ?');
+        $stmt->execute([$data['new_code'], $code, getHotelId()]);
         if ($stmt->fetch()) {
             return false; // New code already exists
         }
@@ -756,7 +770,7 @@ function updateRoomServiceCategory(string $code, array $data): bool {
     $stmt = $pdo->prepare('
         UPDATE room_service_categories
         SET code = ?, name = ?, time_start = ?, time_end = ?, position = ?, is_active = ?
-        WHERE code = ?
+        WHERE code = ? AND hotel_id = ?
     ');
     return $stmt->execute([
         $data['new_code'] ?? $code,
@@ -765,7 +779,8 @@ function updateRoomServiceCategory(string $code, array $data): bool {
         $data['time_end'] ?? null,
         $data['position'] ?? 0,
         $data['is_active'] ?? 1,
-        $code
+        $code,
+        getHotelId()
     ]);
 }
 
@@ -798,8 +813,8 @@ function deleteRoomServiceCategory(string $code, ?string $reassignTo = null): ar
     }
 
     // Count items in this category
-    $stmt = $pdo->prepare('SELECT COUNT(*) as count FROM room_service_items WHERE category = ?');
-    $stmt->execute([$code]);
+    $stmt = $pdo->prepare('SELECT COUNT(*) as count FROM room_service_items WHERE category = ? AND hotel_id = ?');
+    $stmt->execute([$code, getHotelId()]);
     $itemsCount = (int)$stmt->fetch()['count'];
 
     if ($itemsCount > 0) {
@@ -822,21 +837,21 @@ function deleteRoomServiceCategory(string $code, ?string $reassignTo = null): ar
         }
 
         // Reassign items
-        $stmt = $pdo->prepare('UPDATE room_service_items SET category = ? WHERE category = ?');
-        $stmt->execute([$reassignTo, $code]);
+        $stmt = $pdo->prepare('UPDATE room_service_items SET category = ? WHERE category = ? AND hotel_id = ?');
+        $stmt->execute([$reassignTo, $code, getHotelId()]);
     }
 
     // Delete category translations
     try {
-        $stmt = $pdo->prepare('DELETE FROM room_service_category_translations WHERE category_code = ?');
-        $stmt->execute([$code]);
+        $stmt = $pdo->prepare('DELETE FROM room_service_category_translations WHERE category_code = ? AND hotel_id = ?');
+        $stmt->execute([$code, getHotelId()]);
     } catch (PDOException $e) {
         // Table might not exist
     }
 
     // Delete the category
-    $stmt = $pdo->prepare('DELETE FROM room_service_categories WHERE code = ?');
-    $success = $stmt->execute([$code]);
+    $stmt = $pdo->prepare('DELETE FROM room_service_categories WHERE code = ? AND hotel_id = ?');
+    $success = $stmt->execute([$code, getHotelId()]);
 
     return [
         'success' => $success,
@@ -852,8 +867,8 @@ function deleteRoomServiceCategory(string $code, ?string $reassignTo = null): ar
  */
 function toggleRoomServiceCategoryStatus(string $code): bool {
     $pdo = getDatabase();
-    $stmt = $pdo->prepare('UPDATE room_service_categories SET is_active = NOT is_active WHERE code = ?');
-    return $stmt->execute([$code]);
+    $stmt = $pdo->prepare('UPDATE room_service_categories SET is_active = NOT is_active WHERE code = ? AND hotel_id = ?');
+    return $stmt->execute([$code, getHotelId()]);
 }
 
 /**
@@ -863,8 +878,8 @@ function toggleRoomServiceCategoryStatus(string $code): bool {
  */
 function getCategoryItemsCount(string $code): int {
     $pdo = getDatabase();
-    $stmt = $pdo->prepare('SELECT COUNT(*) as count FROM room_service_items WHERE category = ?');
-    $stmt->execute([$code]);
+    $stmt = $pdo->prepare('SELECT COUNT(*) as count FROM room_service_items WHERE category = ? AND hotel_id = ?');
+    $stmt->execute([$code, getHotelId()]);
     return (int)$stmt->fetch()['count'];
 }
 
@@ -874,7 +889,8 @@ function getCategoryItemsCount(string $code): int {
  */
 function getNextCategoryPosition(): int {
     $pdo = getDatabase();
-    $stmt = $pdo->query('SELECT MAX(position) as max_pos FROM room_service_categories');
+    $stmt = $pdo->prepare('SELECT MAX(position) as max_pos FROM room_service_categories WHERE hotel_id = ?');
+    $stmt->execute([getHotelId()]);
     $result = $stmt->fetch();
     return ($result['max_pos'] ?? 0) + 1;
 }
@@ -970,8 +986,8 @@ function validateOrderItemsAvailability(array $items, string $deliveryDatetime):
     $pdo = getDatabase();
 
     foreach ($items as $item) {
-        $stmt = $pdo->prepare('SELECT name, category FROM room_service_items WHERE id = ?');
-        $stmt->execute([$item['item_id']]);
+        $stmt = $pdo->prepare('SELECT name, category FROM room_service_items WHERE id = ? AND hotel_id = ?');
+        $stmt->execute([$item['item_id'], getHotelId()]);
         $itemData = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($itemData && !isCategoryAvailableAt($itemData['category'], $deliveryDatetime)) {
@@ -1120,11 +1136,11 @@ function saveItemTranslations(int $itemId, array $translations): bool {
 
         try {
             $stmt = $pdo->prepare('
-                INSERT INTO room_service_item_translations (item_id, language_code, name, description)
-                VALUES (?, ?, ?, ?)
+                INSERT INTO room_service_item_translations (item_id, language_code, name, description, hotel_id)
+                VALUES (?, ?, ?, ?, ?)
                 ON CONFLICT (item_id, language_code) DO UPDATE SET name = EXCLUDED.name, description = EXCLUDED.description
             ');
-            $success = $stmt->execute([$itemId, $langCode, $name, $description]) && $success;
+            $success = $stmt->execute([$itemId, $langCode, $name, $description, getHotelId()]) && $success;
         } catch (PDOException $e) {
             error_log('Error saving item translation: ' . $e->getMessage());
             $success = false;
@@ -1147,9 +1163,9 @@ function getItemTranslations(int $itemId): array {
         $stmt = $pdo->prepare('
             SELECT language_code, name, description
             FROM room_service_item_translations
-            WHERE item_id = ?
+            WHERE item_id = ? AND hotel_id = ?
         ');
-        $stmt->execute([$itemId]);
+        $stmt->execute([$itemId, getHotelId()]);
 
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
             $translations[$row['language_code']] = [
@@ -1179,9 +1195,9 @@ function getItemTranslatedName(int $itemId, ?string $langCode = null): ?string {
         // Try requested language first
         $stmt = $pdo->prepare('
             SELECT name FROM room_service_item_translations
-            WHERE item_id = ? AND language_code = ?
+            WHERE item_id = ? AND language_code = ? AND hotel_id = ?
         ');
-        $stmt->execute([$itemId, $langCode]);
+        $stmt->execute([$itemId, $langCode, getHotelId()]);
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($result && !empty($result['name'])) {
@@ -1190,7 +1206,7 @@ function getItemTranslatedName(int $itemId, ?string $langCode = null): ?string {
 
         // Fallback to default language
         if ($langCode !== $defaultLang) {
-            $stmt->execute([$itemId, $defaultLang]);
+            $stmt->execute([$itemId, $defaultLang, getHotelId()]);
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
             if ($result && !empty($result['name'])) {
                 return $result['name'];
@@ -1263,11 +1279,11 @@ function saveCategoryTranslations(string $categoryCode, array $translations): bo
 
         try {
             $stmt = $pdo->prepare('
-                INSERT INTO room_service_category_translations (category_code, language_code, name)
-                VALUES (?, ?, ?)
+                INSERT INTO room_service_category_translations (category_code, language_code, name, hotel_id)
+                VALUES (?, ?, ?, ?)
                 ON CONFLICT (category_code, language_code) DO UPDATE SET name = EXCLUDED.name
             ');
-            $success = $stmt->execute([$categoryCode, $langCode, $name]) && $success;
+            $success = $stmt->execute([$categoryCode, $langCode, $name, getHotelId()]) && $success;
         } catch (PDOException $e) {
             error_log('Error saving category translation: ' . $e->getMessage());
             $success = false;
@@ -1290,9 +1306,9 @@ function getCategoryTranslations(string $categoryCode): array {
         $stmt = $pdo->prepare('
             SELECT language_code, name
             FROM room_service_category_translations
-            WHERE category_code = ?
+            WHERE category_code = ? AND hotel_id = ?
         ');
-        $stmt->execute([$categoryCode]);
+        $stmt->execute([$categoryCode, getHotelId()]);
 
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
             $translations[$row['language_code']] = $row['name'];
@@ -1319,9 +1335,9 @@ function getCategoryTranslatedName(string $categoryCode, ?string $langCode = nul
         // Try requested language first
         $stmt = $pdo->prepare('
             SELECT name FROM room_service_category_translations
-            WHERE category_code = ? AND language_code = ?
+            WHERE category_code = ? AND language_code = ? AND hotel_id = ?
         ');
-        $stmt->execute([$categoryCode, $langCode]);
+        $stmt->execute([$categoryCode, $langCode, getHotelId()]);
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($result && !empty($result['name'])) {
@@ -1330,7 +1346,7 @@ function getCategoryTranslatedName(string $categoryCode, ?string $langCode = nul
 
         // Fallback to default language
         if ($langCode !== $defaultLang) {
-            $stmt->execute([$categoryCode, $defaultLang]);
+            $stmt->execute([$categoryCode, $defaultLang, getHotelId()]);
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
             if ($result && !empty($result['name'])) {
                 return $result['name'];
@@ -1354,7 +1370,8 @@ function getRoomServiceCategoriesTranslated(?string $langCode = null): array {
 
     try {
         $pdo = getDatabase();
-        $stmt = $pdo->query('SELECT code, name FROM room_service_categories WHERE is_active = TRUE ORDER BY position ASC');
+        $stmt = $pdo->prepare('SELECT code, name FROM room_service_categories WHERE is_active = TRUE AND hotel_id = ? ORDER BY position ASC');
+        $stmt->execute([getHotelId()]);
         $categories = [];
 
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
@@ -1437,13 +1454,13 @@ function getRoomServicePeriodStats(string $period = 'day', ?string $date = null)
             COUNT(CASE WHEN status = 'delivered' THEN 1 END) as delivered_orders,
             COUNT(CASE WHEN status = 'cancelled' THEN 1 END) as cancelled_orders
         FROM room_service_orders
-        WHERE DATE(created_at) BETWEEN ? AND ?
+        WHERE DATE(created_at) BETWEEN ? AND ? AND hotel_id = ?
     ");
-    $stmt->execute([$startDate, $endDate]);
+    $stmt->execute([$startDate, $endDate, getHotelId()]);
     $current = $stmt->fetch(PDO::FETCH_ASSOC);
 
     // Previous period stats (for comparison)
-    $stmt->execute([$prevStartDate, $prevEndDate]);
+    $stmt->execute([$prevStartDate, $prevEndDate, getHotelId()]);
     $previous = $stmt->fetch(PDO::FETCH_ASSOC);
 
     // Calculate percentage changes
@@ -1498,11 +1515,11 @@ function getRoomServiceDailyRevenue(int $days = 30, ?string $endDate = null): ar
             COUNT(*) as orders,
             COALESCE(SUM(CASE WHEN status != 'cancelled' THEN total_amount ELSE 0 END), 0) as revenue
         FROM room_service_orders
-        WHERE DATE(created_at) BETWEEN ? AND ?
+        WHERE DATE(created_at) BETWEEN ? AND ? AND hotel_id = ?
         GROUP BY DATE(created_at)
         ORDER BY date ASC
     ");
-    $stmt->execute([$start, $end]);
+    $stmt->execute([$start, $end, getHotelId()]);
     $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // Fill in missing dates with zero values
@@ -1544,11 +1561,11 @@ function getRoomServiceWeeklyRevenue(int $weeks = 12): array {
             COUNT(*) as orders,
             COALESCE(SUM(CASE WHEN status != 'cancelled' THEN total_amount ELSE 0 END), 0) as revenue
         FROM room_service_orders
-        WHERE created_at >= CURRENT_DATE - CAST(? AS INTEGER) * INTERVAL '1 week'
+        WHERE created_at >= CURRENT_DATE - CAST(? AS INTEGER) * INTERVAL '1 week' AND hotel_id = ?
         GROUP BY TO_CHAR(created_at, 'IYYY-IW')
         ORDER BY year_week ASC
     ");
-    $stmt->execute([$weeks]);
+    $stmt->execute([$weeks, getHotelId()]);
     $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     return array_map(function($row) {
@@ -1576,11 +1593,11 @@ function getRoomServiceMonthlyRevenue(int $months = 12): array {
             COUNT(*) as orders,
             COALESCE(SUM(CASE WHEN status != 'cancelled' THEN total_amount ELSE 0 END), 0) as revenue
         FROM room_service_orders
-        WHERE created_at >= CURRENT_DATE - CAST(? AS INTEGER) * INTERVAL '1 month'
+        WHERE created_at >= CURRENT_DATE - CAST(? AS INTEGER) * INTERVAL '1 month' AND hotel_id = ?
         GROUP BY TO_CHAR(created_at, 'YYYY-MM')
         ORDER BY month ASC
     ");
-    $stmt->execute([$months]);
+    $stmt->execute([$months, getHotelId()]);
     $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     $monthNames = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
@@ -1613,11 +1630,11 @@ function getRoomServiceYearlyRevenue(?int $year = null): array {
             COUNT(*) as orders,
             COALESCE(SUM(CASE WHEN status != 'cancelled' THEN total_amount ELSE 0 END), 0) as revenue
         FROM room_service_orders
-        WHERE EXTRACT(YEAR FROM created_at) = ?
+        WHERE EXTRACT(YEAR FROM created_at) = ? AND hotel_id = ?
         GROUP BY EXTRACT(MONTH FROM created_at)
         ORDER BY month_num ASC
     ");
-    $stmt->execute([$year]);
+    $stmt->execute([$year, getHotelId()]);
     $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // Index results by month number for easy lookup
@@ -1658,11 +1675,11 @@ function getRoomServicePeakHours(int $days = 30): array {
             COUNT(*) as orders,
             COALESCE(SUM(CASE WHEN status != 'cancelled' THEN total_amount ELSE 0 END), 0) as revenue
         FROM room_service_orders
-        WHERE created_at >= CURRENT_DATE - CAST(? AS INTEGER) * INTERVAL '1 day'
+        WHERE created_at >= CURRENT_DATE - CAST(? AS INTEGER) * INTERVAL '1 day' AND hotel_id = ?
         GROUP BY EXTRACT(HOUR FROM delivery_datetime)
         ORDER BY hour ASC
     ");
-    $stmt->execute([$days]);
+    $stmt->execute([$days, getHotelId()]);
     $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // Fill all 24 hours
@@ -1715,11 +1732,11 @@ function getRoomServicePeakDays(int $weeks = 8): array {
             COUNT(*) as orders,
             COALESCE(SUM(CASE WHEN status != 'cancelled' THEN total_amount ELSE 0 END), 0) as revenue
         FROM room_service_orders
-        WHERE created_at >= CURRENT_DATE - CAST(? AS INTEGER) * INTERVAL '1 week'
+        WHERE created_at >= CURRENT_DATE - CAST(? AS INTEGER) * INTERVAL '1 week' AND hotel_id = ?
         GROUP BY EXTRACT(DOW FROM created_at)
         ORDER BY day_num ASC
     ");
-    $stmt->execute([$weeks]);
+    $stmt->execute([$weeks, getHotelId()]);
     $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // PostgreSQL DOW: 0=Sunday, 1=Monday, ..., 6=Saturday
@@ -1779,11 +1796,12 @@ function getRoomServiceTopItems(int $limit = 10, int $days = 30): array {
         JOIN room_service_orders o ON oi.order_id = o.id
         WHERE o.created_at >= CURRENT_DATE - CAST(? AS INTEGER) * INTERVAL '1 day'
             AND o.status != 'cancelled'
+            AND o.hotel_id = ?
         GROUP BY oi.item_id, oi.item_name
         ORDER BY total_quantity DESC
         LIMIT ?
     ");
-    $stmt->execute([$days, $limit]);
+    $stmt->execute([$days, getHotelId(), $limit]);
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
@@ -1806,10 +1824,11 @@ function getRoomServiceRevenueByCategory(int $days = 30): array {
         LEFT JOIN room_service_items i ON oi.item_id = i.id
         WHERE o.created_at >= CURRENT_DATE - CAST(? AS INTEGER) * INTERVAL '1 day'
             AND o.status != 'cancelled'
+            AND o.hotel_id = ?
         GROUP BY COALESCE(i.category, 'general')
         ORDER BY total_revenue DESC
     ");
-    $stmt->execute([$days]);
+    $stmt->execute([$days, getHotelId()]);
     $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     $categories = getRoomServiceCategories();
@@ -1840,10 +1859,11 @@ function getRoomServicePaymentBreakdown(int $days = 30): array {
         FROM room_service_orders
         WHERE created_at >= CURRENT_DATE - CAST(? AS INTEGER) * INTERVAL '1 day'
             AND status != 'cancelled'
+            AND hotel_id = ?
         GROUP BY payment_method
         ORDER BY total_revenue DESC
     ");
-    $stmt->execute([$days]);
+    $stmt->execute([$days, getHotelId()]);
     $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     $methods = getRoomServicePaymentMethods();
@@ -1872,10 +1892,11 @@ function getRoomServiceStatusBreakdown(int $days = 30): array {
             COALESCE(SUM(total_amount), 0) as total_amount
         FROM room_service_orders
         WHERE created_at >= CURRENT_DATE - CAST(? AS INTEGER) * INTERVAL '1 day'
+            AND hotel_id = ?
         GROUP BY status
         ORDER BY order_count DESC
     ");
-    $stmt->execute([$days]);
+    $stmt->execute([$days, getHotelId()]);
     $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     $statuses = getRoomServiceOrderStatuses();
@@ -1919,12 +1940,12 @@ function getRoomServiceBestPeriod(string $periodType = 'day', int $lookback = 30
             COUNT(*) as orders,
             COALESCE(SUM(CASE WHEN status != 'cancelled' THEN total_amount ELSE 0 END), 0) as revenue
         FROM room_service_orders
-        WHERE created_at >= CURRENT_DATE - CAST(? AS INTEGER) * INTERVAL '1 {$periodType}'
+        WHERE created_at >= CURRENT_DATE - CAST(? AS INTEGER) * INTERVAL '1 {$periodType}' AND hotel_id = ?
         GROUP BY {$groupBy}
         ORDER BY revenue DESC
         LIMIT 1
     ");
-    $stmt->execute([$lookback]);
+    $stmt->execute([$lookback, getHotelId()]);
     $result = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$result) {
@@ -1955,12 +1976,12 @@ function getRoomServiceTopRooms(int $limit = 10, int $days = 30): array {
             COALESCE(SUM(CASE WHEN status != 'cancelled' THEN total_amount ELSE 0 END), 0) as total_revenue,
             COALESCE(AVG(CASE WHEN status != 'cancelled' THEN total_amount END), 0) as avg_order_value
         FROM room_service_orders
-        WHERE created_at >= CURRENT_DATE - CAST(? AS INTEGER) * INTERVAL '1 day'
+        WHERE created_at >= CURRENT_DATE - CAST(? AS INTEGER) * INTERVAL '1 day' AND hotel_id = ?
         GROUP BY room_number
         ORDER BY total_revenue DESC
         LIMIT ?
     ");
-    $stmt->execute([$days, $limit]);
+    $stmt->execute([$days, getHotelId(), $limit]);
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
@@ -2004,8 +2025,8 @@ function createGuestMessage(array $data): int|false {
     $pdo = getDatabase();
 
     $stmt = $pdo->prepare('
-        INSERT INTO guest_messages (room_number, guest_name, category, subject, message)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO guest_messages (room_number, guest_name, category, subject, message, hotel_id)
+        VALUES (?, ?, ?, ?, ?, ?)
     ');
 
     $success = $stmt->execute([
@@ -2013,7 +2034,8 @@ function createGuestMessage(array $data): int|false {
         $data['guest_name'] ?? null,
         $data['category'] ?? 'general',
         $data['subject'] ?? null,
-        $data['message']
+        $data['message'],
+        getHotelId()
     ]);
 
     return $success ? (int)$pdo->lastInsertId() : false;
@@ -2025,11 +2047,11 @@ function createGuestMessage(array $data): int|false {
 function getGuestMessages(string $status = '', string $sortBy = 'created_at', string $sortOrder = 'DESC'): array {
     try {
         $pdo = getDatabase();
-        $sql = 'SELECT * FROM guest_messages';
-        $params = [];
+        $sql = 'SELECT * FROM guest_messages WHERE hotel_id = ?';
+        $params = [getHotelId()];
 
         if ($status && $status !== 'all') {
-            $sql .= ' WHERE status = ?';
+            $sql .= ' AND status = ?';
             $params[] = $status;
         }
 
@@ -2054,8 +2076,8 @@ function getGuestMessages(string $status = '', string $sortBy = 'created_at', st
 function getGuestMessageById(int $id): ?array {
     try {
         $pdo = getDatabase();
-        $stmt = $pdo->prepare('SELECT * FROM guest_messages WHERE id = ?');
-        $stmt->execute([$id]);
+        $stmt = $pdo->prepare('SELECT * FROM guest_messages WHERE id = ? AND hotel_id = ?');
+        $stmt->execute([$id, getHotelId()]);
         return $stmt->fetch() ?: null;
     } catch (PDOException $e) {
         return null;
@@ -2071,8 +2093,8 @@ function updateGuestMessageStatus(int $id, string $status): bool {
         return false;
     }
     $pdo = getDatabase();
-    $stmt = $pdo->prepare('UPDATE guest_messages SET status = ? WHERE id = ?');
-    return $stmt->execute([$status, $id]);
+    $stmt = $pdo->prepare('UPDATE guest_messages SET status = ? WHERE id = ? AND hotel_id = ?');
+    return $stmt->execute([$status, $id, getHotelId()]);
 }
 
 /**
@@ -2080,8 +2102,8 @@ function updateGuestMessageStatus(int $id, string $status): bool {
  */
 function updateGuestMessageNotes(int $id, string $notes): bool {
     $pdo = getDatabase();
-    $stmt = $pdo->prepare('UPDATE guest_messages SET admin_notes = ? WHERE id = ?');
-    return $stmt->execute([$notes, $id]);
+    $stmt = $pdo->prepare('UPDATE guest_messages SET admin_notes = ? WHERE id = ? AND hotel_id = ?');
+    return $stmt->execute([$notes, $id, getHotelId()]);
 }
 
 /**
@@ -2089,8 +2111,8 @@ function updateGuestMessageNotes(int $id, string $notes): bool {
  */
 function deleteGuestMessage(int $id): bool {
     $pdo = getDatabase();
-    $stmt = $pdo->prepare('DELETE FROM guest_messages WHERE id = ?');
-    return $stmt->execute([$id]);
+    $stmt = $pdo->prepare('DELETE FROM guest_messages WHERE id = ? AND hotel_id = ?');
+    return $stmt->execute([$id, getHotelId()]);
 }
 
 /**
@@ -2102,19 +2124,23 @@ function getGuestMessagesStats(): array {
         $stats = [];
 
         // Total messages
-        $stmt = $pdo->query('SELECT COUNT(*) FROM guest_messages');
+        $stmt = $pdo->prepare('SELECT COUNT(*) FROM guest_messages WHERE hotel_id = ?');
+        $stmt->execute([getHotelId()]);
         $stats['total'] = (int)$stmt->fetchColumn();
 
         // New (unread) messages
-        $stmt = $pdo->query('SELECT COUNT(*) FROM guest_messages WHERE status = "new"');
+        $stmt = $pdo->prepare('SELECT COUNT(*) FROM guest_messages WHERE status = \'new\' AND hotel_id = ?');
+        $stmt->execute([getHotelId()]);
         $stats['new'] = (int)$stmt->fetchColumn();
 
         // In progress messages
-        $stmt = $pdo->query('SELECT COUNT(*) FROM guest_messages WHERE status = "in_progress"');
+        $stmt = $pdo->prepare('SELECT COUNT(*) FROM guest_messages WHERE status = \'in_progress\' AND hotel_id = ?');
+        $stmt->execute([getHotelId()]);
         $stats['in_progress'] = (int)$stmt->fetchColumn();
 
         // Today's messages
-        $stmt = $pdo->query('SELECT COUNT(*) FROM guest_messages WHERE DATE(created_at) = CURRENT_DATE');
+        $stmt = $pdo->prepare('SELECT COUNT(*) FROM guest_messages WHERE DATE(created_at) = CURRENT_DATE AND hotel_id = ?');
+        $stmt->execute([getHotelId()]);
         $stats['today'] = (int)$stmt->fetchColumn();
 
         return $stats;
@@ -2129,7 +2155,8 @@ function getGuestMessagesStats(): array {
 function getUnreadMessagesCount(): int {
     try {
         $pdo = getDatabase();
-        $stmt = $pdo->query('SELECT COUNT(*) FROM guest_messages WHERE status = "new"');
+        $stmt = $pdo->prepare('SELECT COUNT(*) FROM guest_messages WHERE status = \'new\' AND hotel_id = ?');
+        $stmt->execute([getHotelId()]);
         return (int)$stmt->fetchColumn();
     } catch (PDOException $e) {
         return 0;
@@ -2142,7 +2169,8 @@ function getUnreadMessagesCount(): int {
 function getPendingOrdersCount(): int {
     try {
         $pdo = getDatabase();
-        $stmt = $pdo->query('SELECT COUNT(*) FROM room_service_orders WHERE status = "pending"');
+        $stmt = $pdo->prepare('SELECT COUNT(*) FROM room_service_orders WHERE status = \'pending\' AND hotel_id = ?');
+        $stmt->execute([getHotelId()]);
         return (int)$stmt->fetchColumn();
     } catch (PDOException $e) {
         return 0;
@@ -2160,9 +2188,12 @@ function initSettingsTable(): void {
     $pdo = getDatabase();
     $pdo->exec("
         CREATE TABLE IF NOT EXISTS settings (
-            setting_key VARCHAR(100) PRIMARY KEY,
+            id SERIAL PRIMARY KEY,
+            setting_key VARCHAR(100) NOT NULL,
             setting_value TEXT,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            hotel_id INT NOT NULL DEFAULT 1,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(setting_key, hotel_id)
         )
     ");
 }
@@ -2173,8 +2204,8 @@ function initSettingsTable(): void {
 function getSetting(string $key, $default = null) {
     try {
         $pdo = getDatabase();
-        $stmt = $pdo->prepare('SELECT setting_value FROM settings WHERE setting_key = ?');
-        $stmt->execute([$key]);
+        $stmt = $pdo->prepare('SELECT setting_value FROM settings WHERE setting_key = ? AND hotel_id = ?');
+        $stmt->execute([$key, getHotelId()]);
         $result = $stmt->fetchColumn();
         return $result !== false ? $result : $default;
     } catch (PDOException $e) {
@@ -2190,11 +2221,11 @@ function setSetting(string $key, string $value): bool {
         initSettingsTable();
         $pdo = getDatabase();
         $stmt = $pdo->prepare('
-            INSERT INTO settings (setting_key, setting_value)
-            VALUES (?, ?)
-            ON CONFLICT (setting_key) DO UPDATE SET setting_value = EXCLUDED.setting_value
+            INSERT INTO settings (setting_key, setting_value, hotel_id)
+            VALUES (?, ?, ?)
+            ON CONFLICT (setting_key, hotel_id) DO UPDATE SET setting_value = EXCLUDED.setting_value
         ');
-        return $stmt->execute([$key, $value]);
+        return $stmt->execute([$key, $value, getHotelId()]);
     } catch (PDOException $e) {
         return false;
     }
@@ -2634,7 +2665,7 @@ function initContentTables(): void {
     $pdo->exec("
         CREATE TABLE IF NOT EXISTS content_sections (
             id SERIAL PRIMARY KEY,
-            code VARCHAR(50) UNIQUE NOT NULL,
+            code VARCHAR(50) NOT NULL,
             name VARCHAR(100) NOT NULL,
             description TEXT,
             page VARCHAR(50) NOT NULL,
@@ -2644,7 +2675,9 @@ function initContentTables(): void {
             has_description BOOLEAN DEFAULT TRUE,
             has_link BOOLEAN DEFAULT FALSE,
             sort_order INT DEFAULT 0,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            hotel_id INT NOT NULL DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(code, hotel_id)
         )
     ");
 
@@ -2661,6 +2694,7 @@ function initContentTables(): void {
             link_text VARCHAR(100),
             position INT DEFAULT 0,
             is_active BOOLEAN DEFAULT TRUE,
+            hotel_id INT NOT NULL DEFAULT 1,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (section_code) REFERENCES content_sections(code) ON DELETE CASCADE
@@ -2695,6 +2729,7 @@ function initContentTables(): void {
             overlay_subtitle VARCHAR(255),
             overlay_title VARCHAR(255),
             overlay_description TEXT,
+            hotel_id INT NOT NULL DEFAULT 1,
             UNIQUE (section_code, language_code),
             FOREIGN KEY (section_code) REFERENCES content_sections(code) ON DELETE CASCADE
         )
@@ -2714,6 +2749,7 @@ function initContentTables(): void {
             label VARCHAR(100) NOT NULL,
             position INT DEFAULT 0,
             is_active BOOLEAN DEFAULT TRUE,
+            hotel_id INT NOT NULL DEFAULT 1,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (section_code) REFERENCES content_sections(code) ON DELETE CASCADE
         )
@@ -2728,6 +2764,7 @@ function initContentTables(): void {
             feature_id INT NOT NULL,
             language_code VARCHAR(5) NOT NULL,
             label VARCHAR(100) NOT NULL,
+            hotel_id INT NOT NULL DEFAULT 1,
             UNIQUE (feature_id, language_code),
             FOREIGN KEY (feature_id) REFERENCES section_features(id) ON DELETE CASCADE
         )
@@ -2789,6 +2826,7 @@ function initContentTables(): void {
             section_code VARCHAR(50) NOT NULL,
             language_code VARCHAR(5) NOT NULL,
             link_text VARCHAR(100) NOT NULL,
+            hotel_id INT NOT NULL DEFAULT 1,
             UNIQUE (section_code, language_code),
             FOREIGN KEY (section_code) REFERENCES content_sections(code) ON DELETE CASCADE
         )
@@ -2804,6 +2842,7 @@ function initContentTables(): void {
             description TEXT,
             position INT DEFAULT 0,
             is_active BOOLEAN DEFAULT TRUE,
+            hotel_id INT NOT NULL DEFAULT 1,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (section_code) REFERENCES content_sections(code) ON DELETE CASCADE
         )
@@ -2819,6 +2858,7 @@ function initContentTables(): void {
             language_code VARCHAR(5) NOT NULL,
             label VARCHAR(100) NOT NULL,
             description TEXT,
+            hotel_id INT NOT NULL DEFAULT 1,
             UNIQUE (service_id, language_code),
             FOREIGN KEY (service_id) REFERENCES section_services(id) ON DELETE CASCADE
         )
@@ -2835,6 +2875,7 @@ function initContentTables(): void {
             description TEXT,
             position INT DEFAULT 0,
             is_active BOOLEAN DEFAULT TRUE,
+            hotel_id INT NOT NULL DEFAULT 1,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (section_code) REFERENCES content_sections(code) ON DELETE CASCADE
         )
@@ -2850,6 +2891,7 @@ function initContentTables(): void {
             language_code VARCHAR(5) NOT NULL,
             title VARCHAR(100) NOT NULL,
             description TEXT,
+            hotel_id INT NOT NULL DEFAULT 1,
             UNIQUE (item_id, language_code),
             FOREIGN KEY (item_id) REFERENCES section_gallery_items(id) ON DELETE CASCADE
         )
@@ -2917,12 +2959,13 @@ function seedContentSections(): void {
 
     $stmt = $pdo->prepare("
         INSERT INTO content_sections
-        (code, name, description, page, image_mode, max_blocks, has_title, has_description, has_link, sort_order)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ON CONFLICT (code) DO NOTHING
+        (code, name, description, page, image_mode, max_blocks, has_title, has_description, has_link, sort_order, hotel_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT (code, hotel_id) DO NOTHING
     ");
 
     foreach ($sections as $section) {
+        $section[] = getHotelId();
         $stmt->execute($section);
     }
 
@@ -2944,9 +2987,9 @@ function seedDefaultOverlayTexts(): void {
             has_title = FALSE,
             has_description = FALSE,
             has_link = FALSE
-        WHERE code = ?
+        WHERE code = ? AND hotel_id = ?
     ');
-    $stmt->execute(['home_hero']);
+    $stmt->execute(['home_hero', getHotelId()]);
 }
 
 /**
@@ -2984,25 +3027,26 @@ function cleanupLegacyStaticSections(): void {
             SELECT code FROM content_sections
             WHERE code NOT IN ($placeholders)
             AND (template_type IS NULL OR template_type = '')
+            AND hotel_id = ?
         ");
-        $stmt->execute($keepSections);
+        $stmt->execute(array_merge($keepSections, [getHotelId()]));
         $legacySections = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
         // Delete each legacy section and its related data
         foreach ($legacySections as $sectionCode) {
             // Delete related data first (ignore if tables don't exist)
-            $safeDelete('DELETE FROM section_feature_translations WHERE feature_id IN (SELECT id FROM section_features WHERE section_code = ?)', [$sectionCode]);
-            $safeDelete('DELETE FROM section_features WHERE section_code = ?', [$sectionCode]);
-            $safeDelete('DELETE FROM section_overlay_translations WHERE overlay_id IN (SELECT id FROM section_overlay_texts WHERE section_code = ?)', [$sectionCode]);
-            $safeDelete('DELETE FROM section_overlay_texts WHERE section_code = ?', [$sectionCode]);
-            $safeDelete('DELETE FROM section_gallery_translations WHERE item_id IN (SELECT id FROM section_gallery_items WHERE section_code = ?)', [$sectionCode]);
-            $safeDelete('DELETE FROM section_gallery_items WHERE section_code = ?', [$sectionCode]);
-            $safeDelete('DELETE FROM section_service_translations WHERE service_id IN (SELECT id FROM section_services WHERE section_code = ?)', [$sectionCode]);
-            $safeDelete('DELETE FROM section_services WHERE section_code = ?', [$sectionCode]);
-            $safeDelete('DELETE FROM content_blocks WHERE section_code = ?', [$sectionCode]);
+            $safeDelete('DELETE FROM section_feature_translations WHERE feature_id IN (SELECT id FROM section_features WHERE section_code = ? AND hotel_id = ?)', [$sectionCode, getHotelId()]);
+            $safeDelete('DELETE FROM section_features WHERE section_code = ? AND hotel_id = ?', [$sectionCode, getHotelId()]);
+            $safeDelete('DELETE FROM section_overlay_translations WHERE overlay_id IN (SELECT id FROM section_overlay_texts WHERE section_code = ? AND hotel_id = ?)', [$sectionCode, getHotelId()]);
+            $safeDelete('DELETE FROM section_overlay_texts WHERE section_code = ? AND hotel_id = ?', [$sectionCode, getHotelId()]);
+            $safeDelete('DELETE FROM section_gallery_translations WHERE item_id IN (SELECT id FROM section_gallery_items WHERE section_code = ? AND hotel_id = ?)', [$sectionCode, getHotelId()]);
+            $safeDelete('DELETE FROM section_gallery_items WHERE section_code = ? AND hotel_id = ?', [$sectionCode, getHotelId()]);
+            $safeDelete('DELETE FROM section_service_translations WHERE service_id IN (SELECT id FROM section_services WHERE section_code = ? AND hotel_id = ?)', [$sectionCode, getHotelId()]);
+            $safeDelete('DELETE FROM section_services WHERE section_code = ? AND hotel_id = ?', [$sectionCode, getHotelId()]);
+            $safeDelete('DELETE FROM content_blocks WHERE section_code = ? AND hotel_id = ?', [$sectionCode, getHotelId()]);
 
             // Delete the section itself
-            $safeDelete('DELETE FROM content_sections WHERE code = ?', [$sectionCode]);
+            $safeDelete('DELETE FROM content_sections WHERE code = ? AND hotel_id = ?', [$sectionCode, getHotelId()]);
         }
     } catch (PDOException $e) {
         // Silently fail - tables might not exist yet
@@ -3176,8 +3220,8 @@ function migrateSectionTemplates(): void {
 
     // Update content_sections.template_type from old to new values
     foreach ($migrations as $oldCode => $newCode) {
-        $stmt = $pdo->prepare('UPDATE content_sections SET template_type = ? WHERE template_type = ?');
-        $stmt->execute([$newCode, $oldCode]);
+        $stmt = $pdo->prepare('UPDATE content_sections SET template_type = ? WHERE template_type = ? AND hotel_id = ?');
+        $stmt->execute([$newCode, $oldCode, getHotelId()]);
     }
 
     // Delete old templates from section_templates table
@@ -3221,10 +3265,10 @@ function getDynamicSections(string $page): array {
         SELECT cs.*, st.css_class as template_css_class, st.has_services as template_has_services, st.has_gallery as template_has_gallery
         FROM content_sections cs
         LEFT JOIN section_templates st ON cs.template_type = st.code
-        WHERE cs.page = ? AND cs.is_dynamic = TRUE
+        WHERE cs.page = ? AND cs.is_dynamic = TRUE AND cs.hotel_id = ?
         ORDER BY cs.sort_order
     ');
-    $stmt->execute([$page]);
+    $stmt->execute([$page, getHotelId()]);
     $sections = $stmt->fetchAll();
 
     // Merge template flags into section data
@@ -3344,8 +3388,8 @@ function createDynamicSection(string $page, string $templateCode, string $custom
     }
 
     // Get next sort order for the page
-    $stmt = $pdo->prepare('SELECT MAX(sort_order) FROM content_sections WHERE page = ?');
-    $stmt->execute([$page]);
+    $stmt = $pdo->prepare('SELECT MAX(sort_order) FROM content_sections WHERE page = ? AND hotel_id = ?');
+    $stmt->execute([$page, getHotelId()]);
     $maxOrder = $stmt->fetchColumn() ?: 0;
 
     // Create the section
@@ -3353,8 +3397,8 @@ function createDynamicSection(string $page, string $templateCode, string $custom
         INSERT INTO content_sections (
             code, name, description, page, image_mode, max_blocks,
             has_title, has_description, has_link, has_overlay, has_features, has_services, has_gallery,
-            sort_order, is_dynamic, template_type, custom_name
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
+            sort_order, is_dynamic, template_type, custom_name, hotel_id
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)
     ');
 
     $success = $stmt->execute([
@@ -3373,7 +3417,8 @@ function createDynamicSection(string $page, string $templateCode, string $custom
         $template['has_gallery'] ?? 0,
         $maxOrder + 1,
         $templateCode,
-        $customName
+        $customName,
+        getHotelId()
     ]);
 
     return $success ? $code : null;
@@ -3387,9 +3432,9 @@ function updateDynamicSectionName(string $sectionCode, string $newName): bool {
     $stmt = $pdo->prepare('
         UPDATE content_sections
         SET name = ?, custom_name = ?
-        WHERE code = ? AND is_dynamic = TRUE
+        WHERE code = ? AND is_dynamic = TRUE AND hotel_id = ?
     ');
-    return $stmt->execute([$newName, $newName, $sectionCode]);
+    return $stmt->execute([$newName, $newName, $sectionCode, getHotelId()]);
 }
 
 /**
@@ -3417,8 +3462,8 @@ function deleteDynamicSection(string $sectionCode): bool {
     }
 
     // Delete the section (foreign key cascades handle related tables)
-    $stmt = $pdo->prepare('DELETE FROM content_sections WHERE code = ? AND is_dynamic = TRUE');
-    return $stmt->execute([$sectionCode]);
+    $stmt = $pdo->prepare('DELETE FROM content_sections WHERE code = ? AND is_dynamic = TRUE AND hotel_id = ?');
+    return $stmt->execute([$sectionCode, getHotelId()]);
 }
 
 /**
@@ -3432,9 +3477,9 @@ function reorderDynamicSections(string $page, array $sectionCodes): bool {
         $stmt = $pdo->prepare('
             UPDATE content_sections
             SET sort_order = ?
-            WHERE code = ? AND page = ? AND is_dynamic = TRUE
+            WHERE code = ? AND page = ? AND is_dynamic = TRUE AND hotel_id = ?
         ');
-        $stmt->execute([$position, $code, $page]);
+        $stmt->execute([$position, $code, $page, getHotelId()]);
         $position++;
     }
 
@@ -3446,8 +3491,8 @@ function reorderDynamicSections(string $page, array $sectionCodes): bool {
  */
 function pageHasDynamicSections(string $page): bool {
     $pdo = getDatabase();
-    $stmt = $pdo->prepare('SELECT COUNT(*) FROM content_sections WHERE page = ? AND is_dynamic = TRUE');
-    $stmt->execute([$page]);
+    $stmt = $pdo->prepare('SELECT COUNT(*) FROM content_sections WHERE page = ? AND is_dynamic = TRUE AND hotel_id = ?');
+    $stmt->execute([$page, getHotelId()]);
     return $stmt->fetchColumn() > 0;
 }
 
@@ -3456,8 +3501,8 @@ function pageHasDynamicSections(string $page): bool {
  */
 function countDynamicSections(string $page): int {
     $pdo = getDatabase();
-    $stmt = $pdo->prepare('SELECT COUNT(*) FROM content_sections WHERE page = ? AND is_dynamic = TRUE');
-    $stmt->execute([$page]);
+    $stmt = $pdo->prepare('SELECT COUNT(*) FROM content_sections WHERE page = ? AND is_dynamic = TRUE AND hotel_id = ?');
+    $stmt->execute([$page, getHotelId()]);
     return (int) $stmt->fetchColumn();
 }
 
@@ -4137,7 +4182,8 @@ function getDynamicSectionsTranslations(string $page): array {
  */
 function getContentSectionsByPage(): array {
     $pdo = getDatabase();
-    $stmt = $pdo->query('SELECT * FROM content_sections ORDER BY page, sort_order');
+    $stmt = $pdo->prepare('SELECT * FROM content_sections WHERE hotel_id = ? ORDER BY page, sort_order');
+    $stmt->execute([getHotelId()]);
     $sections = $stmt->fetchAll();
 
     $grouped = [];
@@ -4153,7 +4199,8 @@ function getContentSectionsByPage(): array {
  */
 function getContentSections(): array {
     $pdo = getDatabase();
-    $stmt = $pdo->query('SELECT * FROM content_sections ORDER BY page, sort_order');
+    $stmt = $pdo->prepare('SELECT * FROM content_sections WHERE hotel_id = ? ORDER BY page, sort_order');
+    $stmt->execute([getHotelId()]);
     return $stmt->fetchAll();
 }
 
@@ -4162,8 +4209,8 @@ function getContentSections(): array {
  */
 function getContentSection(string $code): ?array {
     $pdo = getDatabase();
-    $stmt = $pdo->prepare('SELECT * FROM content_sections WHERE code = ?');
-    $stmt->execute([$code]);
+    $stmt = $pdo->prepare('SELECT * FROM content_sections WHERE code = ? AND hotel_id = ?');
+    $stmt->execute([$code, getHotelId()]);
     return $stmt->fetch() ?: null;
 }
 
@@ -4172,13 +4219,13 @@ function getContentSection(string $code): ?array {
  */
 function getContentBlocks(string $sectionCode, bool $activeOnly = false): array {
     $pdo = getDatabase();
-    $sql = 'SELECT * FROM content_blocks WHERE section_code = ?';
+    $sql = 'SELECT * FROM content_blocks WHERE section_code = ? AND hotel_id = ?';
     if ($activeOnly) {
         $sql .= ' AND is_active = TRUE';
     }
     $sql .= ' ORDER BY position ASC, id ASC';
     $stmt = $pdo->prepare($sql);
-    $stmt->execute([$sectionCode]);
+    $stmt->execute([$sectionCode, getHotelId()]);
     return $stmt->fetchAll();
 }
 
@@ -4187,8 +4234,8 @@ function getContentBlocks(string $sectionCode, bool $activeOnly = false): array 
  */
 function getContentBlock(int $id): ?array {
     $pdo = getDatabase();
-    $stmt = $pdo->prepare('SELECT * FROM content_blocks WHERE id = ?');
-    $stmt->execute([$id]);
+    $stmt = $pdo->prepare('SELECT * FROM content_blocks WHERE id = ? AND hotel_id = ?');
+    $stmt->execute([$id, getHotelId()]);
     return $stmt->fetch() ?: null;
 }
 
@@ -4217,13 +4264,13 @@ function createContentBlock(string $sectionCode, array $data): ?int {
     $pdo = getDatabase();
 
     // Get next position
-    $stmt = $pdo->prepare('SELECT COALESCE(MAX(position), 0) + 1 FROM content_blocks WHERE section_code = ?');
-    $stmt->execute([$sectionCode]);
+    $stmt = $pdo->prepare('SELECT COALESCE(MAX(position), 0) + 1 FROM content_blocks WHERE section_code = ? AND hotel_id = ?');
+    $stmt->execute([$sectionCode, getHotelId()]);
     $nextPosition = $stmt->fetchColumn();
 
     $stmt = $pdo->prepare('
-        INSERT INTO content_blocks (section_code, title, description, image_filename, image_alt, link_url, link_text, position, is_active)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO content_blocks (section_code, title, description, image_filename, image_alt, link_url, link_text, position, is_active, hotel_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ');
 
     $success = $stmt->execute([
@@ -4235,7 +4282,8 @@ function createContentBlock(string $sectionCode, array $data): ?int {
         $data['link_url'] ?? null,
         $data['link_text'] ?? null,
         $data['position'] ?? $nextPosition,
-        $data['is_active'] ?? 1
+        $data['is_active'] ?? 1,
+        getHotelId()
     ]);
 
     return $success ? (int)$pdo->lastInsertId() : null;
@@ -4277,7 +4325,7 @@ function updateContentBlock(int $id, array $data): bool {
             link_text = ?,
             position = ?,
             is_active = ?
-        WHERE id = ?
+        WHERE id = ? AND hotel_id = ?
     ');
 
     return $stmt->execute([
@@ -4289,7 +4337,8 @@ function updateContentBlock(int $id, array $data): bool {
         $data['link_text'] ?? $block['link_text'],
         $data['position'] ?? $block['position'],
         $data['is_active'] ?? $block['is_active'],
-        $id
+        $id,
+        getHotelId()
     ]);
 }
 
@@ -4311,8 +4360,8 @@ function deleteContentBlock(int $id): bool {
     }
 
     $pdo = getDatabase();
-    $stmt = $pdo->prepare('DELETE FROM content_blocks WHERE id = ?');
-    return $stmt->execute([$id]);
+    $stmt = $pdo->prepare('DELETE FROM content_blocks WHERE id = ? AND hotel_id = ?');
+    return $stmt->execute([$id, getHotelId()]);
 }
 
 /**
@@ -4320,11 +4369,11 @@ function deleteContentBlock(int $id): bool {
  */
 function reorderContentBlocks(string $sectionCode, array $blockIds): bool {
     $pdo = getDatabase();
-    $stmt = $pdo->prepare('UPDATE content_blocks SET position = ? WHERE id = ? AND section_code = ?');
+    $stmt = $pdo->prepare('UPDATE content_blocks SET position = ? WHERE id = ? AND section_code = ? AND hotel_id = ?');
 
     $position = 1;
     foreach ($blockIds as $id) {
-        $stmt->execute([$position, $id, $sectionCode]);
+        $stmt->execute([$position, $id, $sectionCode, getHotelId()]);
         $position++;
     }
 
@@ -4371,8 +4420,8 @@ function handleContentBlockImageUpload(array $file, int $blockId): array {
 
     // Update block with new image
     $pdo = getDatabase();
-    $stmt = $pdo->prepare('UPDATE content_blocks SET image_filename = ? WHERE id = ?');
-    $stmt->execute(['uploads/' . $newFilename, $blockId]);
+    $stmt = $pdo->prepare('UPDATE content_blocks SET image_filename = ? WHERE id = ? AND hotel_id = ?');
+    $stmt->execute(['uploads/' . $newFilename, $blockId, getHotelId()]);
 
     return ['valid' => true, 'message' => 'Image téléchargée avec succès.', 'filename' => 'uploads/' . $newFilename];
 }
@@ -4491,7 +4540,9 @@ function migrateImagesToContentBlocks(): array {
         }
 
         // Get existing images
-        $images = $pdo->query('SELECT * FROM images ORDER BY section, position')->fetchAll();
+        $stmt = $pdo->prepare('SELECT * FROM images WHERE hotel_id = ? ORDER BY section, position');
+        $stmt->execute([getHotelId()]);
+        $images = $stmt->fetchAll();
 
         foreach ($images as $image) {
             $section = $image['section'];
@@ -4543,8 +4594,8 @@ function migrateImagesToContentBlocks(): array {
  */
 function sectionHasOverlay(string $sectionCode): bool {
     $pdo = getDatabase();
-    $stmt = $pdo->prepare('SELECT has_overlay FROM content_sections WHERE code = ?');
-    $stmt->execute([$sectionCode]);
+    $stmt = $pdo->prepare('SELECT has_overlay FROM content_sections WHERE code = ? AND hotel_id = ?');
+    $stmt->execute([$sectionCode, getHotelId()]);
     $result = $stmt->fetchColumn();
     return $result == 1;
 }
@@ -4554,8 +4605,8 @@ function sectionHasOverlay(string $sectionCode): bool {
  */
 function enableSectionOverlay(string $sectionCode): bool {
     $pdo = getDatabase();
-    $stmt = $pdo->prepare('UPDATE content_sections SET has_overlay = TRUE WHERE code = ?');
-    return $stmt->execute([$sectionCode]);
+    $stmt = $pdo->prepare('UPDATE content_sections SET has_overlay = TRUE WHERE code = ? AND hotel_id = ?');
+    return $stmt->execute([$sectionCode, getHotelId()]);
 }
 
 /**
@@ -4563,8 +4614,8 @@ function enableSectionOverlay(string $sectionCode): bool {
  */
 function getSectionOverlay(string $sectionCode): array {
     $pdo = getDatabase();
-    $stmt = $pdo->prepare('SELECT overlay_subtitle, overlay_title, overlay_description FROM content_sections WHERE code = ?');
-    $stmt->execute([$sectionCode]);
+    $stmt = $pdo->prepare('SELECT overlay_subtitle, overlay_title, overlay_description FROM content_sections WHERE code = ? AND hotel_id = ?');
+    $stmt->execute([$sectionCode, getHotelId()]);
     $result = $stmt->fetch();
 
     return [
@@ -4582,8 +4633,8 @@ function getSectionOverlayWithTranslations(string $sectionCode): array {
 
     // Get translations
     $pdo = getDatabase();
-    $stmt = $pdo->prepare('SELECT language_code, overlay_subtitle, overlay_title, overlay_description FROM section_overlay_translations WHERE section_code = ?');
-    $stmt->execute([$sectionCode]);
+    $stmt = $pdo->prepare('SELECT language_code, overlay_subtitle, overlay_title, overlay_description FROM section_overlay_translations WHERE section_code = ? AND hotel_id = ?');
+    $stmt->execute([$sectionCode, getHotelId()]);
     $translations = $stmt->fetchAll();
 
     $overlay['translations'] = [];
@@ -4606,9 +4657,9 @@ function saveSectionOverlay(string $sectionCode, string $subtitle, string $title
     $stmt = $pdo->prepare('
         UPDATE content_sections
         SET overlay_subtitle = ?, overlay_title = ?, overlay_description = ?, has_overlay = TRUE
-        WHERE code = ?
+        WHERE code = ? AND hotel_id = ?
     ');
-    return $stmt->execute([trim($subtitle), trim($title), trim($description), $sectionCode]);
+    return $stmt->execute([trim($subtitle), trim($title), trim($description), $sectionCode, getHotelId()]);
 }
 
 /**
@@ -4630,21 +4681,21 @@ function saveSectionOverlayTranslations(string $sectionCode, array $translations
         // Skip if all empty
         if (empty($subtitle) && empty($title) && empty($description)) {
             // Delete existing translation if all fields are empty
-            $stmt = $pdo->prepare('DELETE FROM section_overlay_translations WHERE section_code = ? AND language_code = ?');
-            $stmt->execute([$sectionCode, $langCode]);
+            $stmt = $pdo->prepare('DELETE FROM section_overlay_translations WHERE section_code = ? AND language_code = ? AND hotel_id = ?');
+            $stmt->execute([$sectionCode, $langCode, getHotelId()]);
             continue;
         }
 
         try {
             $stmt = $pdo->prepare('
-                INSERT INTO section_overlay_translations (section_code, language_code, overlay_subtitle, overlay_title, overlay_description)
-                VALUES (?, ?, ?, ?, ?)
-                ON CONFLICT (section_code, language_code) DO UPDATE SET
+                INSERT INTO section_overlay_translations (section_code, language_code, overlay_subtitle, overlay_title, overlay_description, hotel_id)
+                VALUES (?, ?, ?, ?, ?, ?)
+                ON CONFLICT (section_code, language_code, hotel_id) DO UPDATE SET
                     overlay_subtitle = EXCLUDED.overlay_subtitle,
                     overlay_title = EXCLUDED.overlay_title,
                     overlay_description = EXCLUDED.overlay_description
             ');
-            $success = $stmt->execute([$sectionCode, $langCode, $subtitle, $title, $description]) && $success;
+            $success = $stmt->execute([$sectionCode, $langCode, $subtitle, $title, $description, getHotelId()]) && $success;
         } catch (PDOException $e) {
             $success = false;
         }
@@ -4666,8 +4717,8 @@ function getSectionOverlayForLanguage(string $sectionCode, string $langCode = 'f
 
     // Try to get translation
     $pdo = getDatabase();
-    $stmt = $pdo->prepare('SELECT overlay_subtitle, overlay_title, overlay_description FROM section_overlay_translations WHERE section_code = ? AND language_code = ?');
-    $stmt->execute([$sectionCode, $langCode]);
+    $stmt = $pdo->prepare('SELECT overlay_subtitle, overlay_title, overlay_description FROM section_overlay_translations WHERE section_code = ? AND language_code = ? AND hotel_id = ?');
+    $stmt->execute([$sectionCode, $langCode, getHotelId()]);
     $trans = $stmt->fetch();
 
     if ($trans) {
@@ -4897,8 +4948,8 @@ function getIconSvg(string $code): string {
  */
 function sectionHasFeatures(string $sectionCode): bool {
     $pdo = getDatabase();
-    $stmt = $pdo->prepare('SELECT has_features FROM content_sections WHERE code = ?');
-    $stmt->execute([$sectionCode]);
+    $stmt = $pdo->prepare('SELECT has_features FROM content_sections WHERE code = ? AND hotel_id = ?');
+    $stmt->execute([$sectionCode, getHotelId()]);
     $result = $stmt->fetchColumn();
     return $result == 1;
 }
@@ -4908,8 +4959,8 @@ function sectionHasFeatures(string $sectionCode): bool {
  */
 function sectionHasServices(string $sectionCode): bool {
     $pdo = getDatabase();
-    $stmt = $pdo->prepare('SELECT has_services FROM content_sections WHERE code = ?');
-    $stmt->execute([$sectionCode]);
+    $stmt = $pdo->prepare('SELECT has_services FROM content_sections WHERE code = ? AND hotel_id = ?');
+    $stmt->execute([$sectionCode, getHotelId()]);
     $result = $stmt->fetchColumn();
     return $result == 1;
 }
@@ -4919,8 +4970,8 @@ function sectionHasServices(string $sectionCode): bool {
  */
 function enableSectionFeatures(string $sectionCode): bool {
     $pdo = getDatabase();
-    $stmt = $pdo->prepare('UPDATE content_sections SET has_features = TRUE WHERE code = ?');
-    return $stmt->execute([$sectionCode]);
+    $stmt = $pdo->prepare('UPDATE content_sections SET has_features = TRUE WHERE code = ? AND hotel_id = ?');
+    return $stmt->execute([$sectionCode, getHotelId()]);
 }
 
 /**
@@ -5045,8 +5096,8 @@ function sectionBackgroundNeedsLightText(string $colorKey): bool {
  */
 function getSectionBackgroundColor(string $sectionCode): string {
     $pdo = getDatabase();
-    $stmt = $pdo->prepare('SELECT background_color FROM content_sections WHERE code = ?');
-    $stmt->execute([$sectionCode]);
+    $stmt = $pdo->prepare('SELECT background_color FROM content_sections WHERE code = ? AND hotel_id = ?');
+    $stmt->execute([$sectionCode, getHotelId()]);
     return $stmt->fetchColumn() ?: 'cream';
 }
 
@@ -5060,8 +5111,8 @@ function setSectionBackgroundColor(string $sectionCode, string $colorKey): bool 
     }
 
     $pdo = getDatabase();
-    $stmt = $pdo->prepare('UPDATE content_sections SET background_color = ? WHERE code = ?');
-    return $stmt->execute([$colorKey, $sectionCode]);
+    $stmt = $pdo->prepare('UPDATE content_sections SET background_color = ? WHERE code = ? AND hotel_id = ?');
+    return $stmt->execute([$colorKey, $sectionCode, getHotelId()]);
 }
 
 /**
@@ -5102,8 +5153,8 @@ function sectionSupportsImagePosition(string $templateType): bool {
  */
 function getSectionImagePosition(string $sectionCode): string {
     $pdo = getDatabase();
-    $stmt = $pdo->prepare('SELECT image_position FROM content_sections WHERE code = ?');
-    $stmt->execute([$sectionCode]);
+    $stmt = $pdo->prepare('SELECT image_position FROM content_sections WHERE code = ? AND hotel_id = ?');
+    $stmt->execute([$sectionCode, getHotelId()]);
     return $stmt->fetchColumn() ?: 'left';
 }
 
@@ -5117,8 +5168,8 @@ function setSectionImagePosition(string $sectionCode, string $position): bool {
     }
 
     $pdo = getDatabase();
-    $stmt = $pdo->prepare('UPDATE content_sections SET image_position = ? WHERE code = ?');
-    return $stmt->execute([$position, $sectionCode]);
+    $stmt = $pdo->prepare('UPDATE content_sections SET image_position = ? WHERE code = ? AND hotel_id = ?');
+    return $stmt->execute([$position, $sectionCode, getHotelId()]);
 }
 
 /**
@@ -5171,8 +5222,8 @@ function sectionSupportsTextAlignment(string $templateType): bool {
  */
 function getSectionTextAlignment(string $sectionCode): string {
     $pdo = getDatabase();
-    $stmt = $pdo->prepare('SELECT text_alignment FROM content_sections WHERE code = ?');
-    $stmt->execute([$sectionCode]);
+    $stmt = $pdo->prepare('SELECT text_alignment FROM content_sections WHERE code = ? AND hotel_id = ?');
+    $stmt->execute([$sectionCode, getHotelId()]);
     return $stmt->fetchColumn() ?: 'center';
 }
 
@@ -5186,8 +5237,8 @@ function setSectionTextAlignment(string $sectionCode, string $alignment): bool {
     }
 
     $pdo = getDatabase();
-    $stmt = $pdo->prepare('UPDATE content_sections SET text_alignment = ? WHERE code = ?');
-    return $stmt->execute([$alignment, $sectionCode]);
+    $stmt = $pdo->prepare('UPDATE content_sections SET text_alignment = ? WHERE code = ? AND hotel_id = ?');
+    return $stmt->execute([$alignment, $sectionCode, getHotelId()]);
 }
 
 // =====================================================
@@ -5213,8 +5264,8 @@ function sectionSupportsLinks(string $templateType): bool {
  */
 function getSectionLink(string $sectionCode): array {
     $pdo = getDatabase();
-    $stmt = $pdo->prepare('SELECT section_link_url, section_link_text, section_link_new_tab FROM content_sections WHERE code = ?');
-    $stmt->execute([$sectionCode]);
+    $stmt = $pdo->prepare('SELECT section_link_url, section_link_text, section_link_new_tab FROM content_sections WHERE code = ? AND hotel_id = ?');
+    $stmt->execute([$sectionCode, getHotelId()]);
     $result = $stmt->fetch();
 
     return [
@@ -5237,8 +5288,8 @@ function getSectionLinkWithTranslations(string $sectionCode, string $lang = 'fr'
     // Get translation if not French
     if ($lang !== 'fr') {
         $pdo = getDatabase();
-        $stmt = $pdo->prepare('SELECT link_text FROM section_link_translations WHERE section_code = ? AND language_code = ?');
-        $stmt->execute([$sectionCode, $lang]);
+        $stmt = $pdo->prepare('SELECT link_text FROM section_link_translations WHERE section_code = ? AND language_code = ? AND hotel_id = ?');
+        $stmt->execute([$sectionCode, $lang, getHotelId()]);
         $translation = $stmt->fetchColumn();
 
         if ($translation) {
@@ -5254,8 +5305,8 @@ function getSectionLinkWithTranslations(string $sectionCode, string $lang = 'fr'
  */
 function getSectionLinkTranslations(string $sectionCode): array {
     $pdo = getDatabase();
-    $stmt = $pdo->prepare('SELECT language_code, link_text FROM section_link_translations WHERE section_code = ?');
-    $stmt->execute([$sectionCode]);
+    $stmt = $pdo->prepare('SELECT language_code, link_text FROM section_link_translations WHERE section_code = ? AND hotel_id = ?');
+    $stmt->execute([$sectionCode, getHotelId()]);
     $rows = $stmt->fetchAll();
 
     $translations = [];
@@ -5314,14 +5365,15 @@ function saveSectionLink(string $sectionCode, string $url, string $text, bool $n
     $stmt = $pdo->prepare('
         UPDATE content_sections
         SET section_link_url = ?, section_link_text = ?, section_link_new_tab = ?
-        WHERE code = ?
+        WHERE code = ? AND hotel_id = ?
     ');
 
     return $stmt->execute([
         $url ?: null,
         $text ?: null,
         $newTab ? 1 : 0,
-        $sectionCode
+        $sectionCode,
+        getHotelId()
     ]);
 }
 
@@ -5332,13 +5384,13 @@ function saveSectionLinkTranslations(string $sectionCode, array $translations): 
     $pdo = getDatabase();
 
     // Delete existing translations
-    $stmt = $pdo->prepare('DELETE FROM section_link_translations WHERE section_code = ?');
-    $stmt->execute([$sectionCode]);
+    $stmt = $pdo->prepare('DELETE FROM section_link_translations WHERE section_code = ? AND hotel_id = ?');
+    $stmt->execute([$sectionCode, getHotelId()]);
 
     // Insert new translations
     $stmt = $pdo->prepare('
-        INSERT INTO section_link_translations (section_code, language_code, link_text)
-        VALUES (?, ?, ?)
+        INSERT INTO section_link_translations (section_code, language_code, link_text, hotel_id)
+        VALUES (?, ?, ?, ?)
     ');
 
     foreach ($translations as $lang => $text) {
@@ -5347,7 +5399,7 @@ function saveSectionLinkTranslations(string $sectionCode, array $translations): 
             if (strlen($text) > 100) {
                 $text = substr($text, 0, 100);
             }
-            $stmt->execute([$sectionCode, $lang, $text]);
+            $stmt->execute([$sectionCode, $lang, $text, getHotelId()]);
         }
     }
 
@@ -5364,13 +5416,13 @@ function clearSectionLink(string $sectionCode): bool {
     $stmt = $pdo->prepare('
         UPDATE content_sections
         SET section_link_url = NULL, section_link_text = NULL, section_link_new_tab = TRUE
-        WHERE code = ?
+        WHERE code = ? AND hotel_id = ?
     ');
-    $stmt->execute([$sectionCode]);
+    $stmt->execute([$sectionCode, getHotelId()]);
 
     // Clear translations
-    $stmt = $pdo->prepare('DELETE FROM section_link_translations WHERE section_code = ?');
-    $stmt->execute([$sectionCode]);
+    $stmt = $pdo->prepare('DELETE FROM section_link_translations WHERE section_code = ? AND hotel_id = ?');
+    $stmt->execute([$sectionCode, getHotelId()]);
 
     return true;
 }
@@ -5388,13 +5440,13 @@ function sectionHasLink(string $sectionCode): bool {
  */
 function getSectionFeatures(string $sectionCode, bool $activeOnly = true): array {
     $pdo = getDatabase();
-    $sql = 'SELECT * FROM section_features WHERE section_code = ?';
+    $sql = 'SELECT * FROM section_features WHERE section_code = ? AND hotel_id = ?';
     if ($activeOnly) {
         $sql .= ' AND is_active = TRUE';
     }
     $sql .= ' ORDER BY position ASC, id ASC';
     $stmt = $pdo->prepare($sql);
-    $stmt->execute([$sectionCode]);
+    $stmt->execute([$sectionCode, getHotelId()]);
     return $stmt->fetchAll();
 }
 
@@ -5429,8 +5481,8 @@ function getSectionFeaturesWithTranslations(string $sectionCode, bool $activeOnl
  */
 function getSectionFeature(int $id): ?array {
     $pdo = getDatabase();
-    $stmt = $pdo->prepare('SELECT * FROM section_features WHERE id = ?');
-    $stmt->execute([$id]);
+    $stmt = $pdo->prepare('SELECT * FROM section_features WHERE id = ? AND hotel_id = ?');
+    $stmt->execute([$id, getHotelId()]);
     $feature = $stmt->fetch();
 
     if ($feature) {
@@ -5455,16 +5507,16 @@ function createSectionFeature(string $sectionCode, string $iconCode, string $lab
     $pdo = getDatabase();
 
     // Get next position
-    $stmt = $pdo->prepare('SELECT COALESCE(MAX(position), 0) + 1 FROM section_features WHERE section_code = ?');
-    $stmt->execute([$sectionCode]);
+    $stmt = $pdo->prepare('SELECT COALESCE(MAX(position), 0) + 1 FROM section_features WHERE section_code = ? AND hotel_id = ?');
+    $stmt->execute([$sectionCode, getHotelId()]);
     $nextPosition = $stmt->fetchColumn();
 
     $stmt = $pdo->prepare('
-        INSERT INTO section_features (section_code, icon_code, label, position)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO section_features (section_code, icon_code, label, position, hotel_id)
+        VALUES (?, ?, ?, ?, ?)
     ');
 
-    $success = $stmt->execute([$sectionCode, $iconCode, trim($label), $nextPosition]);
+    $success = $stmt->execute([$sectionCode, $iconCode, trim($label), $nextPosition, getHotelId()]);
     return $success ? (int)$pdo->lastInsertId() : null;
 }
 
@@ -5476,9 +5528,9 @@ function updateSectionFeature(int $id, string $iconCode, string $label, bool $is
     $stmt = $pdo->prepare('
         UPDATE section_features
         SET icon_code = ?, label = ?, is_active = ?
-        WHERE id = ?
+        WHERE id = ? AND hotel_id = ?
     ');
-    return $stmt->execute([$iconCode, trim($label), $isActive ? 1 : 0, $id]);
+    return $stmt->execute([$iconCode, trim($label), $isActive ? 1 : 0, $id, getHotelId()]);
 }
 
 /**
@@ -5486,8 +5538,8 @@ function updateSectionFeature(int $id, string $iconCode, string $label, bool $is
  */
 function deleteSectionFeature(int $id): bool {
     $pdo = getDatabase();
-    $stmt = $pdo->prepare('DELETE FROM section_features WHERE id = ?');
-    return $stmt->execute([$id]);
+    $stmt = $pdo->prepare('DELETE FROM section_features WHERE id = ? AND hotel_id = ?');
+    return $stmt->execute([$id, getHotelId()]);
 }
 
 /**
@@ -5495,11 +5547,11 @@ function deleteSectionFeature(int $id): bool {
  */
 function reorderSectionFeatures(string $sectionCode, array $featureIds): bool {
     $pdo = getDatabase();
-    $stmt = $pdo->prepare('UPDATE section_features SET position = ? WHERE id = ? AND section_code = ?');
+    $stmt = $pdo->prepare('UPDATE section_features SET position = ? WHERE id = ? AND section_code = ? AND hotel_id = ?');
 
     $position = 1;
     foreach ($featureIds as $id) {
-        $stmt->execute([$position, $id, $sectionCode]);
+        $stmt->execute([$position, $id, $sectionCode, getHotelId()]);
         $position++;
     }
 
@@ -5521,18 +5573,18 @@ function saveSectionFeatureTranslations(int $featureId, array $translations): bo
         $label = trim($label);
         if (empty($label)) {
             // Delete translation if empty
-            $stmt = $pdo->prepare('DELETE FROM section_feature_translations WHERE feature_id = ? AND language_code = ?');
-            $stmt->execute([$featureId, $langCode]);
+            $stmt = $pdo->prepare('DELETE FROM section_feature_translations WHERE feature_id = ? AND language_code = ? AND hotel_id = ?');
+            $stmt->execute([$featureId, $langCode, getHotelId()]);
             continue;
         }
 
         try {
             $stmt = $pdo->prepare('
-                INSERT INTO section_feature_translations (feature_id, language_code, label)
-                VALUES (?, ?, ?)
-                ON CONFLICT (feature_id, language_code) DO UPDATE SET label = EXCLUDED.label
+                INSERT INTO section_feature_translations (feature_id, language_code, label, hotel_id)
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT (feature_id, language_code, hotel_id) DO UPDATE SET label = EXCLUDED.label
             ');
-            $success = $stmt->execute([$featureId, $langCode, $label]) && $success;
+            $success = $stmt->execute([$featureId, $langCode, $label, getHotelId()]) && $success;
         } catch (PDOException $e) {
             $success = false;
         }
@@ -5559,8 +5611,8 @@ function seedSectionFeatures(string $sectionCode, array $defaultFeatures): void 
     $pdo = getDatabase();
 
     // Check if features already exist
-    $stmt = $pdo->prepare('SELECT COUNT(*) FROM section_features WHERE section_code = ?');
-    $stmt->execute([$sectionCode]);
+    $stmt = $pdo->prepare('SELECT COUNT(*) FROM section_features WHERE section_code = ? AND hotel_id = ?');
+    $stmt->execute([$sectionCode, getHotelId()]);
     if ($stmt->fetchColumn() > 0) {
         return; // Already seeded
     }
@@ -5583,13 +5635,13 @@ function seedSectionFeatures(string $sectionCode, array $defaultFeatures): void 
  */
 function getSectionServices(string $sectionCode, bool $activeOnly = true): array {
     $pdo = getDatabase();
-    $sql = 'SELECT * FROM section_services WHERE section_code = ?';
+    $sql = 'SELECT * FROM section_services WHERE section_code = ? AND hotel_id = ?';
     if ($activeOnly) {
         $sql .= ' AND is_active = TRUE';
     }
     $sql .= ' ORDER BY position ASC, id ASC';
     $stmt = $pdo->prepare($sql);
-    $stmt->execute([$sectionCode]);
+    $stmt->execute([$sectionCode, getHotelId()]);
     return $stmt->fetchAll();
 }
 
@@ -5627,8 +5679,8 @@ function getSectionServicesWithTranslations(string $sectionCode, bool $activeOnl
  */
 function getSectionService(int $id): ?array {
     $pdo = getDatabase();
-    $stmt = $pdo->prepare('SELECT * FROM section_services WHERE id = ?');
-    $stmt->execute([$id]);
+    $stmt = $pdo->prepare('SELECT * FROM section_services WHERE id = ? AND hotel_id = ?');
+    $stmt->execute([$id, getHotelId()]);
     $service = $stmt->fetch();
 
     if ($service) {
@@ -5656,16 +5708,16 @@ function createSectionService(string $sectionCode, string $iconCode, string $lab
     $pdo = getDatabase();
 
     // Get next position
-    $stmt = $pdo->prepare('SELECT COALESCE(MAX(position), 0) + 1 FROM section_services WHERE section_code = ?');
-    $stmt->execute([$sectionCode]);
+    $stmt = $pdo->prepare('SELECT COALESCE(MAX(position), 0) + 1 FROM section_services WHERE section_code = ? AND hotel_id = ?');
+    $stmt->execute([$sectionCode, getHotelId()]);
     $nextPosition = $stmt->fetchColumn();
 
     $stmt = $pdo->prepare('
-        INSERT INTO section_services (section_code, icon_code, label, description, position)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO section_services (section_code, icon_code, label, description, position, hotel_id)
+        VALUES (?, ?, ?, ?, ?, ?)
     ');
 
-    $success = $stmt->execute([$sectionCode, $iconCode, trim($label), trim($description), $nextPosition]);
+    $success = $stmt->execute([$sectionCode, $iconCode, trim($label), trim($description), $nextPosition, getHotelId()]);
     return $success ? (int)$pdo->lastInsertId() : null;
 }
 
@@ -5677,9 +5729,9 @@ function updateSectionService(int $id, string $iconCode, string $label, string $
     $stmt = $pdo->prepare('
         UPDATE section_services
         SET icon_code = ?, label = ?, description = ?, is_active = ?
-        WHERE id = ?
+        WHERE id = ? AND hotel_id = ?
     ');
-    return $stmt->execute([$iconCode, trim($label), trim($description), $isActive ? 1 : 0, $id]);
+    return $stmt->execute([$iconCode, trim($label), trim($description), $isActive ? 1 : 0, $id, getHotelId()]);
 }
 
 /**
@@ -5687,8 +5739,8 @@ function updateSectionService(int $id, string $iconCode, string $label, string $
  */
 function deleteSectionService(int $id): bool {
     $pdo = getDatabase();
-    $stmt = $pdo->prepare('DELETE FROM section_services WHERE id = ?');
-    return $stmt->execute([$id]);
+    $stmt = $pdo->prepare('DELETE FROM section_services WHERE id = ? AND hotel_id = ?');
+    return $stmt->execute([$id, getHotelId()]);
 }
 
 /**
@@ -5696,11 +5748,11 @@ function deleteSectionService(int $id): bool {
  */
 function reorderSectionServices(string $sectionCode, array $serviceIds): bool {
     $pdo = getDatabase();
-    $stmt = $pdo->prepare('UPDATE section_services SET position = ? WHERE id = ? AND section_code = ?');
+    $stmt = $pdo->prepare('UPDATE section_services SET position = ? WHERE id = ? AND section_code = ? AND hotel_id = ?');
 
     $position = 1;
     foreach ($serviceIds as $id) {
-        $stmt->execute([$position, $id, $sectionCode]);
+        $stmt->execute([$position, $id, $sectionCode, getHotelId()]);
         $position++;
     }
 
@@ -5724,18 +5776,18 @@ function saveSectionServiceTranslations(int $serviceId, array $translations): bo
 
         if (empty($label)) {
             // Delete translation if empty
-            $stmt = $pdo->prepare('DELETE FROM section_service_translations WHERE service_id = ? AND language_code = ?');
-            $stmt->execute([$serviceId, $langCode]);
+            $stmt = $pdo->prepare('DELETE FROM section_service_translations WHERE service_id = ? AND language_code = ? AND hotel_id = ?');
+            $stmt->execute([$serviceId, $langCode, getHotelId()]);
             continue;
         }
 
         try {
             $stmt = $pdo->prepare('
-                INSERT INTO section_service_translations (service_id, language_code, label, description)
-                VALUES (?, ?, ?, ?)
-                ON CONFLICT (service_id, language_code) DO UPDATE SET label = EXCLUDED.label, description = EXCLUDED.description
+                INSERT INTO section_service_translations (service_id, language_code, label, description, hotel_id)
+                VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT (service_id, language_code, hotel_id) DO UPDATE SET label = EXCLUDED.label, description = EXCLUDED.description
             ');
-            $success = $stmt->execute([$serviceId, $langCode, $label, $description]) && $success;
+            $success = $stmt->execute([$serviceId, $langCode, $label, $description, getHotelId()]) && $success;
         } catch (PDOException $e) {
             $success = false;
         }
@@ -5775,13 +5827,13 @@ function getServiceDescriptionForLanguage(array $service, string $langCode = 'fr
  */
 function getSectionGalleryItems(string $sectionCode, bool $activeOnly = true): array {
     $pdo = getDatabase();
-    $sql = 'SELECT * FROM section_gallery_items WHERE section_code = ?';
+    $sql = 'SELECT * FROM section_gallery_items WHERE section_code = ? AND hotel_id = ?';
     if ($activeOnly) {
         $sql .= ' AND is_active = TRUE';
     }
     $sql .= ' ORDER BY position ASC, id ASC';
     $stmt = $pdo->prepare($sql);
-    $stmt->execute([$sectionCode]);
+    $stmt->execute([$sectionCode, getHotelId()]);
     return $stmt->fetchAll();
 }
 
@@ -5814,8 +5866,8 @@ function getSectionGalleryItemsWithTranslations(string $sectionCode, bool $activ
  */
 function getSectionGalleryItem(int $id): ?array {
     $pdo = getDatabase();
-    $stmt = $pdo->prepare('SELECT * FROM section_gallery_items WHERE id = ?');
-    $stmt->execute([$id]);
+    $stmt = $pdo->prepare('SELECT * FROM section_gallery_items WHERE id = ? AND hotel_id = ?');
+    $stmt->execute([$id, getHotelId()]);
     $item = $stmt->fetch();
 
     if ($item) {
@@ -5843,16 +5895,16 @@ function createSectionGalleryItem(string $sectionCode, string $imageFilename, st
     $pdo = getDatabase();
 
     // Get next position
-    $stmt = $pdo->prepare('SELECT COALESCE(MAX(position), 0) + 1 FROM section_gallery_items WHERE section_code = ?');
-    $stmt->execute([$sectionCode]);
+    $stmt = $pdo->prepare('SELECT COALESCE(MAX(position), 0) + 1 FROM section_gallery_items WHERE section_code = ? AND hotel_id = ?');
+    $stmt->execute([$sectionCode, getHotelId()]);
     $nextPosition = $stmt->fetchColumn();
 
     $stmt = $pdo->prepare('
-        INSERT INTO section_gallery_items (section_code, image_filename, image_alt, title, description, position)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO section_gallery_items (section_code, image_filename, image_alt, title, description, position, hotel_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
     ');
 
-    $success = $stmt->execute([$sectionCode, $imageFilename, $imageAlt, trim($title), trim($description), $nextPosition]);
+    $success = $stmt->execute([$sectionCode, $imageFilename, $imageAlt, trim($title), trim($description), $nextPosition, getHotelId()]);
     return $success ? (int)$pdo->lastInsertId() : null;
 }
 
@@ -5866,16 +5918,16 @@ function updateSectionGalleryItem(int $id, string $title, string $description = 
         $stmt = $pdo->prepare('
             UPDATE section_gallery_items
             SET title = ?, description = ?, image_alt = ?, is_active = ?, image_filename = ?
-            WHERE id = ?
+            WHERE id = ? AND hotel_id = ?
         ');
-        return $stmt->execute([trim($title), trim($description), trim($imageAlt), $isActive ? 1 : 0, $imageFilename, $id]);
+        return $stmt->execute([trim($title), trim($description), trim($imageAlt), $isActive ? 1 : 0, $imageFilename, $id, getHotelId()]);
     } else {
         $stmt = $pdo->prepare('
             UPDATE section_gallery_items
             SET title = ?, description = ?, image_alt = ?, is_active = ?
-            WHERE id = ?
+            WHERE id = ? AND hotel_id = ?
         ');
-        return $stmt->execute([trim($title), trim($description), trim($imageAlt), $isActive ? 1 : 0, $id]);
+        return $stmt->execute([trim($title), trim($description), trim($imageAlt), $isActive ? 1 : 0, $id, getHotelId()]);
     }
 }
 
@@ -5886,16 +5938,16 @@ function deleteSectionGalleryItem(int $id): bool {
     $pdo = getDatabase();
 
     // Get item to delete image file
-    $stmt = $pdo->prepare('SELECT image_filename FROM section_gallery_items WHERE id = ?');
-    $stmt->execute([$id]);
+    $stmt = $pdo->prepare('SELECT image_filename FROM section_gallery_items WHERE id = ? AND hotel_id = ?');
+    $stmt->execute([$id, getHotelId()]);
     $item = $stmt->fetch();
 
     if ($item && !empty($item['image_filename']) && file_exists($item['image_filename'])) {
         @unlink($item['image_filename']);
     }
 
-    $stmt = $pdo->prepare('DELETE FROM section_gallery_items WHERE id = ?');
-    return $stmt->execute([$id]);
+    $stmt = $pdo->prepare('DELETE FROM section_gallery_items WHERE id = ? AND hotel_id = ?');
+    return $stmt->execute([$id, getHotelId()]);
 }
 
 /**
@@ -5903,11 +5955,11 @@ function deleteSectionGalleryItem(int $id): bool {
  */
 function reorderSectionGalleryItems(string $sectionCode, array $itemIds): bool {
     $pdo = getDatabase();
-    $stmt = $pdo->prepare('UPDATE section_gallery_items SET position = ? WHERE id = ? AND section_code = ?');
+    $stmt = $pdo->prepare('UPDATE section_gallery_items SET position = ? WHERE id = ? AND section_code = ? AND hotel_id = ?');
 
     $position = 1;
     foreach ($itemIds as $id) {
-        $stmt->execute([$position, $id, $sectionCode]);
+        $stmt->execute([$position, $id, $sectionCode, getHotelId()]);
         $position++;
     }
 
@@ -5931,18 +5983,18 @@ function saveSectionGalleryItemTranslations(int $itemId, array $translations): b
 
         if (empty($title)) {
             // Delete translation if empty
-            $stmt = $pdo->prepare('DELETE FROM section_gallery_item_translations WHERE item_id = ? AND language_code = ?');
-            $stmt->execute([$itemId, $langCode]);
+            $stmt = $pdo->prepare('DELETE FROM section_gallery_item_translations WHERE item_id = ? AND language_code = ? AND hotel_id = ?');
+            $stmt->execute([$itemId, $langCode, getHotelId()]);
             continue;
         }
 
         try {
             $stmt = $pdo->prepare('
-                INSERT INTO section_gallery_item_translations (item_id, language_code, title, description)
-                VALUES (?, ?, ?, ?)
-                ON CONFLICT (item_id, language_code) DO UPDATE SET title = EXCLUDED.title, description = EXCLUDED.description
+                INSERT INTO section_gallery_item_translations (item_id, language_code, title, description, hotel_id)
+                VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT (item_id, language_code, hotel_id) DO UPDATE SET title = EXCLUDED.title, description = EXCLUDED.description
             ');
-            $success = $stmt->execute([$itemId, $langCode, $title, $description]) && $success;
+            $success = $stmt->execute([$itemId, $langCode, $title, $description, getHotelId()]) && $success;
         } catch (PDOException $e) {
             $success = false;
         }
@@ -6029,8 +6081,8 @@ function setCategoryVatRate(string $categoryCode, ?float $rate): bool {
         // Remove custom rate, will use default
         try {
             $pdo = getDatabase();
-            $stmt = $pdo->prepare('DELETE FROM settings WHERE setting_key = ?');
-            return $stmt->execute(['vat_rate_' . $categoryCode]);
+            $stmt = $pdo->prepare('DELETE FROM settings WHERE setting_key = ? AND hotel_id = ?');
+            return $stmt->execute(['vat_rate_' . $categoryCode, getHotelId()]);
         } catch (PDOException $e) {
             return false;
         }
@@ -6169,9 +6221,10 @@ function getVATStatistics(string $startDate, string $endDate): array {
         LEFT JOIN room_service_items i ON oi.item_id = i.id
         WHERE DATE(o.created_at) BETWEEN ? AND ?
             AND o.status NOT IN ('cancelled')
+            AND o.hotel_id = ?
         ORDER BY o.id
     ");
-    $stmt->execute([$startDate, $endDate]);
+    $stmt->execute([$startDate, $endDate, getHotelId()]);
     $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // Calculate totals
@@ -6302,11 +6355,12 @@ function getRoomServiceFinancialStats(string $period = 'day', ?string $date = nu
         FROM room_service_orders
         WHERE DATE(created_at) BETWEEN ? AND ?
             AND status NOT IN ('cancelled')
+            AND hotel_id = ?
     ");
-    $stmt->execute([$startDate, $endDate]);
+    $stmt->execute([$startDate, $endDate, getHotelId()]);
     $currentOrders = (int) $stmt->fetchColumn();
 
-    $stmt->execute([$prevStart, $prevEnd]);
+    $stmt->execute([$prevStart, $prevEnd, getHotelId()]);
     $previousOrders = (int) $stmt->fetchColumn();
 
     // Calculate changes
@@ -6459,8 +6513,8 @@ function getHousekeepingStatusBadgeClass(string $status): string {
 function getRooms(array $filters = [], string $orderBy = 'room_number', string $orderDir = 'ASC'): array {
     $pdo = getDatabase();
 
-    $sql = "SELECT * FROM rooms WHERE 1=1";
-    $params = [];
+    $sql = "SELECT * FROM rooms WHERE hotel_id = ?";
+    $params = [getHotelId()];
 
     if (isset($filters['status'])) {
         $sql .= " AND status = ?";
@@ -6532,8 +6586,8 @@ function getRoomById(int $id): ?array {
     $pdo = getDatabase();
 
     try {
-        $stmt = $pdo->prepare("SELECT * FROM rooms WHERE id = ?");
-        $stmt->execute([$id]);
+        $stmt = $pdo->prepare("SELECT * FROM rooms WHERE id = ? AND hotel_id = ?");
+        $stmt->execute([$id, getHotelId()]);
         $room = $stmt->fetch();
 
         if ($room) {
@@ -6556,8 +6610,8 @@ function getRoomByNumber(string $roomNumber): ?array {
     $pdo = getDatabase();
 
     try {
-        $stmt = $pdo->prepare("SELECT * FROM rooms WHERE room_number = ?");
-        $stmt->execute([$roomNumber]);
+        $stmt = $pdo->prepare("SELECT * FROM rooms WHERE room_number = ? AND hotel_id = ?");
+        $stmt->execute([$roomNumber, getHotelId()]);
         $room = $stmt->fetch();
 
         if ($room) {
@@ -6582,8 +6636,8 @@ function createRoom(array $data, ?string &$error = null): int|false {
 
     $sql = "INSERT INTO rooms (
         room_number, floor, room_type, capacity, bed_count, surface_area,
-        status, housekeeping_status, amenities, notes, is_active
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        status, housekeeping_status, amenities, notes, is_active, hotel_id
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
     try {
         $stmt = $pdo->prepare($sql);
@@ -6598,7 +6652,8 @@ function createRoom(array $data, ?string &$error = null): int|false {
             $data['housekeeping_status'] ?? HOUSEKEEPING_CLEANED,
             isset($data['amenities']) ? json_encode($data['amenities']) : null,
             $data['notes'] ?? null,
-            $data['is_active'] ?? 1
+            $data['is_active'] ?? 1,
+            getHotelId()
         ]);
 
         return (int) $pdo->lastInsertId();
@@ -6656,8 +6711,9 @@ function updateRoom(int $id, array $data): bool {
         return false;
     }
 
-    $sql = "UPDATE rooms SET " . implode(', ', $fields) . " WHERE id = ?";
+    $sql = "UPDATE rooms SET " . implode(', ', $fields) . " WHERE id = ? AND hotel_id = ?";
     $params[] = $id;
+    $params[] = getHotelId();
 
     try {
         $stmt = $pdo->prepare($sql);
@@ -6679,11 +6735,11 @@ function deleteRoom(int $id, bool $hardDelete = false): bool {
 
     try {
         if ($hardDelete) {
-            $stmt = $pdo->prepare("DELETE FROM rooms WHERE id = ?");
+            $stmt = $pdo->prepare("DELETE FROM rooms WHERE id = ? AND hotel_id = ?");
         } else {
-            $stmt = $pdo->prepare("UPDATE rooms SET is_active = FALSE WHERE id = ?");
+            $stmt = $pdo->prepare("UPDATE rooms SET is_active = FALSE WHERE id = ? AND hotel_id = ?");
         }
-        return $stmt->execute([$id]);
+        return $stmt->execute([$id, getHotelId()]);
     } catch (PDOException $e) {
         error_log('Error deleting room: ' . $e->getMessage());
         return false;
@@ -6729,53 +6785,58 @@ function getRoomStatistics(): array {
 
     try {
         // Total rooms
-        $stmt = $pdo->query("SELECT COUNT(*) as total FROM rooms WHERE is_active = TRUE");
+        $stmt = $pdo->prepare("SELECT COUNT(*) as total FROM rooms WHERE is_active = TRUE AND hotel_id = ?");
+        $stmt->execute([getHotelId()]);
         $total = $stmt->fetch()['total'];
 
         // By status
-        $stmt = $pdo->query("
+        $stmt = $pdo->prepare("
             SELECT status, COUNT(*) as count
             FROM rooms
-            WHERE is_active = TRUE
+            WHERE is_active = TRUE AND hotel_id = ?
             GROUP BY status
         ");
+        $stmt->execute([getHotelId()]);
         $byStatus = [];
         while ($row = $stmt->fetch()) {
             $byStatus[$row['status']] = (int) $row['count'];
         }
 
         // By housekeeping status
-        $stmt = $pdo->query("
+        $stmt = $pdo->prepare("
             SELECT housekeeping_status, COUNT(*) as count
             FROM rooms
-            WHERE is_active = TRUE
+            WHERE is_active = TRUE AND hotel_id = ?
             GROUP BY housekeeping_status
         ");
+        $stmt->execute([getHotelId()]);
         $byHousekeeping = [];
         while ($row = $stmt->fetch()) {
             $byHousekeeping[$row['housekeeping_status']] = (int) $row['count'];
         }
 
         // By floor
-        $stmt = $pdo->query("
+        $stmt = $pdo->prepare("
             SELECT COALESCE(floor, 0) as floor, COUNT(*) as count
             FROM rooms
-            WHERE is_active = TRUE
+            WHERE is_active = TRUE AND hotel_id = ?
             GROUP BY floor
             ORDER BY floor
         ");
+        $stmt->execute([getHotelId()]);
         $byFloor = [];
         while ($row = $stmt->fetch()) {
             $byFloor[$row['floor']] = (int) $row['count'];
         }
 
         // By room type
-        $stmt = $pdo->query("
+        $stmt = $pdo->prepare("
             SELECT room_type, COUNT(*) as count
             FROM rooms
-            WHERE is_active = TRUE
+            WHERE is_active = TRUE AND hotel_id = ?
             GROUP BY room_type
         ");
+        $stmt->execute([getHotelId()]);
         $byType = [];
         while ($row = $stmt->fetch()) {
             $byType[$row['room_type']] = (int) $row['count'];
@@ -6808,12 +6869,13 @@ function getRoomFloors(): array {
     $pdo = getDatabase();
 
     try {
-        $stmt = $pdo->query("
+        $stmt = $pdo->prepare("
             SELECT DISTINCT COALESCE(floor, 0) as floor
             FROM rooms
-            WHERE is_active = TRUE
+            WHERE is_active = TRUE AND hotel_id = ?
             ORDER BY floor
         ");
+        $stmt->execute([getHotelId()]);
         return $stmt->fetchAll(PDO::FETCH_COLUMN);
     } catch (PDOException $e) {
         error_log('Error fetching floors: ' . $e->getMessage());
@@ -6832,11 +6894,11 @@ function roomNumberExists(string $roomNumber, ?int $excludeId = null): bool {
 
     try {
         if ($excludeId) {
-            $stmt = $pdo->prepare("SELECT COUNT(*) FROM rooms WHERE room_number = ? AND id != ?");
-            $stmt->execute([$roomNumber, $excludeId]);
+            $stmt = $pdo->prepare("SELECT COUNT(*) FROM rooms WHERE room_number = ? AND id != ? AND hotel_id = ?");
+            $stmt->execute([$roomNumber, $excludeId, getHotelId()]);
         } else {
-            $stmt = $pdo->prepare("SELECT COUNT(*) FROM rooms WHERE room_number = ?");
-            $stmt->execute([$roomNumber]);
+            $stmt = $pdo->prepare("SELECT COUNT(*) FROM rooms WHERE room_number = ? AND hotel_id = ?");
+            $stmt->execute([$roomNumber, getHotelId()]);
         }
         return $stmt->fetchColumn() > 0;
     } catch (PDOException $e) {
@@ -6854,8 +6916,8 @@ function roomNumberExists(string $roomNumber, ?int $excludeId = null): bool {
 function logHousekeepingActivity(int $roomId, string $action, array $data = []): bool {
     $pdo = getDatabase();
 
-    $sql = "INSERT INTO housekeeping_logs (room_id, action, previous_status, new_status, performed_by, notes)
-            VALUES (?, ?, ?, ?, ?, ?)";
+    $sql = "INSERT INTO housekeeping_logs (room_id, action, previous_status, new_status, performed_by, notes, hotel_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?)";
 
     try {
         $stmt = $pdo->prepare($sql);
@@ -6865,7 +6927,8 @@ function logHousekeepingActivity(int $roomId, string $action, array $data = []):
             $data['previous_status'] ?? null,
             $data['new_status'] ?? null,
             $data['performed_by'] ?? null,
-            $data['notes'] ?? null
+            $data['notes'] ?? null,
+            getHotelId()
         ]);
     } catch (PDOException $e) {
         error_log('Error logging housekeeping activity: ' . $e->getMessage());
@@ -6881,7 +6944,8 @@ function getTotalRoomCount(): int {
     $pdo = getDatabase();
 
     try {
-        $stmt = $pdo->query("SELECT COUNT(*) FROM rooms WHERE is_active = TRUE");
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM rooms WHERE is_active = TRUE AND hotel_id = ?");
+        $stmt->execute([getHotelId()]);
         return (int) $stmt->fetchColumn();
     } catch (PDOException $e) {
         return 0;
@@ -7109,13 +7173,14 @@ function logQrScan(int $roomId): bool {
     try {
         // Insert scan record
         $stmt = $pdo->prepare("
-            INSERT INTO qr_scans (room_id, scanned_at, ip_address, user_agent)
-            VALUES (:room_id, NOW(), :ip, :ua)
+            INSERT INTO qr_scans (room_id, scanned_at, ip_address, user_agent, hotel_id)
+            VALUES (:room_id, NOW(), :ip, :ua, :hotel_id)
         ");
         $stmt->execute([
             'room_id' => $roomId,
             'ip' => $_SERVER['REMOTE_ADDR'] ?? null,
-            'ua' => substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 500)
+            'ua' => substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 500),
+            'hotel_id' => getHotelId()
         ]);
 
         // Update room's last_scan_at and total_scans
@@ -7123,9 +7188,9 @@ function logQrScan(int $roomId): bool {
             UPDATE rooms
             SET last_scan_at = NOW(),
                 total_scans = COALESCE(total_scans, 0) + 1
-            WHERE id = :room_id
+            WHERE id = :room_id AND hotel_id = :hotel_id
         ");
-        $stmt->execute(['room_id' => $roomId]);
+        $stmt->execute(['room_id' => $roomId, 'hotel_id' => getHotelId()]);
 
         return true;
     } catch (PDOException $e) {
@@ -7141,59 +7206,71 @@ function getQrScanStatistics(): array {
     $pdo = getDatabase();
 
     try {
+        $hotelId = getHotelId();
+
         // Total scans
-        $stmt = $pdo->query("SELECT COUNT(*) FROM qr_scans");
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM qr_scans WHERE hotel_id = ?");
+        $stmt->execute([$hotelId]);
         $totalScans = (int) $stmt->fetchColumn();
 
         // Scans today
-        $stmt = $pdo->query("SELECT COUNT(*) FROM qr_scans WHERE DATE(scanned_at) = CURRENT_DATE");
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM qr_scans WHERE DATE(scanned_at) = CURRENT_DATE AND hotel_id = ?");
+        $stmt->execute([$hotelId]);
         $scansToday = (int) $stmt->fetchColumn();
 
         // Scans this week
-        $stmt = $pdo->query("SELECT COUNT(*) FROM qr_scans WHERE scanned_at >= NOW() - INTERVAL '7 days'");
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM qr_scans WHERE scanned_at >= NOW() - INTERVAL '7 days' AND hotel_id = ?");
+        $stmt->execute([$hotelId]);
         $scansThisWeek = (int) $stmt->fetchColumn();
 
         // Scans this month
-        $stmt = $pdo->query("SELECT COUNT(*) FROM qr_scans WHERE scanned_at >= NOW() - INTERVAL '30 days'");
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM qr_scans WHERE scanned_at >= NOW() - INTERVAL '30 days' AND hotel_id = ?");
+        $stmt->execute([$hotelId]);
         $scansThisMonth = (int) $stmt->fetchColumn();
 
         // Most scanned rooms
-        $stmt = $pdo->query("
+        $stmt = $pdo->prepare("
             SELECT r.id, r.room_number, r.total_scans, r.last_scan_at
             FROM rooms r
-            WHERE r.total_scans > 0
+            WHERE r.total_scans > 0 AND r.hotel_id = ?
             ORDER BY r.total_scans DESC
             LIMIT 10
         ");
+        $stmt->execute([$hotelId]);
         $topRooms = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         // Scans per day (last 30 days)
-        $stmt = $pdo->query("
+        $stmt = $pdo->prepare("
             SELECT DATE(scanned_at) as scan_date, COUNT(*) as count
             FROM qr_scans
-            WHERE scanned_at >= NOW() - INTERVAL '30 days'
+            WHERE scanned_at >= NOW() - INTERVAL '30 days' AND hotel_id = ?
             GROUP BY DATE(scanned_at)
             ORDER BY scan_date ASC
         ");
+        $stmt->execute([$hotelId]);
         $dailyScans = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         // Scans per hour (distribution)
-        $stmt = $pdo->query("
+        $stmt = $pdo->prepare("
             SELECT EXTRACT(HOUR FROM scanned_at) as hour, COUNT(*) as count
             FROM qr_scans
+            WHERE hotel_id = ?
             GROUP BY EXTRACT(HOUR FROM scanned_at)
             ORDER BY hour ASC
         ");
+        $stmt->execute([$hotelId]);
         $hourlyDistribution = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         // Recent scans
-        $stmt = $pdo->query("
+        $stmt = $pdo->prepare("
             SELECT qs.*, r.room_number
             FROM qr_scans qs
             JOIN rooms r ON qs.room_id = r.id
+            WHERE qs.hotel_id = ?
             ORDER BY qs.scanned_at DESC
             LIMIT 20
         ");
+        $stmt->execute([$hotelId]);
         $recentScans = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         return [
@@ -7230,11 +7307,12 @@ function getRoomScanHistory(int $roomId, int $limit = 50): array {
     try {
         $stmt = $pdo->prepare("
             SELECT * FROM qr_scans
-            WHERE room_id = :room_id
+            WHERE room_id = :room_id AND hotel_id = :hotel_id
             ORDER BY scanned_at DESC
             LIMIT :limit
         ");
         $stmt->bindValue('room_id', $roomId, PDO::PARAM_INT);
+        $stmt->bindValue('hotel_id', getHotelId(), PDO::PARAM_INT);
         $stmt->bindValue('limit', $limit, PDO::PARAM_INT);
         $stmt->execute();
 
@@ -7257,21 +7335,25 @@ function getEstimatedDeliveryTime(): array {
 
     try {
         // Count pending/preparing orders
-        $stmt = $pdo->query("
+        $stmt = $pdo->prepare("
             SELECT COUNT(*) as pending_count
             FROM room_service_orders
             WHERE status IN ('pending', 'confirmed', 'preparing')
             AND created_at >= NOW() - INTERVAL '2 hours'
+            AND hotel_id = ?
         ");
+        $stmt->execute([getHotelId()]);
         $pendingOrders = (int) $stmt->fetchColumn();
 
         // Get average preparation time from recent delivered orders
-        $stmt = $pdo->query("
+        $stmt = $pdo->prepare("
             SELECT AVG(TIMESTAMPDIFF(MINUTE, created_at, updated_at)) as avg_time
             FROM room_service_orders
             WHERE status = 'delivered'
             AND updated_at >= NOW() - INTERVAL '7 days'
+            AND hotel_id = ?
         ");
+        $stmt->execute([getHotelId()]);
         $avgPrepTime = (float) $stmt->fetchColumn() ?: 20; // Default 20 min
 
         // Calculate estimated time based on queue
@@ -7349,8 +7431,9 @@ function getAverageTimeFromScanToOrder(int $days = 30): array {
                 AND qs.scanned_at >= o.created_at - INTERVAL '2 hours'
             WHERE o.created_at >= NOW() - CAST(:days AS INTEGER) * INTERVAL '1 day'
             AND o.status != 'cancelled'
+            AND o.hotel_id = :hotel_id
         ");
-        $stmt->execute(['days' => $days]);
+        $stmt->execute(['days' => $days, 'hotel_id' => getHotelId()]);
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
 
         // Get total scans in the period
@@ -7358,8 +7441,9 @@ function getAverageTimeFromScanToOrder(int $days = 30): array {
             SELECT COUNT(*) as total_scans
             FROM qr_scans
             WHERE scanned_at >= NOW() - CAST(:days AS INTEGER) * INTERVAL '1 day'
+            AND hotel_id = :hotel_id
         ");
-        $stmtScans->execute(['days' => $days]);
+        $stmtScans->execute(['days' => $days, 'hotel_id' => getHotelId()]);
         $totalScans = (int) $stmtScans->fetchColumn();
 
         // Get total orders in the period
@@ -7368,8 +7452,9 @@ function getAverageTimeFromScanToOrder(int $days = 30): array {
             FROM room_service_orders
             WHERE created_at >= NOW() - CAST(:days AS INTEGER) * INTERVAL '1 day'
             AND status != 'cancelled'
+            AND hotel_id = :hotel_id
         ");
-        $stmtOrders->execute(['days' => $days]);
+        $stmtOrders->execute(['days' => $days, 'hotel_id' => getHotelId()]);
         $totalOrders = (int) $stmtOrders->fetchColumn();
 
         // Calculate conversion rate
@@ -7422,11 +7507,12 @@ function getPredictivePreparationSuggestions(): array {
             FROM room_service_orders
             WHERE status IN ('delivered', 'preparing', 'confirmed')
             AND created_at >= NOW() - INTERVAL '7 days'
+            AND hotel_id = ?
             GROUP BY name
             ORDER BY order_count DESC
             LIMIT 6
         ");
-        $stmt->execute();
+        $stmt->execute([getHotelId()]);
         $result['popular_items'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         // Get average orders for this day of week
@@ -7438,8 +7524,9 @@ function getPredictivePreparationSuggestions(): array {
             WHERE status = 'delivered'
             AND created_at >= NOW() - INTERVAL '28 days'
             AND EXTRACT(DOW FROM created_at) = :day
+            AND hotel_id = :hotel_id
         ");
-        $stmt->execute(['day' => $pgDay]);
+        $stmt->execute(['day' => $pgDay, 'hotel_id' => getHotelId()]);
         $volumeData = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($volumeData && $volumeData['avg_per_day'] > 0) {
@@ -7484,11 +7571,12 @@ function getRoomOrderHistory(int $roomId, int $limit = 10): array {
                 created_at,
                 updated_at
             FROM room_service_orders
-            WHERE room_id = :room_id
+            WHERE room_id = :room_id AND hotel_id = :hotel_id
             ORDER BY created_at DESC
             LIMIT :limit
         ");
         $stmt->bindValue('room_id', $roomId, PDO::PARAM_INT);
+        $stmt->bindValue('hotel_id', getHotelId(), PDO::PARAM_INT);
         $stmt->bindValue('limit', $limit, PDO::PARAM_INT);
         $stmt->execute();
 
@@ -7528,11 +7616,13 @@ function getRoomFrequentItems(int $roomId, int $limit = 5): array {
             )) as oi
             WHERE o.room_id = :room_id
             AND o.status = 'delivered'
+            AND o.hotel_id = :hotel_id
             GROUP BY oi.item_id, oi.item_name
             ORDER BY order_count DESC, total_qty DESC
             LIMIT :limit
         ");
         $stmt->bindValue('room_id', $roomId, PDO::PARAM_INT);
+        $stmt->bindValue('hotel_id', getHotelId(), PDO::PARAM_INT);
         $stmt->bindValue('limit', $limit, PDO::PARAM_INT);
         $stmt->execute();
 
@@ -7569,11 +7659,12 @@ function savePushSubscription(int $roomId, array $subscription): bool {
         // Check if subscription already exists
         $stmt = $pdo->prepare("
             SELECT id FROM push_subscriptions
-            WHERE room_id = :room_id AND endpoint = :endpoint
+            WHERE room_id = :room_id AND endpoint = :endpoint AND hotel_id = :hotel_id
         ");
         $stmt->execute([
             'room_id' => $roomId,
-            'endpoint' => $subscription['endpoint']
+            'endpoint' => $subscription['endpoint'],
+            'hotel_id' => getHotelId()
         ]);
         $existing = $stmt->fetch();
 
@@ -7586,26 +7677,28 @@ function savePushSubscription(int $roomId, array $subscription): bool {
                     user_agent = :ua,
                     is_active = TRUE,
                     last_used_at = NOW()
-                WHERE id = :id
+                WHERE id = :id AND hotel_id = :hotel_id
             ");
             return $stmt->execute([
                 'p256dh' => $subscription['keys']['p256dh'],
                 'auth' => $subscription['keys']['auth'],
                 'ua' => $_SERVER['HTTP_USER_AGENT'] ?? null,
-                'id' => $existing['id']
+                'id' => $existing['id'],
+                'hotel_id' => getHotelId()
             ]);
         } else {
             // Insert new subscription
             $stmt = $pdo->prepare("
-                INSERT INTO push_subscriptions (room_id, endpoint, p256dh_key, auth_key, user_agent)
-                VALUES (:room_id, :endpoint, :p256dh, :auth, :ua)
+                INSERT INTO push_subscriptions (room_id, endpoint, p256dh_key, auth_key, user_agent, hotel_id)
+                VALUES (:room_id, :endpoint, :p256dh, :auth, :ua, :hotel_id)
             ");
             return $stmt->execute([
                 'room_id' => $roomId,
                 'endpoint' => $subscription['endpoint'],
                 'p256dh' => $subscription['keys']['p256dh'],
                 'auth' => $subscription['keys']['auth'],
-                'ua' => $_SERVER['HTTP_USER_AGENT'] ?? null
+                'ua' => $_SERVER['HTTP_USER_AGENT'] ?? null,
+                'hotel_id' => getHotelId()
             ]);
         }
     } catch (PDOException $e) {
@@ -7623,9 +7716,9 @@ function getRoomPushSubscriptions(int $roomId): array {
     try {
         $stmt = $pdo->prepare("
             SELECT * FROM push_subscriptions
-            WHERE room_id = :room_id AND is_active = TRUE
+            WHERE room_id = :room_id AND is_active = TRUE AND hotel_id = :hotel_id
         ");
-        $stmt->execute(['room_id' => $roomId]);
+        $stmt->execute(['room_id' => $roomId, 'hotel_id' => getHotelId()]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     } catch (PDOException $e) {
         return [];
@@ -7686,9 +7779,9 @@ function queuePushNotification(int $subscriptionId, string $payload): bool {
         $stmt = $pdo->prepare("
             UPDATE push_subscriptions
             SET last_used_at = NOW()
-            WHERE id = :id
+            WHERE id = :id AND hotel_id = :hotel_id
         ");
-        return $stmt->execute(['id' => $subscriptionId]);
+        return $stmt->execute(['id' => $subscriptionId, 'hotel_id' => getHotelId()]);
     } catch (PDOException $e) {
         return false;
     }
@@ -7702,9 +7795,9 @@ function removePushSubscription(int $subscriptionId): bool {
 
     try {
         $stmt = $pdo->prepare("
-            UPDATE push_subscriptions SET is_active = FALSE WHERE id = :id
+            UPDATE push_subscriptions SET is_active = FALSE WHERE id = :id AND hotel_id = :hotel_id
         ");
-        return $stmt->execute(['id' => $subscriptionId]);
+        return $stmt->execute(['id' => $subscriptionId, 'hotel_id' => getHotelId()]);
     } catch (PDOException $e) {
         return false;
     }
@@ -7718,8 +7811,8 @@ function sendOrderStatusNotification(int $orderId, string $newStatus): bool {
 
     try {
         // Get order details
-        $stmt = $pdo->prepare("SELECT room_id, room_number FROM room_service_orders WHERE id = :id");
-        $stmt->execute(['id' => $orderId]);
+        $stmt = $pdo->prepare("SELECT room_id, room_number FROM room_service_orders WHERE id = :id AND hotel_id = :hotel_id");
+        $stmt->execute(['id' => $orderId, 'hotel_id' => getHotelId()]);
         $order = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$order || !$order['room_id']) {
@@ -7793,8 +7886,8 @@ function initPagesTable(): void {
         $pdo->exec("
             CREATE TABLE IF NOT EXISTS pages (
                 id SERIAL PRIMARY KEY,
-                slug VARCHAR(50) NOT NULL UNIQUE,
-                code VARCHAR(50) NOT NULL UNIQUE,
+                slug VARCHAR(50) NOT NULL,
+                code VARCHAR(50) NOT NULL,
                 title VARCHAR(100) NOT NULL,
                 nav_title VARCHAR(50) DEFAULT NULL,
                 meta_title VARCHAR(150) DEFAULT NULL,
@@ -7809,8 +7902,11 @@ function initPagesTable(): void {
                 i18n_nav_key VARCHAR(100) DEFAULT NULL,
                 i18n_hero_title_key VARCHAR(100) DEFAULT NULL,
                 i18n_hero_subtitle_key VARCHAR(100) DEFAULT NULL,
+                hotel_id INT NOT NULL DEFAULT 1,
                 created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(slug, hotel_id),
+                UNIQUE(code, hotel_id)
             )
         ");
         $pdo->exec("CREATE INDEX IF NOT EXISTS idx_pages_slug ON pages(slug)");
@@ -7837,12 +7933,13 @@ function seedDefaultPages(): void {
     ];
 
     $stmt = $pdo->prepare("
-        INSERT INTO pages (slug, code, title, nav_title, page_type, display_order, i18n_nav_key, hero_section_code, i18n_hero_title_key, i18n_hero_subtitle_key)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ON CONFLICT (slug) DO NOTHING
+        INSERT INTO pages (slug, code, title, nav_title, page_type, display_order, i18n_nav_key, hero_section_code, i18n_hero_title_key, i18n_hero_subtitle_key, hotel_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT (slug, hotel_id) DO NOTHING
     ");
 
     foreach ($defaultPages as $page) {
+        $page[] = getHotelId();
         $stmt->execute($page);
     }
 }
@@ -7859,7 +7956,7 @@ function getPages(bool $activeOnly = false, bool $navOnly = false): array {
     try {
         initPagesTable();
 
-        $sql = "SELECT * FROM pages WHERE 1=1";
+        $sql = "SELECT * FROM pages WHERE hotel_id = ?";
         if ($activeOnly) {
             $sql .= " AND is_active = TRUE";
         }
@@ -7868,7 +7965,8 @@ function getPages(bool $activeOnly = false, bool $navOnly = false): array {
         }
         $sql .= " ORDER BY display_order ASC, id ASC";
 
-        $stmt = $pdo->query($sql);
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([getHotelId()]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     } catch (PDOException $e) {
         error_log('Error getting pages: ' . $e->getMessage());
@@ -7893,8 +7991,8 @@ function getPageById(int $id): ?array {
     $pdo = getDatabase();
 
     try {
-        $stmt = $pdo->prepare("SELECT * FROM pages WHERE id = ?");
-        $stmt->execute([$id]);
+        $stmt = $pdo->prepare("SELECT * FROM pages WHERE id = ? AND hotel_id = ?");
+        $stmt->execute([$id, getHotelId()]);
         $page = $stmt->fetch(PDO::FETCH_ASSOC);
         return $page ?: null;
     } catch (PDOException $e) {
@@ -7914,8 +8012,8 @@ function getPageBySlug(string $slug): ?array {
     try {
         initPagesTable();
 
-        $stmt = $pdo->prepare("SELECT * FROM pages WHERE slug = ? AND is_active = TRUE");
-        $stmt->execute([$slug]);
+        $stmt = $pdo->prepare("SELECT * FROM pages WHERE slug = ? AND is_active = TRUE AND hotel_id = ?");
+        $stmt->execute([$slug, getHotelId()]);
         $page = $stmt->fetch(PDO::FETCH_ASSOC);
         return $page ?: null;
     } catch (PDOException $e) {
@@ -7935,8 +8033,8 @@ function getPageByCode(string $code): ?array {
     try {
         initPagesTable();
 
-        $stmt = $pdo->prepare("SELECT * FROM pages WHERE code = ?");
-        $stmt->execute([$code]);
+        $stmt = $pdo->prepare("SELECT * FROM pages WHERE code = ? AND hotel_id = ?");
+        $stmt->execute([$code, getHotelId()]);
         $page = $stmt->fetch(PDO::FETCH_ASSOC);
         return $page ?: null;
     } catch (PDOException $e) {
@@ -7962,8 +8060,8 @@ function createPage(array $data, ?string &$error = null): int|false {
         $stmt = $pdo->prepare("
             INSERT INTO pages (slug, code, title, nav_title, meta_title, meta_description, meta_keywords,
                 hero_section_code, page_type, template, display_order, show_in_nav, is_active,
-                i18n_nav_key, i18n_hero_title_key, i18n_hero_subtitle_key)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                i18n_nav_key, i18n_hero_title_key, i18n_hero_subtitle_key, hotel_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
 
         $stmt->execute([
@@ -7982,7 +8080,8 @@ function createPage(array $data, ?string &$error = null): int|false {
             $data['is_active'] ?? 1,
             $data['i18n_nav_key'] ?? null,
             $data['i18n_hero_title_key'] ?? null,
-            $data['i18n_hero_subtitle_key'] ?? null
+            $data['i18n_hero_subtitle_key'] ?? null,
+            getHotelId()
         ]);
 
         $pageId = (int) $pdo->lastInsertId();
@@ -8043,7 +8142,8 @@ function updatePage(int $id, array $data, ?string &$error = null): bool {
     $params[] = $id;
 
     try {
-        $sql = "UPDATE pages SET " . implode(', ', $fields) . " WHERE id = ?";
+        $params[] = getHotelId();
+        $sql = "UPDATE pages SET " . implode(', ', $fields) . " WHERE id = ? AND hotel_id = ?";
         $stmt = $pdo->prepare($sql);
         return $stmt->execute($params);
     } catch (PDOException $e) {
@@ -8074,8 +8174,8 @@ function deletePage(int $id, ?string &$error = null): bool {
     }
 
     try {
-        $stmt = $pdo->prepare("DELETE FROM pages WHERE id = ?");
-        return $stmt->execute([$id]);
+        $stmt = $pdo->prepare("DELETE FROM pages WHERE id = ? AND hotel_id = ?");
+        return $stmt->execute([$id, getHotelId()]);
     } catch (PDOException $e) {
         error_log('Error deleting page: ' . $e->getMessage());
         $error = "Erreur lors de la suppression de la page.";
@@ -8094,10 +8194,10 @@ function reorderPages(array $pageIds): bool {
     try {
         $pdo->beginTransaction();
 
-        $stmt = $pdo->prepare("UPDATE pages SET display_order = ? WHERE id = ?");
+        $stmt = $pdo->prepare("UPDATE pages SET display_order = ? WHERE id = ? AND hotel_id = ?");
 
         foreach ($pageIds as $order => $pageId) {
-            $stmt->execute([$order + 1, (int) $pageId]);
+            $stmt->execute([$order + 1, (int) $pageId, getHotelId()]);
         }
 
         $pdo->commit();
@@ -8117,7 +8217,8 @@ function getNextPageDisplayOrder(): int {
     $pdo = getDatabase();
 
     try {
-        $stmt = $pdo->query("SELECT MAX(display_order) FROM pages");
+        $stmt = $pdo->prepare("SELECT MAX(display_order) FROM pages WHERE hotel_id = ?");
+        $stmt->execute([getHotelId()]);
         $max = $stmt->fetchColumn();
         return ($max ?? 0) + 1;
     } catch (PDOException $e) {
@@ -8135,8 +8236,8 @@ function pageSlugExists(string $slug, ?int $excludeId = null): bool {
     $pdo = getDatabase();
 
     try {
-        $sql = "SELECT COUNT(*) FROM pages WHERE slug = ?";
-        $params = [$slug];
+        $sql = "SELECT COUNT(*) FROM pages WHERE slug = ? AND hotel_id = ?";
+        $params = [$slug, getHotelId()];
 
         if ($excludeId) {
             $sql .= " AND id != ?";
@@ -8196,20 +8297,21 @@ function createPageHeroSection(int $pageId, string $slug): bool {
     try {
         // Create the hero section in content_sections
         $stmt = $pdo->prepare("
-            INSERT INTO content_sections (code, name, description, page, page_id, image_mode, max_blocks, has_title, has_description, has_link, sort_order, template_type, is_hero)
-            VALUES (?, ?, ?, ?, ?, 'required', 1, 0, 0, 0, 0, 'hero', 1)
+            INSERT INTO content_sections (code, name, description, page, page_id, image_mode, max_blocks, has_title, has_description, has_link, sort_order, template_type, is_hero, hotel_id)
+            VALUES (?, ?, ?, ?, ?, 'required', 1, 0, 0, 0, 0, 'hero', 1, ?)
         ");
         $stmt->execute([
             $heroCode,
             'Image Hero - ' . ucfirst($slug),
             'Image de bannière principale',
             $slug,
-            $pageId
+            $pageId,
+            getHotelId()
         ]);
 
         // Update page with hero section code
-        $stmt = $pdo->prepare("UPDATE pages SET hero_section_code = ? WHERE id = ?");
-        $stmt->execute([$heroCode, $pageId]);
+        $stmt = $pdo->prepare("UPDATE pages SET hero_section_code = ? WHERE id = ? AND hotel_id = ?");
+        $stmt->execute([$heroCode, $pageId, getHotelId()]);
 
         return true;
     } catch (PDOException $e) {
@@ -8255,12 +8357,13 @@ function getPageCount(bool $activeOnly = false): int {
     try {
         initPagesTable();
 
-        $sql = "SELECT COUNT(*) FROM pages";
+        $sql = "SELECT COUNT(*) FROM pages WHERE hotel_id = ?";
         if ($activeOnly) {
-            $sql .= " WHERE is_active = TRUE";
+            $sql .= " AND is_active = TRUE";
         }
 
-        $stmt = $pdo->query($sql);
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([getHotelId()]);
         return (int) $stmt->fetchColumn();
     } catch (PDOException $e) {
         return 0;

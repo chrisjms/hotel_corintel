@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../bootstrap.php';
 /**
  * Push Notification Subscription API
  * Handle push subscription registration
@@ -53,9 +54,9 @@ if ($method === 'POST') {
         $stmt = $pdo->prepare("
             UPDATE push_subscriptions
             SET is_active = FALSE
-            WHERE room_id = :room_id AND endpoint = :endpoint
+            WHERE room_id = :room_id AND endpoint = :endpoint AND hotel_id = :hotel_id
         ");
-        $stmt->execute(['room_id' => $roomId, 'endpoint' => $endpoint]);
+        $stmt->execute(['room_id' => $roomId, 'endpoint' => $endpoint, 'hotel_id' => getHotelId()]);
     }
 
     echo json_encode(['success' => true, 'message' => 'Unsubscribed']);

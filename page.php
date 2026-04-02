@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/bootstrap.php';
 /**
  * Dynamic Page Template
  * Hotel Corintel - Renders any page based on slug
