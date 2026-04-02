@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/../bootstrap.php';
+require_once __DIR__ . '/../shared/bootstrap.php';
 /**
  * Super Admin Cross-Login Entry Point
  *
@@ -11,8 +11,8 @@ require_once __DIR__ . '/../bootstrap.php';
  * Signature: HMAC-SHA256(payload, shared_secret)
  */
 
-require_once __DIR__ . '/../config/database.php';
-require_once __DIR__ . '/../includes/auth.php';
+require_once HOTEL_ROOT . '/shared/config/database.php';
+require_once HOTEL_ROOT . '/shared/includes/auth.php';
 
 $token = $_GET['token'] ?? '';
 

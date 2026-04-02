@@ -1,29 +1,25 @@
 <?php
-require_once __DIR__ . '/../shared/bootstrap.php';
 /**
- * Admin Login Page
- * Hotel Corintel
+ * Super Admin Login Page
+ * Platform Administration
  */
 
-require_once HOTEL_ROOT . '/shared/includes/auth.php';
-require_once HOTEL_ROOT . '/shared/includes/functions.php';
+require_once __DIR__ . '/../shared/bootstrap.php';
+require_once __DIR__ . '/includes/super-auth.php';
 
-// Redirect if already logged in
-if (isLoggedIn()) {
+if (superIsLoggedIn()) {
     header('Location: index.php');
     exit;
 }
 
 $error = '';
-$csrfToken = generateCsrfToken();
-$hotelName = getHotelName();
+$csrfToken = superGenerateCsrfToken();
 
-// Handle login form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
+    if (!superVerifyCsrfToken($_POST['csrf_token'] ?? '')) {
         $error = 'Session expirée. Veuillez réessayer.';
     } else {
-        $result = attemptLogin($_POST['username'] ?? '', $_POST['password'] ?? '');
+        $result = superAttemptLogin($_POST['username'] ?? '', $_POST['password'] ?? '');
         if ($result['success']) {
             header('Location: index.php');
             exit;
@@ -38,18 +34,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
-    <title>Connexion Admin | <?= h($hotelName) ?></title>
+    <title>Super Admin | Platform</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Lato:wght@300;400;500;700&display=swap" rel="stylesheet">
-    <script>(function(){if(localStorage.getItem('admin_theme')==='dark')document.documentElement.setAttribute('data-theme','dark')})();</script>
-    <link rel="stylesheet" href="admin-style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="super-admin-style.css">
 </head>
 <body class="login-page">
     <div class="login-container">
         <div class="login-header">
-            <h1><?= h($hotelName) ?></h1>
-            <p>Administration</p>
+            <div class="login-icon">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+            </div>
+            <h1>Platform Admin</h1>
+            <p>Espace de gestion de la plateforme</p>
         </div>
 
         <?php if ($error): ?>
@@ -89,10 +89,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 Se connecter
             </button>
         </form>
-
-        <div class="login-footer">
-            <a href="<?= SITE_URL ?>/">Retour au site</a>
-        </div>
     </div>
 </body>
 </html>

@@ -1,12 +1,12 @@
 <?php
-require_once __DIR__ . '/../bootstrap.php';
+require_once __DIR__ . '/../shared/bootstrap.php';
 /**
  * Image Management
  * Hotel Corintel
  */
 
-require_once __DIR__ . '/../includes/auth.php';
-require_once __DIR__ . '/../includes/functions.php';
+require_once HOTEL_ROOT . '/shared/includes/auth.php';
+require_once HOTEL_ROOT . '/shared/includes/functions.php';
 
 requireRole('content');
 
@@ -105,7 +105,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     </svg>
                 </button>
                 <h1>Gestion des images</h1>
-                <a href="../index.html" target="_blank" class="btn btn-outline">
+                <a href="<?= SITE_URL ?>/" target="_blank" class="btn btn-outline">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
                         <polyline points="15 3 21 3 21 9"/>
@@ -146,7 +146,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                                 <?php foreach ($images as $image): ?>
                                     <div class="image-card" data-id="<?= $image['id'] ?>">
                                         <div class="image-preview">
-                                            <img src="../<?= h($image['filename']) ?>"
+                                            <img src="/<?= h($image['filename']) ?>"
                                                  alt="<?= h($image['alt_text'] ?? '') ?>"
                                                  onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect fill=%22%23ddd%22 width=%22100%22 height=%22100%22/><text x=%2250%22 y=%2250%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22%23999%22>No Image</text></svg>'">
                                             <div class="image-overlay">

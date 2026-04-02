@@ -1,0 +1,29 @@
+# =====================================================
+# URL Rewriting for Client Site
+# [slug].hothello.ovh
+# =====================================================
+
+DirectoryIndex index.php index.html
+
+RewriteEngine On
+RewriteBase /
+
+# Don't rewrite existing files or directories
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Skip rewriting for api, uploads, js, images (uploads/js/images served via Apache Alias)
+RewriteRule ^api/ - [L]
+RewriteRule ^uploads/ - [L]
+RewriteRule ^js/ - [L]
+RewriteRule ^images/ - [L]
+
+# Room service special handling
+RewriteRule ^room-service\.php$ - [L]
+RewriteRule ^room-service$ room-service.php [L]
+
+# Dynamic page URLs -> page.php
+# /services -> page.php?slug=services
+# /experiences -> page.php?slug=experiences
+RewriteRule ^([a-z0-9-]+)/?$ page.php?slug=$1 [L,QSA]

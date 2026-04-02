@@ -1,12 +1,12 @@
 <?php
-require_once __DIR__ . '/../bootstrap.php';
+require_once __DIR__ . '/../shared/bootstrap.php';
 /**
  * Content Management
  * Hotel Corintel
  */
 
-require_once __DIR__ . '/../includes/auth.php';
-require_once __DIR__ . '/../includes/functions.php';
+require_once HOTEL_ROOT . '/shared/includes/auth.php';
+require_once HOTEL_ROOT . '/shared/includes/functions.php';
 
 requireRole('content');
 
@@ -192,7 +192,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     }
                     // Delete file
                     if (!empty($block['image_filename']) && strpos($block['image_filename'], 'uploads/') === 0) {
-                        $oldPath = __DIR__ . '/../' . $block['image_filename'];
+                        $oldPath = HOTEL_ROOT . '/shared/' . $block['image_filename'];
                         if (file_exists($oldPath)) {
                             unlink($oldPath);
                         }
@@ -589,7 +589,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 // Handle image upload
                 $imageFilename = '';
                 if (!empty($_FILES['gallery_image']['tmp_name'])) {
-                    $uploadDir = __DIR__ . '/../uploads/gallery/';
+                    $uploadDir = HOTEL_ROOT . '/shared/uploads/gallery/';
                     if (!is_dir($uploadDir)) {
                         mkdir($uploadDir, 0755, true);
                     }
@@ -658,7 +658,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 // Handle image upload (optional for update)
                 $newImageFilename = null;
                 if (!empty($_FILES['gallery_image']['tmp_name'])) {
-                    $uploadDir = __DIR__ . '/../uploads/gallery/';
+                    $uploadDir = HOTEL_ROOT . '/shared/uploads/gallery/';
                     if (!is_dir($uploadDir)) {
                         mkdir($uploadDir, 0755, true);
                     }
@@ -676,8 +676,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
                         // Delete old image
                         $oldItem = getSectionGalleryItem($itemId);
-                        if ($oldItem && !empty($oldItem['image_filename']) && file_exists(__DIR__ . '/../' . $oldItem['image_filename'])) {
-                            @unlink(__DIR__ . '/../' . $oldItem['image_filename']);
+                        if ($oldItem && !empty($oldItem['image_filename']) && file_exists(HOTEL_ROOT . '/shared/' . $oldItem['image_filename'])) {
+                            @unlink(HOTEL_ROOT . '/shared/' . $oldItem['image_filename']);
                         }
                     }
                 }
@@ -4226,7 +4226,7 @@ if ($editBlockId) {
                     </svg>
                 </button>
                 <h1>Gestion du contenu</h1>
-                <a href="../index.php" target="_blank" class="btn btn-outline">
+                <a href="<?= SITE_URL ?>/" target="_blank" class="btn btn-outline">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
                         <polyline points="15 3 21 3 21 9"/>
@@ -4517,7 +4517,7 @@ if ($editBlockId) {
 
                                     <?php if (!empty($editBlock['image_filename'])): ?>
                                     <div class="current-image-preview">
-                                        <img src="../<?= h($editBlock['image_filename']) ?>" alt="<?= h($editBlock['image_alt']) ?>">
+                                        <img src="/<?= h($editBlock['image_filename']) ?>" alt="<?= h($editBlock['image_alt']) ?>">
                                         <div class="current-image-info">
                                             <p>Image actuelle</p>
                                             <?php if ($currentSectionData['image_mode'] !== IMAGE_REQUIRED): ?>
@@ -5508,7 +5508,7 @@ if ($editBlockId) {
                                             </svg>
                                         </div>
                                         <?php if (!empty($item['image_filename'])): ?>
-                                        <img src="../<?= h($item['image_filename']) ?>" alt="<?= h($item['title']) ?>" class="gallery-item-image">
+                                        <img src="/<?= h($item['image_filename']) ?>" alt="<?= h($item['title']) ?>" class="gallery-item-image">
                                         <?php else: ?>
                                         <div class="gallery-item-placeholder">
                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -5718,7 +5718,7 @@ if ($editBlockId) {
 
                                     <?php if ($currentSectionData['image_mode'] !== IMAGE_FORBIDDEN): ?>
                                         <?php if (!empty($block['image_filename'])): ?>
-                                        <img src="../<?= h($block['image_filename']) ?>" alt="<?= h($block['image_alt']) ?>" class="block-image">
+                                        <img src="/<?= h($block['image_filename']) ?>" alt="<?= h($block['image_alt']) ?>" class="block-image">
                                         <?php else: ?>
                                         <div class="block-image-placeholder">
                                             <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">

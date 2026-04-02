@@ -1,0 +1,242 @@
+<?php
+/**
+ * Super Admin Dashboard - Hotel List
+ */
+
+require_once __DIR__ . '/../shared/bootstrap.php';
+require_once __DIR__ . '/includes/super-auth.php';
+require_once __DIR__ . '/includes/super-functions.php';
+
+superRequireAuth();
+
+$currentPage = 'index.php';
+$csrfToken = superGenerateCsrfToken();
+$message = '';
+$messageType = '';
+
+// Handle hotel deletion
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    if (!superVerifyCsrfToken($_POST['csrf_token'] ?? '')) {
+        $message = 'Session expirée. Veuillez réessayer.';
+        $messageType = 'error';
+    } elseif ($_POST['action'] === 'delete_hotel') {
+        $hotelId = (int)($_POST['hotel_id'] ?? 0);
+        $hotel = getHotelById($hotelId);
+        if ($hotel) {
+            $result = deleteHotel($hotelId);
+            $message = $result['message'];
+            $messageType = $result['success'] ? 'success' : 'error';
+            if ($result['success']) {
+                logAudit($_SESSION['super_admin_id'], 'hotel_deleted', $hotelId, json_encode(['name' => $hotel['name']]));
+            }
+        } else {
+            $message = 'Hôtel introuvable.';
+            $messageType = 'error';
+        }
+    }
+}
+
+$hotels = getAllHotels();
+$totalHotels = count($hotels);
+$activeHotels = count(array_filter($hotels, fn($h) => $h['is_active']));
+?>
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Dashboard | Super Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>(function(){if(localStorage.getItem('sa_theme')==='dark')document.documentElement.setAttribute('data-theme','dark')})();</script>
+    <link rel="stylesheet" href="super-admin-style.css">
+</head>
+<body>
+    <div class="sa-layout">
+        <?php include __DIR__ . '/includes/sidebar.php'; ?>
+
+        <main class="sa-main">
+            <header class="sa-header">
+                <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Menu">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/>
+                    </svg>
+                </button>
+                <h1>Hotels</h1>
+                <a href="hotel-form.php" class="btn btn-primary">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    Ajouter un hôtel
+                </a>
+            </header>
+
+            <div class="sa-content">
+                <?php if ($message): ?>
+                    <div class="alert alert-<?= $messageType ?>">
+                        <?= htmlspecialchars($message) ?>
+                    </div>
+                <?php endif; ?>
+
+                <!-- Stats -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="stat-value"><?= $totalHotels ?></div>
+                            <div class="stat-label">Total Hotels</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: rgba(72, 187, 120, 0.1);">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--sa-success);">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="stat-value"><?= $activeHotels ?></div>
+                            <div class="stat-label">Hotels actifs</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hotel Cards -->
+                <?php if (empty($hotels)): ?>
+                    <div class="empty-state">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        <p>Aucun hôtel enregistré</p>
+                        <a href="hotel-form.php" class="btn btn-primary">Ajouter un hôtel</a>
+                    </div>
+                <?php else: ?>
+                    <div class="hotels-grid">
+                        <?php foreach ($hotels as $hotel): ?>
+                            <div class="hotel-card">
+                                <div class="hotel-card-header">
+                                    <h3><?= htmlspecialchars($hotel['name']) ?></h3>
+                                    <span class="hotel-status <?= $hotel['is_active'] ? 'active' : 'inactive' ?>">
+                                        <span class="dot"></span>
+                                        <?= $hotel['is_active'] ? 'Actif' : 'Inactif' ?>
+                                    </span>
+                                </div>
+                                <div class="hotel-card-body">
+                                    <div class="hotel-info">
+                                        <?php if ($hotel['site_url']): ?>
+                                            <div>
+                                                <strong>Site client :</strong>
+                                                <a href="<?= htmlspecialchars($hotel['site_url']) ?>" target="_blank" rel="noopener"><?= htmlspecialchars($hotel['site_url']) ?></a>
+                                            </div>
+                                        <?php endif; ?>
+                                        <?php if ($hotel['admin_url']): ?>
+                                            <div>
+                                                <strong>Admin :</strong>
+                                                <span><?= htmlspecialchars($hotel['admin_url']) ?></span>
+                                            </div>
+                                        <?php endif; ?>
+                                        <?php if ($hotel['notes']): ?>
+                                            <div style="font-style: italic; opacity: 0.8;"><?= htmlspecialchars($hotel['notes']) ?></div>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="hotel-card-actions">
+                                        <?php if ($hotel['site_url']): ?>
+                                            <a href="<?= htmlspecialchars($hotel['site_url']) ?>" target="_blank" rel="noopener" class="btn btn-outline btn-sm">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                                                Visiter le site
+                                            </a>
+                                        <?php endif; ?>
+                                        <?php if ($hotel['admin_url']): ?>
+                                            <button type="button" class="btn btn-primary btn-sm" onclick="openAdmin(<?= $hotel['id'] ?>)">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                                                Ouvrir Admin
+                                            </button>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                                <div class="hotel-card-footer">
+                                    <a href="hotel-form.php?id=<?= $hotel['id'] ?>" class="btn btn-outline btn-sm">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                        Modifier
+                                    </a>
+                                    <form method="POST" style="display: inline;" onsubmit="return confirm('Supprimer cet hôtel ? Cette action est irréversible.');">
+                                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
+                                        <input type="hidden" name="action" value="delete_hotel">
+                                        <input type="hidden" name="hotel_id" value="<?= $hotel['id'] ?>">
+                                        <button type="submit" class="btn btn-danger btn-sm">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                                            Supprimer
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+            </div>
+        </main>
+    </div>
+
+    <script>
+    // Theme toggle
+    function toggleTheme() {
+        const current = document.documentElement.getAttribute('data-theme');
+        const next = current === 'dark' ? '' : 'dark';
+        if (next) {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            localStorage.setItem('sa_theme', 'dark');
+        } else {
+            document.documentElement.removeAttribute('data-theme');
+            localStorage.removeItem('sa_theme');
+        }
+    }
+
+    // Mobile menu
+    const menuBtn = document.getElementById('mobileMenuBtn');
+    const sidebar = document.getElementById('saSidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    const closeBtn = document.getElementById('sidebarClose');
+
+    if (menuBtn) {
+        menuBtn.addEventListener('click', () => {
+            sidebar.classList.add('open');
+            overlay.classList.add('open');
+        });
+    }
+
+    function closeSidebar() {
+        sidebar.classList.remove('open');
+        overlay.classList.remove('open');
+    }
+
+    if (overlay) overlay.addEventListener('click', closeSidebar);
+    if (closeBtn) closeBtn.addEventListener('click', closeSidebar);
+
+    // Cross-login: Open Admin
+    function openAdmin(hotelId) {
+        fetch('api/generate-cross-login.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: 'hotel_id=' + hotelId + '&csrf_token=' + encodeURIComponent('<?= htmlspecialchars($csrfToken) ?>')
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success && data.url) {
+                window.open(data.url, '_blank');
+            } else {
+                alert(data.message || 'Erreur lors de la génération du lien.');
+            }
+        })
+        .catch(() => {
+            alert('Erreur de connexion.');
+        });
+    }
+    </script>
+</body>
+</html>

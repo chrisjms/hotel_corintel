@@ -1,12 +1,12 @@
 <?php
-require_once __DIR__ . '/../bootstrap.php';
+require_once __DIR__ . '/../shared/bootstrap.php';
 /**
  * Room Service Orders Management
  * Hotel Corintel
  */
 
-require_once __DIR__ . '/../includes/auth.php';
-require_once __DIR__ . '/../includes/functions.php';
+require_once HOTEL_ROOT . '/shared/includes/auth.php';
+require_once HOTEL_ROOT . '/shared/includes/functions.php';
 
 requireRole('orders');
 
@@ -484,7 +484,7 @@ if (isset($_GET['view'])) {
                     </svg>
                 </button>
                 <h1>Room Service - Commandes</h1>
-                <a href="../room-service.php" target="_blank" class="btn btn-outline">
+                <a href="<?= SITE_URL ?>/room-service" target="_blank" class="btn btn-outline">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
                         <polyline points="15 3 21 3 21 9"/>
