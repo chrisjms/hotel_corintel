@@ -169,7 +169,7 @@ function countHotels(): int {
 function countActiveHotels(): int {
     ensureHotelsTable();
     $pdo = getSuperDatabase();
-    return (int)$pdo->query('SELECT COUNT(*) FROM hotels WHERE is_active = 1')->fetchColumn();
+    return (int)$pdo->query('SELECT COUNT(*) FROM hotels WHERE is_active = TRUE')->fetchColumn();
 }
 
 // --- Audit Logging ---

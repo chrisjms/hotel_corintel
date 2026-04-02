@@ -6,9 +6,10 @@
  * Update these values with your PostgreSQL credentials
  */
 
-define('DB_HOST', 'hothelvhothello.postgresql.db');
-define('DB_NAME', 'hothelvhothello');
-define('DB_USER', 'hothelvhothello');
+define('DB_HOST', 'aws-0-eu-west-1.pooler.supabase.com');
+define('DB_PORT', '6543'); // 6543 = Supabase pgBouncer pooler, 5432 = direct (often blocked)
+define('DB_NAME', 'postgres');
+define('DB_USER', 'postgres.afiixohjgnguomglpulr');
 define('DB_PASS', 'Toutesdesputes33');
 
 // Site configuration
@@ -31,15 +32,16 @@ function getDatabase(): PDO {
     if ($pdo === null) {
         try {
             $dsn = sprintf(
-                'pgsql:host=%s;dbname=%s',
+                'pgsql:host=%s;port=%s;dbname=%s;sslmode=require',
                 DB_HOST,
+                DB_PORT,
                 DB_NAME
             );
 
             $options = [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                PDO::ATTR_EMULATE_PREPARES => false,
+                PDO::ATTR_EMULATE_PREPARES => true, // required for pgBouncer transaction mode (port 6543)
             ];
 
             $pdo = new PDO($dsn, DB_USER, DB_PASS, $options);

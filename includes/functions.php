@@ -311,7 +311,7 @@ function getRoomServiceItems(bool $activeOnly = false): array {
     $pdo = getDatabase();
     $sql = 'SELECT * FROM room_service_items';
     if ($activeOnly) {
-        $sql .= ' WHERE is_active = 1';
+        $sql .= ' WHERE is_active = TRUE';
     }
     $sql .= ' ORDER BY position ASC, id ASC';
     $stmt = $pdo->query($sql);
@@ -613,7 +613,7 @@ function getRoomServiceStats(): array {
     $stats['total_items'] = $stmt->fetchColumn();
 
     // Active items
-    $stmt = $pdo->query('SELECT COUNT(*) FROM room_service_items WHERE is_active = 1');
+    $stmt = $pdo->query('SELECT COUNT(*) FROM room_service_items WHERE is_active = TRUE');
     $stats['active_items'] = $stmt->fetchColumn();
 
     // Total orders
@@ -642,7 +642,7 @@ function getRoomServiceStats(): array {
 function getRoomServiceCategories(): array {
     try {
         $pdo = getDatabase();
-        $stmt = $pdo->query('SELECT code, name FROM room_service_categories WHERE is_active = 1 ORDER BY position ASC');
+        $stmt = $pdo->query('SELECT code, name FROM room_service_categories WHERE is_active = TRUE ORDER BY position ASC');
         $categories = [];
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
             $categories[$row['code']] = $row['name'];
@@ -1354,7 +1354,7 @@ function getRoomServiceCategoriesTranslated(?string $langCode = null): array {
 
     try {
         $pdo = getDatabase();
-        $stmt = $pdo->query('SELECT code, name FROM room_service_categories WHERE is_active = 1 ORDER BY position ASC');
+        $stmt = $pdo->query('SELECT code, name FROM room_service_categories WHERE is_active = TRUE ORDER BY position ASC');
         $categories = [];
 
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
@@ -2940,10 +2940,10 @@ function seedDefaultOverlayTexts(): void {
     // Enable overlay for home_hero and ensure it's configured as image-only (no title/description per image)
     $stmt = $pdo->prepare('
         UPDATE content_sections
-        SET has_overlay = 1,
-            has_title = 0,
-            has_description = 0,
-            has_link = 0
+        SET has_overlay = TRUE,
+            has_title = FALSE,
+            has_description = FALSE,
+            has_link = FALSE
         WHERE code = ?
     ');
     $stmt->execute(['home_hero']);
@@ -3221,7 +3221,7 @@ function getDynamicSections(string $page): array {
         SELECT cs.*, st.css_class as template_css_class, st.has_services as template_has_services, st.has_gallery as template_has_gallery
         FROM content_sections cs
         LEFT JOIN section_templates st ON cs.template_type = st.code
-        WHERE cs.page = ? AND cs.is_dynamic = 1
+        WHERE cs.page = ? AND cs.is_dynamic = TRUE
         ORDER BY cs.sort_order
     ');
     $stmt->execute([$page]);
@@ -3249,7 +3249,7 @@ function getDynamicSectionWithData(string $sectionCode): ?array {
     $section = getContentSection($sectionCode);
 
     // Check if section exists and is a dynamic section
-    if (!$section || !isset($section['is_dynamic']) || (int)$section['is_dynamic'] !== 1) {
+    if (!$section || !isset($section['is_dynamic']) || !filter_var($section['is_dynamic'], FILTER_VALIDATE_BOOLEAN)) {
         return null;
     }
 
@@ -3387,7 +3387,7 @@ function updateDynamicSectionName(string $sectionCode, string $newName): bool {
     $stmt = $pdo->prepare('
         UPDATE content_sections
         SET name = ?, custom_name = ?
-        WHERE code = ? AND is_dynamic = 1
+        WHERE code = ? AND is_dynamic = TRUE
     ');
     return $stmt->execute([$newName, $newName, $sectionCode]);
 }
@@ -3417,7 +3417,7 @@ function deleteDynamicSection(string $sectionCode): bool {
     }
 
     // Delete the section (foreign key cascades handle related tables)
-    $stmt = $pdo->prepare('DELETE FROM content_sections WHERE code = ? AND is_dynamic = 1');
+    $stmt = $pdo->prepare('DELETE FROM content_sections WHERE code = ? AND is_dynamic = TRUE');
     return $stmt->execute([$sectionCode]);
 }
 
@@ -3432,7 +3432,7 @@ function reorderDynamicSections(string $page, array $sectionCodes): bool {
         $stmt = $pdo->prepare('
             UPDATE content_sections
             SET sort_order = ?
-            WHERE code = ? AND page = ? AND is_dynamic = 1
+            WHERE code = ? AND page = ? AND is_dynamic = TRUE
         ');
         $stmt->execute([$position, $code, $page]);
         $position++;
@@ -3446,7 +3446,7 @@ function reorderDynamicSections(string $page, array $sectionCodes): bool {
  */
 function pageHasDynamicSections(string $page): bool {
     $pdo = getDatabase();
-    $stmt = $pdo->prepare('SELECT COUNT(*) FROM content_sections WHERE page = ? AND is_dynamic = 1');
+    $stmt = $pdo->prepare('SELECT COUNT(*) FROM content_sections WHERE page = ? AND is_dynamic = TRUE');
     $stmt->execute([$page]);
     return $stmt->fetchColumn() > 0;
 }
@@ -3456,7 +3456,7 @@ function pageHasDynamicSections(string $page): bool {
  */
 function countDynamicSections(string $page): int {
     $pdo = getDatabase();
-    $stmt = $pdo->prepare('SELECT COUNT(*) FROM content_sections WHERE page = ? AND is_dynamic = 1');
+    $stmt = $pdo->prepare('SELECT COUNT(*) FROM content_sections WHERE page = ? AND is_dynamic = TRUE');
     $stmt->execute([$page]);
     return (int) $stmt->fetchColumn();
 }
@@ -4174,7 +4174,7 @@ function getContentBlocks(string $sectionCode, bool $activeOnly = false): array 
     $pdo = getDatabase();
     $sql = 'SELECT * FROM content_blocks WHERE section_code = ?';
     if ($activeOnly) {
-        $sql .= ' AND is_active = 1';
+        $sql .= ' AND is_active = TRUE';
     }
     $sql .= ' ORDER BY position ASC, id ASC';
     $stmt = $pdo->prepare($sql);
@@ -4554,7 +4554,7 @@ function sectionHasOverlay(string $sectionCode): bool {
  */
 function enableSectionOverlay(string $sectionCode): bool {
     $pdo = getDatabase();
-    $stmt = $pdo->prepare('UPDATE content_sections SET has_overlay = 1 WHERE code = ?');
+    $stmt = $pdo->prepare('UPDATE content_sections SET has_overlay = TRUE WHERE code = ?');
     return $stmt->execute([$sectionCode]);
 }
 
@@ -4605,7 +4605,7 @@ function saveSectionOverlay(string $sectionCode, string $subtitle, string $title
     $pdo = getDatabase();
     $stmt = $pdo->prepare('
         UPDATE content_sections
-        SET overlay_subtitle = ?, overlay_title = ?, overlay_description = ?, has_overlay = 1
+        SET overlay_subtitle = ?, overlay_title = ?, overlay_description = ?, has_overlay = TRUE
         WHERE code = ?
     ');
     return $stmt->execute([trim($subtitle), trim($title), trim($description), $sectionCode]);
@@ -4919,7 +4919,7 @@ function sectionHasServices(string $sectionCode): bool {
  */
 function enableSectionFeatures(string $sectionCode): bool {
     $pdo = getDatabase();
-    $stmt = $pdo->prepare('UPDATE content_sections SET has_features = 1 WHERE code = ?');
+    $stmt = $pdo->prepare('UPDATE content_sections SET has_features = TRUE WHERE code = ?');
     return $stmt->execute([$sectionCode]);
 }
 
@@ -5363,7 +5363,7 @@ function clearSectionLink(string $sectionCode): bool {
     // Clear link data
     $stmt = $pdo->prepare('
         UPDATE content_sections
-        SET section_link_url = NULL, section_link_text = NULL, section_link_new_tab = 1
+        SET section_link_url = NULL, section_link_text = NULL, section_link_new_tab = TRUE
         WHERE code = ?
     ');
     $stmt->execute([$sectionCode]);
@@ -5390,7 +5390,7 @@ function getSectionFeatures(string $sectionCode, bool $activeOnly = true): array
     $pdo = getDatabase();
     $sql = 'SELECT * FROM section_features WHERE section_code = ?';
     if ($activeOnly) {
-        $sql .= ' AND is_active = 1';
+        $sql .= ' AND is_active = TRUE';
     }
     $sql .= ' ORDER BY position ASC, id ASC';
     $stmt = $pdo->prepare($sql);
@@ -5585,7 +5585,7 @@ function getSectionServices(string $sectionCode, bool $activeOnly = true): array
     $pdo = getDatabase();
     $sql = 'SELECT * FROM section_services WHERE section_code = ?';
     if ($activeOnly) {
-        $sql .= ' AND is_active = 1';
+        $sql .= ' AND is_active = TRUE';
     }
     $sql .= ' ORDER BY position ASC, id ASC';
     $stmt = $pdo->prepare($sql);
@@ -5777,7 +5777,7 @@ function getSectionGalleryItems(string $sectionCode, bool $activeOnly = true): a
     $pdo = getDatabase();
     $sql = 'SELECT * FROM section_gallery_items WHERE section_code = ?';
     if ($activeOnly) {
-        $sql .= ' AND is_active = 1';
+        $sql .= ' AND is_active = TRUE';
     }
     $sql .= ' ORDER BY position ASC, id ASC';
     $stmt = $pdo->prepare($sql);
@@ -6484,10 +6484,10 @@ function getRooms(array $filters = [], string $orderBy = 'room_number', string $
 
     if (isset($filters['is_active'])) {
         $sql .= " AND is_active = ?";
-        $params[] = $filters['is_active'] ? 1 : 0;
+        $params[] = $filters['is_active'] ? true : false;
     } else {
         // Default: only show active rooms
-        $sql .= " AND is_active = 1";
+        $sql .= " AND is_active = TRUE";
     }
 
     if (isset($filters['search']) && !empty($filters['search'])) {
@@ -6681,7 +6681,7 @@ function deleteRoom(int $id, bool $hardDelete = false): bool {
         if ($hardDelete) {
             $stmt = $pdo->prepare("DELETE FROM rooms WHERE id = ?");
         } else {
-            $stmt = $pdo->prepare("UPDATE rooms SET is_active = 0 WHERE id = ?");
+            $stmt = $pdo->prepare("UPDATE rooms SET is_active = FALSE WHERE id = ?");
         }
         return $stmt->execute([$id]);
     } catch (PDOException $e) {
@@ -6729,14 +6729,14 @@ function getRoomStatistics(): array {
 
     try {
         // Total rooms
-        $stmt = $pdo->query("SELECT COUNT(*) as total FROM rooms WHERE is_active = 1");
+        $stmt = $pdo->query("SELECT COUNT(*) as total FROM rooms WHERE is_active = TRUE");
         $total = $stmt->fetch()['total'];
 
         // By status
         $stmt = $pdo->query("
             SELECT status, COUNT(*) as count
             FROM rooms
-            WHERE is_active = 1
+            WHERE is_active = TRUE
             GROUP BY status
         ");
         $byStatus = [];
@@ -6748,7 +6748,7 @@ function getRoomStatistics(): array {
         $stmt = $pdo->query("
             SELECT housekeeping_status, COUNT(*) as count
             FROM rooms
-            WHERE is_active = 1
+            WHERE is_active = TRUE
             GROUP BY housekeeping_status
         ");
         $byHousekeeping = [];
@@ -6760,7 +6760,7 @@ function getRoomStatistics(): array {
         $stmt = $pdo->query("
             SELECT COALESCE(floor, 0) as floor, COUNT(*) as count
             FROM rooms
-            WHERE is_active = 1
+            WHERE is_active = TRUE
             GROUP BY floor
             ORDER BY floor
         ");
@@ -6773,7 +6773,7 @@ function getRoomStatistics(): array {
         $stmt = $pdo->query("
             SELECT room_type, COUNT(*) as count
             FROM rooms
-            WHERE is_active = 1
+            WHERE is_active = TRUE
             GROUP BY room_type
         ");
         $byType = [];
@@ -6811,7 +6811,7 @@ function getRoomFloors(): array {
         $stmt = $pdo->query("
             SELECT DISTINCT COALESCE(floor, 0) as floor
             FROM rooms
-            WHERE is_active = 1
+            WHERE is_active = TRUE
             ORDER BY floor
         ");
         return $stmt->fetchAll(PDO::FETCH_COLUMN);
@@ -6881,7 +6881,7 @@ function getTotalRoomCount(): int {
     $pdo = getDatabase();
 
     try {
-        $stmt = $pdo->query("SELECT COUNT(*) FROM rooms WHERE is_active = 1");
+        $stmt = $pdo->query("SELECT COUNT(*) FROM rooms WHERE is_active = TRUE");
         return (int) $stmt->fetchColumn();
     } catch (PDOException $e) {
         return 0;
@@ -7584,7 +7584,7 @@ function savePushSubscription(int $roomId, array $subscription): bool {
                 SET p256dh_key = :p256dh,
                     auth_key = :auth,
                     user_agent = :ua,
-                    is_active = 1,
+                    is_active = TRUE,
                     last_used_at = NOW()
                 WHERE id = :id
             ");
@@ -7623,7 +7623,7 @@ function getRoomPushSubscriptions(int $roomId): array {
     try {
         $stmt = $pdo->prepare("
             SELECT * FROM push_subscriptions
-            WHERE room_id = :room_id AND is_active = 1
+            WHERE room_id = :room_id AND is_active = TRUE
         ");
         $stmt->execute(['room_id' => $roomId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -7702,7 +7702,7 @@ function removePushSubscription(int $subscriptionId): bool {
 
     try {
         $stmt = $pdo->prepare("
-            UPDATE push_subscriptions SET is_active = 0 WHERE id = :id
+            UPDATE push_subscriptions SET is_active = FALSE WHERE id = :id
         ");
         return $stmt->execute(['id' => $subscriptionId]);
     } catch (PDOException $e) {
@@ -7861,10 +7861,10 @@ function getPages(bool $activeOnly = false, bool $navOnly = false): array {
 
         $sql = "SELECT * FROM pages WHERE 1=1";
         if ($activeOnly) {
-            $sql .= " AND is_active = 1";
+            $sql .= " AND is_active = TRUE";
         }
         if ($navOnly) {
-            $sql .= " AND show_in_nav = 1";
+            $sql .= " AND show_in_nav = TRUE";
         }
         $sql .= " ORDER BY display_order ASC, id ASC";
 
@@ -7914,7 +7914,7 @@ function getPageBySlug(string $slug): ?array {
     try {
         initPagesTable();
 
-        $stmt = $pdo->prepare("SELECT * FROM pages WHERE slug = ? AND is_active = 1");
+        $stmt = $pdo->prepare("SELECT * FROM pages WHERE slug = ? AND is_active = TRUE");
         $stmt->execute([$slug]);
         $page = $stmt->fetch(PDO::FETCH_ASSOC);
         return $page ?: null;
@@ -8257,7 +8257,7 @@ function getPageCount(bool $activeOnly = false): int {
 
         $sql = "SELECT COUNT(*) FROM pages";
         if ($activeOnly) {
-            $sql .= " WHERE is_active = 1";
+            $sql .= " WHERE is_active = TRUE";
         }
 
         $stmt = $pdo->query($sql);

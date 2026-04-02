@@ -52,7 +52,7 @@ if ($method === 'POST') {
         $pdo = getDatabase();
         $stmt = $pdo->prepare("
             UPDATE push_subscriptions
-            SET is_active = 0
+            SET is_active = FALSE
             WHERE room_id = :room_id AND endpoint = :endpoint
         ");
         $stmt->execute(['room_id' => $roomId, 'endpoint' => $endpoint]);
