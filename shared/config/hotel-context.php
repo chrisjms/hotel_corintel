@@ -56,11 +56,12 @@ class HotelContext {
 
         // --- Priority 1: Subdomain detection (VPS / production) ---
 
-        // Localhost / dev: use ?hotel=slug or fallback to hotel_id=1
+        // Localhost / dev: use ?hotel=slug to select hotel, ?context=admin for admin panel
         if ($host === 'localhost' || $host === '127.0.0.1' || str_starts_with($host, '192.168.') || str_starts_with($host, '10.')) {
             $this->siteUrl = 'http://' . $_SERVER['HTTP_HOST'];
-            $this->adminUrl = $this->siteUrl . '/admin';
-            $this->resolveFromUrlParam('hotel-client');
+            $this->adminUrl = $this->siteUrl;
+            $localContext = ($_GET['context'] ?? '') === 'admin' ? 'hotel-admin' : 'hotel-client';
+            $this->resolveFromUrlParam($localContext);
             return;
         }
 
@@ -100,10 +101,13 @@ class HotelContext {
         }
 
         // --- Priority 2: URL parameter ?hotel=slug (Render.com / staging) ---
-        // Unknown domain (e.g. hothello-client.onrender.com)
+        // Unknown domain (e.g. hothello-client.onrender.com, hothello-admin.onrender.com)
         $this->siteUrl = 'https://' . $host;
         $this->adminUrl = $this->siteUrl;
-        $this->resolveFromUrlParam('hotel-client');
+
+        // Detect context from hostname: if it contains "admin", it's the admin panel
+        $detectedContext = (str_contains($host, 'admin')) ? 'hotel-admin' : 'hotel-client';
+        $this->resolveFromUrlParam($detectedContext);
     }
 
     /**

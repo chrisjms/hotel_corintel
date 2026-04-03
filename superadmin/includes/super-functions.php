@@ -265,7 +265,8 @@ function getCrossLoginUrl(array $hotel, int $superAdminId): ?string {
     }
 
     $token = generateCrossLoginToken($hotel, $superAdminId);
-    return $adminUrl . '/super-login.php?token=' . urlencode($token);
+    $slug = $hotel['slug'] ?? '';
+    return $adminUrl . '/super-login.php?hotel=' . urlencode($slug) . '&token=' . urlencode($token);
 }
 
 // --- Hotel Schema Creation ---
