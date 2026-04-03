@@ -4,6 +4,9 @@
  * VAT rates, price calculations, financial statistics
  */
 
+// VAT rate constant
+if (!defined('DEFAULT_VAT_RATE')) define('DEFAULT_VAT_RATE', 10.0);
+
 /**
  * Get the default VAT rate (stored in settings or fallback to constant)
  * @return float VAT rate as percentage (e.g., 10.0 for 10%)

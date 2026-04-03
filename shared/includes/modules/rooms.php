@@ -4,6 +4,24 @@
  * Room CRUD, statuses, housekeeping, room types
  */
 
+// Room status constants
+if (!defined('ROOM_STATUS_AVAILABLE')) define('ROOM_STATUS_AVAILABLE', 'available');
+if (!defined('ROOM_STATUS_OCCUPIED'))  define('ROOM_STATUS_OCCUPIED',  'occupied');
+if (!defined('ROOM_STATUS_MAINTENANCE')) define('ROOM_STATUS_MAINTENANCE', 'maintenance');
+if (!defined('ROOM_STATUS_OUT_OF_ORDER')) define('ROOM_STATUS_OUT_OF_ORDER', 'out_of_order');
+
+// Housekeeping status constants
+if (!defined('HOUSEKEEPING_PENDING'))     define('HOUSEKEEPING_PENDING',     'pending');
+if (!defined('HOUSEKEEPING_IN_PROGRESS')) define('HOUSEKEEPING_IN_PROGRESS', 'in_progress');
+if (!defined('HOUSEKEEPING_CLEANED'))     define('HOUSEKEEPING_CLEANED',     'cleaned');
+if (!defined('HOUSEKEEPING_INSPECTED'))   define('HOUSEKEEPING_INSPECTED',   'inspected');
+
+// Room type constants
+if (!defined('ROOM_TYPE_SINGLE')) define('ROOM_TYPE_SINGLE', 'single');
+if (!defined('ROOM_TYPE_DOUBLE')) define('ROOM_TYPE_DOUBLE', 'double');
+if (!defined('ROOM_TYPE_TWIN'))   define('ROOM_TYPE_TWIN',   'twin');
+if (!defined('ROOM_TYPE_SUITE'))  define('ROOM_TYPE_SUITE',  'suite');
+
 function getRoomStatuses(): array {
     return [
         ROOM_STATUS_AVAILABLE => 'Disponible',
