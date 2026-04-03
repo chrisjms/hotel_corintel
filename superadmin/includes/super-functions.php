@@ -187,6 +187,16 @@ function deleteHotel(int $id): array {
         }
     }
 
+    // Clear the hotel slug cookie so the next page load doesn't try to load the deleted hotel
+    $isSecure = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on';
+    setcookie('_hotel_slug', '', [
+        'expires' => time() - 3600,
+        'path' => '/',
+        'secure' => $isSecure,
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
+
     return ['success' => true, 'message' => 'Hôtel supprimé.'];
 }
 

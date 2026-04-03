@@ -124,13 +124,14 @@ class HotelContext {
      * (e.g. requireAuth() → login.php → index.php) that lose the ?hotel= param.
      */
     private function resolveFromUrlParam(string $defaultContext): void {
+        $isSecure = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on';
+        $fromCookie = false;
         $slugParam = $_GET['hotel'] ?? null;
 
         if ($slugParam) {
             // Sanitize: only lowercase alphanumeric and hyphens
             $slugParam = preg_replace('/[^a-z0-9-]/', '', strtolower($slugParam));
             // Persist in cookie for future requests without ?hotel=
-            $isSecure = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on';
             setcookie('_hotel_slug', $slugParam, [
                 'expires' => time() + 86400 * 30, // 30 days
                 'path' => '/',
@@ -141,14 +142,27 @@ class HotelContext {
         } else {
             // Fallback: recover slug from cookie
             $slugParam = $_COOKIE['_hotel_slug'] ?? null;
+            $fromCookie = true;
         }
 
         if ($slugParam) {
             $this->slug = $slugParam;
             $this->context = $defaultContext;
             $this->loadHotel($this->slug);
+
+            // If hotel not found from cookie (e.g. deleted), clear the stale cookie silently
+            if ($this->hotelId === null && $fromCookie) {
+                setcookie('_hotel_slug', '', [
+                    'expires' => time() - 3600,
+                    'path' => '/',
+                    'secure' => $isSecure,
+                    'httponly' => true,
+                    'samesite' => 'Lax',
+                ]);
+                $this->slug = null;
+            }
         } else {
-            // No hotel specified anywhere — show error page
+            // No hotel specified anywhere
             $this->context = $defaultContext;
             $this->hotelId = null;
             $this->slug = null;
