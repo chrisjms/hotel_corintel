@@ -770,12 +770,13 @@ function createHotelSchema(PDO $pdo, string $schemaName): void {
     ");
 
     // --- Triggers (reference public function) ---
+    // Note: split into separate exec() calls — pgBouncer doesn't support multi-statement queries
     $triggerTables = ['images', 'room_service_items', 'room_service_orders',
                       'room_service_categories', 'guest_messages', 'rooms', 'pages',
                       'content_blocks', 'settings'];
     foreach ($triggerTables as $table) {
+        $pdo->exec("DROP TRIGGER IF EXISTS update_{$table}_updated_at ON {$table}");
         $pdo->exec("
-            DROP TRIGGER IF EXISTS update_{$table}_updated_at ON {$table};
             CREATE TRIGGER update_{$table}_updated_at BEFORE UPDATE ON {$table}
             FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column()
         ");

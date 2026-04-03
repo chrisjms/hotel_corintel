@@ -32,6 +32,7 @@ class HotelContext {
     private bool $resolved = false;
 
     private ?string $schemaName = null;
+    private ?string $loadError = null;
 
     private const BASE_DOMAIN = 'hothello.ovh';
 
@@ -195,6 +196,7 @@ class HotelContext {
         } catch (PDOException $e) {
             error_log('HotelContext::loadHotel error: ' . $e->getMessage());
             $this->hotelId = null;
+            $this->loadError = $e->getMessage();
         }
     }
 
@@ -246,10 +248,13 @@ class HotelContext {
         if ($this->hotelId === null) {
             http_response_code(404);
             $slug = htmlspecialchars($this->slug ?? '');
+            $detail = $this->loadError
+                ? 'Erreur DB : ' . htmlspecialchars($this->loadError)
+                : ($slug ? "Aucun hotel actif avec le slug \"$slug\"." : "Aucun hotel spécifié. Ajoutez ?hotel=slug à l'URL.");
             die('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Hotel introuvable</title>
             <style>body{font-family:system-ui,sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;background:#FAF6F0;color:#333;}
-            .error{text-align:center;padding:2rem;}.error h1{font-size:3rem;color:#8B6F47;margin-bottom:0.5rem;}.error p{font-size:1.1rem;opacity:0.7;}</style></head>
-            <body><div class="error"><h1>Hotel introuvable</h1><p>' . ($slug ? "Aucun hotel actif avec le slug \"$slug\"." : "Aucun hotel spécifié. Ajoutez ?hotel=slug à l'URL.") . '</p></div></body></html>');
+            .error{text-align:center;padding:2rem;max-width:600px;}.error h1{font-size:2.5rem;color:#8B6F47;margin-bottom:0.5rem;}.error p{font-size:1rem;opacity:0.7;word-break:break-all;}</style></head>
+            <body><div class="error"><h1>Hotel introuvable</h1><p>' . $detail . '</p></div></body></html>');
         }
     }
 }

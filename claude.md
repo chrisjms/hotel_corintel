@@ -25,9 +25,36 @@ Multi-hotel platform with four surfaces, each in its own folder:
 
 **Do NOT introduce** PHP frameworks, JS frameworks, CSS frameworks, Node.js/npm, or Composer dependencies.
 
+## Workflow Rule — Commit Message
+
+**À la fin de chaque réponse impliquant une modification de code**, générer un message de commit git adapté au travail effectué, au format :
+
+```
+<type>(<scope>): <résumé en français>
+
+<détail optionnel si nécessaire>
+```
+
+Types : `feat`, `fix`, `refactor`, `chore`, `docs`
+Scope : surface concernée (`hotel-context`, `superadmin`, `admin`, `client`, `shared`, etc.)
+
 ## Infrastructure
 
-### Serveur VPS OVH
+### Hébergement actuel — Render.com (staging)
+Déploiement temporaire sur Render.com en attendant la migration VPS. Pas de wildcard DNS disponible → hotel détecté via `?hotel=slug` + cookie.
+
+| Service Render | URL | Usage |
+|---|---|---|
+| `hothello-client` | `hothello-client.onrender.com` | Site client |
+| `hothello-admin` | `hothello-admin.onrender.com` | Panel admin |
+| `hothello-superadmin` | `hothello-superadmin.onrender.com` | Super admin |
+
+**Accès multi-hotel sur Render** :
+- Client : `https://hothello-client.onrender.com/?hotel=<slug>`
+- Admin : `https://hothello-admin.onrender.com/?hotel=<slug>` (le slug est persisté en cookie `_hotel_slug`, 30 jours)
+- Le slug est automatiquement conservé entre les redirections (ex: `requireAuth()` → `login.php`) grâce au cookie
+
+### Serveur VPS OVH (futur)
 - **Offre** : VPS Starter (2 vCPU, 2 Go RAM, 20 Go SSD), OS Ubuntu 24
 - **Stack** : Apache + PHP + Certbot
 - **Déploiement** : SSH manuel (`git pull`)
@@ -51,7 +78,10 @@ Multi-hotel platform with four surfaces, each in its own folder:
 - **Intervalles de date** : utiliser `NOW() - INTERVAL '15 minutes'` (jamais `DATE_SUB`)
 - **Agrégation** : `STRING_AGG()` (jamais `GROUP_CONCAT`)
 - **Auto-incrément** : `SERIAL` (jamais `AUTO_INCREMENT`)
-- **Schéma** : `shared/setup/schema.sql` + migrations dans `shared/config/migrations/`
+- **Schéma global** : `shared/setup/schema.sql` + migrations dans `shared/config/migrations/`
+- **Schéma par hotel** : chaque hotel a son propre schema PostgreSQL `hotel_{slug}` créé automatiquement à la création de l'hotel via superadmin. Le `search_path` est positionné sur ce schema dès la résolution du contexte hotel.
+- **Multi-tenancy** : toutes les tables per-hotel ont une colonne `hotel_id` (compatibilité) ET sont dans leur schema dédié. La migration `010_add_schema_name_to_hotels.sql` ajoute la colonne `schema_name` à la table `public.hotels`.
+- **DDL pgBouncer** : ne jamais grouper plusieurs instructions SQL dans un seul `exec()`. Toujours séparer chaque statement (`CREATE TABLE`, `ALTER TABLE`, `CREATE TRIGGER`, etc.) en appels `exec()` distincts.
 
 ## Development
 
@@ -61,10 +91,15 @@ php -S localhost:8000 -t client/ client/router.php   # Client site
 php -S localhost:8001 -t admin/                        # Admin panel
 php -S localhost:8002 -t superadmin/                   # Super admin
 
+# Accès local multi-hotel :
+# Client : http://localhost:8000/?hotel=corintel
+# Admin  : http://localhost:8001/?hotel=corintel&context=admin
+# Superadmin : http://localhost:8002/ (pas de hotel requis)
+
 # First-time setup : exécuter les fichiers SQL dans cet ordre via Supabase SQL Editor
 # 1. shared/setup/schema.sql
 # 2. shared/setup/003_create_guest_messages_table.sql
-# 3. shared/config/migrations/003 à 008 (dans l'ordre numérique)
+# 3. shared/config/migrations/003 à 010 (dans l'ordre numérique)
 ```
 
 No build step, no bundler, no preprocessor. Edit PHP/JS/CSS files directly.
@@ -114,12 +149,14 @@ Connexion PostgreSQL via Supabase pgBouncer (port 6543). `ATTR_EMULATE_PREPARES 
 
 ### Key Include Files
 
-- `shared/bootstrap.php` — Entry point bootstrap, defines `HOTEL_ROOT` constant, loads hotel context
+- `shared/bootstrap.php` — Entry point bootstrap, defines `HOTEL_ROOT`, résout le contexte hotel, appelle `requireHotel()` pour les surfaces client/admin
+- `shared/config/hotel-context.php` — `HotelContext` singleton : résolution hotel (sous-domaine → `?hotel=slug` → cookie `_hotel_slug`), `SET search_path` automatique
 - `shared/includes/functions.php` — All helper functions (images, room service, orders, messages, content, pages, QR tokens)
 - `shared/includes/auth.php` — Admin authentication (session + persistent token cookies)
 - `shared/includes/images-helper.php` — `img()`, `imgTag()` shorthand for image rendering with fallbacks
 - `shared/includes/content-helper.php` — `content()`, `contentFirst()`, `contentImage()` for dynamic content blocks
 - `superadmin/includes/super-auth.php` — Super admin authentication (separate from hotel admin)
+- `superadmin/includes/super-functions.php` — CRUD hotels, création schema PostgreSQL, provisioning données par défaut
 
 ### QR Code → Room Service Flow
 
@@ -153,8 +190,10 @@ No WebSockets. Polling via `setInterval` (every 5s) to:
 
 - Session-based (`hotel_admin_session`) with persistent token cookies (`hotel_admin_auth`)
 - All admin pages call `requireAuth()` at top
-- Rate limiting: 5 login attempts per IP per 15 minutes
+- Rate limiting: 5 login attempts per IP per 15 minutes (désactivé sur le superadmin)
 - Persistent tokens: SHA256-hashed in `persistent_tokens` table
+- **Cross-login superadmin → admin** : token HMAC-SHA256, 60s d'expiration, nonce anti-replay. L'URL générée inclut `?hotel=slug` pour la compatibilité Render.
+- **Safari popup fix** : `window.open()` appelé synchroniquement au clic, URL assignée après le fetch (évite le blocage popup Safari)
 
 ## Code Conventions
 
