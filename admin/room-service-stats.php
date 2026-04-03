@@ -630,7 +630,7 @@ $comparisonLabels = [
                     <div class="insight-card">
                         <div class="insight-label">Jour le plus actif</div>
                         <div class="insight-value"><?= $peakDays['peak_day_name'] ?></div>
-                        <div class="insight-detail"><?= $peakDays['data'][$peakDays['peak_day'] - 1]['orders'] ?> commandes sur 8 semaines</div>
+                        <div class="insight-detail"><?= $peakDays['data'][$peakDays['peak_day']]['orders'] ?> commandes sur 8 semaines</div>
                     </div>
                 </div>
 

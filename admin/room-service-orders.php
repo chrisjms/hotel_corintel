@@ -675,7 +675,7 @@ if (isset($_GET['view'])) {
                                 </div>
                                 <div class="form-group" style="margin-bottom: 0;">
                                     <label style="font-size: 0.75rem; text-transform: uppercase; color: var(--admin-text-light);">Trier par</label>
-                                    <select name="sort" style="padding: 0.5rem; border: 1px solid var(--admin-border); border-radius: 6px;">
+                                    <select name="sort">
                                         <option value="delivery_datetime" <?= $sortBy === 'delivery_datetime' ? 'selected' : '' ?>>Livraison</option>
                                         <option value="created_at" <?= $sortBy === 'created_at' ? 'selected' : '' ?>>Date commande</option>
                                         <option value="total_amount" <?= $sortBy === 'total_amount' ? 'selected' : '' ?>>Montant</option>
@@ -684,7 +684,7 @@ if (isset($_GET['view'])) {
                                 </div>
                                 <div class="form-group" style="margin-bottom: 0;">
                                     <label style="font-size: 0.75rem; text-transform: uppercase; color: var(--admin-text-light);">Ordre</label>
-                                    <select name="order" style="padding: 0.5rem; border: 1px solid var(--admin-border); border-radius: 6px;">
+                                    <select name="order">
                                         <option value="ASC" <?= $sortOrder === 'ASC' ? 'selected' : '' ?>>Croissant</option>
                                         <option value="DESC" <?= $sortOrder === 'DESC' ? 'selected' : '' ?>>Décroissant</option>
                                     </select>
