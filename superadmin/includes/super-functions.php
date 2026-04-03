@@ -857,7 +857,7 @@ function provisionHotelData(int $hotelId): void {
  */
 function getDefaultHotelUrls(string $slug): array {
     return [
-        'site_url' => 'https://' . $slug . '.hothello.ovh',
-        'admin_url' => 'https://admin-' . $slug . '.hothello.ovh',
+        'site_url' => 'https://hothello-client.onrender.com/?hotel=' . $slug,
+        'admin_url' => 'https://hothello-admin.onrender.com',
     ];
 }

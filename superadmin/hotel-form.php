@@ -218,10 +218,10 @@ $formData = [
 
     function updateUrlsFromSlug(slug) {
         if (siteUrlInput && !siteUrlInput.dataset.manual && slug) {
-            siteUrlInput.value = 'https://' + slug + '.hothello.ovh';
+            siteUrlInput.value = 'https://hothello-client.onrender.com/?hotel=' + slug;
         }
         if (adminUrlInput && !adminUrlInput.dataset.manual && slug) {
-            adminUrlInput.value = 'https://admin-' + slug + '.hothello.ovh';
+            adminUrlInput.value = 'https://hothello-admin.onrender.com';
         }
     }
 
