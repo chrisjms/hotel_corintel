@@ -6,11 +6,11 @@
  * Update these values with your PostgreSQL credentials
  */
 
-define('DB_HOST', 'aws-0-eu-west-1.pooler.supabase.com');
-define('DB_PORT', '6543'); // 6543 = Supabase pgBouncer pooler, 5432 = direct (often blocked)
-define('DB_NAME', 'postgres');
-define('DB_USER', 'postgres.afiixohjgnguomglpulr');
-define('DB_PASS', 'Toutesdesputes33');
+define('DB_HOST', $_ENV['DB_HOST'] ?? 'aws-0-eu-west-1.pooler.supabase.com');
+define('DB_PORT', $_ENV['DB_PORT'] ?? '6543'); // 6543 = Supabase pgBouncer pooler, 5432 = direct (often blocked)
+define('DB_NAME', $_ENV['DB_NAME'] ?? 'postgres');
+define('DB_USER', $_ENV['DB_USER'] ?? 'postgres.afiixohjgnguomglpulr');
+define('DB_PASS', $_ENV['DB_PASS'] ?? '');
 
 // Site configuration (SITE_URL, UPLOAD_DIR, UPLOAD_URL are now dynamic in bootstrap.php)
 define('MAX_FILE_SIZE', 5 * 1024 * 1024); // 5MB
@@ -45,7 +45,7 @@ function getDatabase(): PDO {
             $pdo->exec("SET client_encoding = 'UTF8'");
         } catch (PDOException $e) {
             error_log('Database connection failed: ' . $e->getMessage());
-            die('Database connection error. Please check your configuration.');
+            die('Database connection error: ' . $e->getMessage());
         }
     }
 
