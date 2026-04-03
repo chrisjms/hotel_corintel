@@ -105,14 +105,23 @@ class HotelContext {
         $this->siteUrl = 'https://' . $host;
         $this->adminUrl = $this->siteUrl;
 
-        // Detect context from hostname: if it contains "admin", it's the admin panel
-        $detectedContext = (str_contains($host, 'admin')) ? 'hotel-admin' : 'hotel-client';
+        // Detect context from hostname
+        if (str_contains($host, 'superadmin')) {
+            // hothello-superadmin.onrender.com → superadmin (no hotel needed)
+            $this->context = 'superadmin';
+            return;
+        }
+
+        $detectedContext = str_contains($host, 'admin') ? 'hotel-admin' : 'hotel-client';
         $this->resolveFromUrlParam($detectedContext);
     }
 
     /**
-     * Resolve hotel from ?hotel=slug URL parameter.
+     * Resolve hotel from ?hotel=slug URL parameter, with cookie persistence.
      * Used on Render.com and localhost where subdomains are not available.
+     *
+     * The slug is stored in a cookie so it survives redirections
+     * (e.g. requireAuth() → login.php → index.php) that lose the ?hotel= param.
      */
     private function resolveFromUrlParam(string $defaultContext): void {
         $slugParam = $_GET['hotel'] ?? null;
@@ -120,11 +129,26 @@ class HotelContext {
         if ($slugParam) {
             // Sanitize: only lowercase alphanumeric and hyphens
             $slugParam = preg_replace('/[^a-z0-9-]/', '', strtolower($slugParam));
+            // Persist in cookie for future requests without ?hotel=
+            $isSecure = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on';
+            setcookie('_hotel_slug', $slugParam, [
+                'expires' => time() + 86400 * 30, // 30 days
+                'path' => '/',
+                'secure' => $isSecure,
+                'httponly' => true,
+                'samesite' => 'Lax',
+            ]);
+        } else {
+            // Fallback: recover slug from cookie
+            $slugParam = $_COOKIE['_hotel_slug'] ?? null;
+        }
+
+        if ($slugParam) {
             $this->slug = $slugParam;
             $this->context = $defaultContext;
             $this->loadHotel($this->slug);
         } else {
-            // No hotel specified — show error page
+            // No hotel specified anywhere — show error page
             $this->context = $defaultContext;
             $this->hotelId = null;
             $this->slug = null;
