@@ -2,16 +2,16 @@
   "meta": {
     "lang": "fr",
     "title": {
-      "home": "Hothello | Solutions Digitales pour l'Hôtellerie",
-      "services": "Services | Hothello - Solutions Digitales pour l'Hôtellerie",
-      "pricing": "Tarifs | Hothello - Solutions Digitales pour l'Hôtellerie",
-      "contact": "Contact | Hothello - Solutions Digitales pour l'Hôtellerie"
+      "home": "Hôthello | Solutions Digitales pour l'Hôtellerie",
+      "services": "Services | Hôthello - Solutions Digitales pour l'Hôtellerie",
+      "pricing": "Tarifs | Hôthello - Solutions Digitales pour l'Hôtellerie",
+      "contact": "Contact | Hôthello - Solutions Digitales pour l'Hôtellerie"
     },
     "description": {
-      "home": "Hothello - Solutions de transformation digitale pour les établissements hôteliers. Des logiciels modernes, fiables et adaptés à vos besoins.",
-      "services": "Services Hothello - Communication digitale, gestion centralisée et service en chambre optimisé pour les hôtels.",
-      "pricing": "Tarifs Hothello - Des offres transparentes et flexibles adaptées à vos besoins. Sans engagement.",
-      "contact": "Contactez Hothello - Discutons de la transformation digitale de votre hôtel. Nous sommes là pour vous aider."
+      "home": "Hôthello - Solutions de transformation digitale pour les établissements hôteliers. Des logiciels modernes, fiables et adaptés à vos besoins.",
+      "services": "Services Hôthello - Communication digitale, gestion centralisée et service en chambre optimisé pour les hôtels.",
+      "pricing": "Tarifs Hôthello - Des offres transparentes et flexibles adaptées à vos besoins. Sans engagement.",
+      "contact": "Contactez Hôthello - Discutons de la transformation digitale de votre hôtel. Nous sommes là pour vous aider."
     }
   },
   "nav": {
@@ -26,7 +26,7 @@
     "label": "Transformation Digitale pour l'Hôtellerie",
     "title": "Simplifiez la Transition",
     "titleHighlight": "Digitale de Votre Hôtel",
-    "description": "Hothello vous propose des solutions logicielles modernes, fiables et performantes, adaptées à votre établissement. Créées par deux passionnés d'hôtellerie, pour des professionnels comme vous.",
+    "description": "Hôthello vous propose des solutions logicielles modernes, fiables et performantes, adaptées à votre établissement. Créées par deux passionnés d'hôtellerie, pour des professionnels comme vous.",
     "cta": "Commencer Votre Transformation",
     "ctaSecondary": "Découvrir Nos Services",
     "stats": {
@@ -36,7 +36,7 @@
     }
   },
   "mission": {
-    "label": "Pourquoi Hothello",
+    "label": "Pourquoi Hôthello",
     "title": "Conçu pour l'Excellence Hôtelière",
     "description": "Nous comprenons les défis uniques de la gestion hôtelière. Nos solutions ont un seul objectif : vous aider à offrir des expériences exceptionnelles tout en simplifiant vos opérations.",
     "performance": {
@@ -96,7 +96,7 @@
     "additional": {
       "label": "Plus de Fonctionnalités",
       "title": "Tout ce Dont Vous Avez Besoin",
-      "description": "Au-delà de nos services principaux, Hothello propose des fonctionnalités supplémentaires pour vous aider à offrir une hospitalité exceptionnelle.",
+      "description": "Au-delà de nos services principaux, Hôthello propose des fonctionnalités supplémentaires pour vous aider à offrir une hospitalité exceptionnelle.",
       "partnerships": {
         "title": "Partenariats",
         "description": "Mettez en avant vos partenaires locaux, restaurants et attractions pour enrichir l'expérience de vos clients."
@@ -117,7 +117,7 @@
     "process": {
       "label": "Comment Ça Marche",
       "title": "Un Processus de Mise en Place Simple",
-      "description": "Démarrer avec Hothello est simple. Nous vous accompagnons à chaque étape.",
+      "description": "Démarrer avec Hôthello est simple. Nous vous accompagnons à chaque étape.",
       "consultation": {
         "title": "1. Consultation",
         "timeline": "Jour 1",
@@ -143,7 +143,7 @@
   "story": {
     "label": "Notre Histoire",
     "title": "Créé par Deux Amis, Pour les Professionnels de l'Hôtellerie",
-    "lead": "Hothello est né d'une passion commune pour l'hôtellerie et la technologie.",
+    "lead": "Hôthello est né d'une passion commune pour l'hôtellerie et la technologie.",
     "p1": "Nous avons constaté de nos propres yeux comment les hôtels luttaient avec des systèmes obsolètes, des processus papier et des outils fragmentés. Nous savions qu'il devait y avoir une meilleure solution.",
     "p2": "Aujourd'hui, nous nous engageons à fournir des solutions logicielles modernes, fiables et efficaces, adaptées à chaque établissement. Chaque fonctionnalité que nous développons est conçue avec les directeurs d'hôtel et leurs clients à l'esprit.",
     "tailored": "Solutions sur mesure",
@@ -155,13 +155,13 @@
   },
   "testimonials": {
     "label": "Ce Que Disent Nos Clients",
-    "quote1": "Hothello a transformé notre façon de communiquer avec nos clients. La transition digitale s'est faite en douceur et notre équipe s'est rapidement adaptée. Nous avons constaté une amélioration significative de nos scores de satisfaction client.",
+    "quote1": "Hôthello a transformé notre façon de communiquer avec nos clients. La transition digitale s'est faite en douceur et notre équipe s'est rapidement adaptée. Nous avons constaté une amélioration significative de nos scores de satisfaction client.",
     "author1": "Marie Laurent",
     "role1": "Directrice Générale, Boutique Hôtel & Spa",
-    "quote2": "Dès le premier contact, nous avons su que Hothello était différent. Ils ont écouté nos besoins, compris nos défis et livré exactement ce dont nous avions besoin. L'approche personnalisée fait toute la différence.",
+    "quote2": "Dès le premier contact, nous avons su que Hôthello était différent. Ils ont écouté nos besoins, compris nos défis et livré exactement ce dont nous avions besoin. L'approche personnalisée fait toute la différence.",
     "author2": "Philippe Martin",
     "role2": "Propriétaire, Château Resort & Spa",
-    "quote3": "Depuis le passage au room service digital de Hothello, les commandes ont augmenté de 40 % et les erreurs en cuisine sont tombées à quasiment zéro. Le retour sur investissement était évident dès le premier mois.",
+    "quote3": "Depuis le passage au room service digital de Hôthello, les commandes ont augmenté de 40 % et les erreurs en cuisine sont tombées à quasiment zéro. Le retour sur investissement était évident dès le premier mois.",
     "author3": "Sophie Durand",
     "role3": "Directrice des Opérations, Hôtel & Resort Les Terrasses",
     "quote4": "Nous avons éliminé plus de 10 000 pages imprimées par an et nos clients adorent tout avoir sur leur téléphone. Le support multilingue à lui seul nous a fait gagner un temps considérable.",
@@ -294,7 +294,7 @@
   },
   "cta": {
     "transform": "Prêt à Transformer Votre Hôtel ?",
-    "transformDescription": "Discutons de la façon dont Hothello peut vous aider à offrir des expériences client exceptionnelles tout en simplifiant vos opérations.",
+    "transformDescription": "Discutons de la façon dont Hôthello peut vous aider à offrir des expériences client exceptionnelles tout en simplifiant vos opérations.",
     "modernize": "Prêt à Moderniser Votre Hôtel ?",
     "modernizeDescription": "Discutons des services adaptés à votre établissement. Sans engagement.",
     "schedule": "Planifier une Consultation",
@@ -309,7 +309,7 @@
     "navigation": "Navigation",
     "servicesTitle": "Services",
     "contactTitle": "Contact",
-    "copyright": "© 2025 Hothello. Tous droits réservés.",
+    "copyright": "© 2025 Hôthello. Tous droits réservés.",
     "privacy": "Politique de Confidentialité",
     "terms": "Conditions d'Utilisation"
   },
