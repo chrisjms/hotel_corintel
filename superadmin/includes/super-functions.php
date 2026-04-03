@@ -126,8 +126,19 @@ function createHotel(array $data): array {
         VALUES (?, ?, ?, ?, ?, ?)
     ');
     $stmt->execute([$name, $slug, $siteUrl, $adminUrl, $notes, $schemaName]);
+    $hotelId = $pdo->lastInsertId();
 
-    return ['success' => true, 'message' => 'Hôtel ajouté avec succès.', 'id' => $pdo->lastInsertId()];
+    // Populate hotel name in the per-hotel settings table
+    $pdo->exec('SET search_path TO ' . $schemaName . ', public');
+    $stmtSetting = $pdo->prepare('
+        INSERT INTO settings (setting_key, setting_value, hotel_id)
+        VALUES (?, ?, ?)
+        ON CONFLICT (setting_key, hotel_id) DO UPDATE SET setting_value = EXCLUDED.setting_value
+    ');
+    $stmtSetting->execute(['hotel_name', $name, $hotelId]);
+    $pdo->exec('SET search_path TO public');
+
+    return ['success' => true, 'message' => 'Hôtel ajouté avec succès.', 'id' => $hotelId];
 }
 
 function updateHotel(int $id, array $data): array {
