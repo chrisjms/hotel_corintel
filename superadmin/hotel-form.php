@@ -151,14 +151,7 @@ $formData = [
                                 <small>Généré automatiquement si vide</small>
                             </div>
 
-                            <div class="form-group">
-                                <label for="type">Type d'établissement</label>
-                                <select id="type" name="type">
-                                    <?php foreach (getEstablishmentTypeOptions() as $code => $label): ?>
-                                        <option value="<?= htmlspecialchars($code) ?>" <?= $formData['type'] === $code ? 'selected' : '' ?>><?= htmlspecialchars($label) ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
+                            <input type="hidden" name="type" value="<?= htmlspecialchars($formData['type']) ?>">
 
                             <div class="form-group">
                                 <label for="site_url">URL du site client</label>
