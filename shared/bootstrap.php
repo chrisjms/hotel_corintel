@@ -19,6 +19,11 @@ require_once __DIR__ . '/config/hotel-context.php';
 $ctx = HotelContext::getInstance();
 $ctx->resolve();
 
+// For client and admin contexts, a valid hotel is mandatory
+if ($ctx->isHotelClient() || $ctx->isHotelAdmin()) {
+    $ctx->requireHotel();
+}
+
 /**
  * Get current hotel ID (shorthand)
  */

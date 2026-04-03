@@ -37,6 +37,10 @@ function ensureHotelsTable(): void {
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_hotels_slug ON hotels (slug)');
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_hotels_active ON hotels (is_active)');
 
+    // Add schema_name column if missing (migration 010)
+    $pdo->exec('ALTER TABLE hotels ADD COLUMN IF NOT EXISTS schema_name VARCHAR(100) NULL');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_hotels_schema_name ON hotels (schema_name)');
+
     $pdo->exec('
         CREATE TABLE IF NOT EXISTS super_admin_login_tokens (
             id SERIAL PRIMARY KEY,
@@ -106,11 +110,22 @@ function createHotel(array $data): array {
         return ['success' => false, 'message' => 'Ce slug est déjà utilisé.'];
     }
 
+    // Generate schema name from slug (replace hyphens with underscores for valid SQL identifier)
+    $schemaName = 'hotel_' . str_replace('-', '_', $slug);
+
+    // Create the hotel schema and its tables
+    try {
+        createHotelSchema($pdo, $schemaName);
+    } catch (PDOException $e) {
+        error_log('Failed to create schema ' . $schemaName . ': ' . $e->getMessage());
+        return ['success' => false, 'message' => 'Erreur lors de la création du schema: ' . $e->getMessage()];
+    }
+
     $stmt = $pdo->prepare('
-        INSERT INTO hotels (name, slug, site_url, admin_url, notes)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO hotels (name, slug, site_url, admin_url, notes, schema_name)
+        VALUES (?, ?, ?, ?, ?, ?)
     ');
-    $stmt->execute([$name, $slug, $siteUrl, $adminUrl, $notes]);
+    $stmt->execute([$name, $slug, $siteUrl, $adminUrl, $notes, $schemaName]);
 
     return ['success' => true, 'message' => 'Hôtel ajouté avec succès.', 'id' => $pdo->lastInsertId()];
 }
@@ -150,11 +165,26 @@ function deleteHotel(int $id): array {
     ensureHotelsTable();
     $pdo = getSuperDatabase();
 
+    // Get hotel info before deletion (for schema cleanup)
+    $stmt = $pdo->prepare('SELECT schema_name FROM hotels WHERE id = ?');
+    $stmt->execute([$id]);
+    $hotel = $stmt->fetch();
+
     $stmt = $pdo->prepare('DELETE FROM hotels WHERE id = ?');
     $stmt->execute([$id]);
 
     if ($stmt->rowCount() === 0) {
         return ['success' => false, 'message' => 'Hôtel introuvable.'];
+    }
+
+    // Drop the hotel schema if it exists
+    if (!empty($hotel['schema_name'])) {
+        $schemaName = preg_replace('/[^a-z0-9_]/', '', $hotel['schema_name']);
+        try {
+            $pdo->exec('DROP SCHEMA IF EXISTS ' . $schemaName . ' CASCADE');
+        } catch (PDOException $e) {
+            error_log('Failed to drop schema ' . $schemaName . ': ' . $e->getMessage());
+        }
     }
 
     return ['success' => true, 'message' => 'Hôtel supprimé.'];
@@ -238,14 +268,342 @@ function getCrossLoginUrl(array $hotel, int $superAdminId): ?string {
     return $adminUrl . '/super-login.php?token=' . urlencode($token);
 }
 
+// --- Hotel Schema Creation ---
+
+/**
+ * Create a PostgreSQL schema with all per-hotel tables for a new hotel.
+ * Tables mirror the public schema structure (with hotel_id columns kept for backward compatibility).
+ */
+function createHotelSchema(PDO $pdo, string $schemaName): void {
+    // Sanitize schema name (only lowercase alphanumeric and underscores)
+    $schemaName = preg_replace('/[^a-z0-9_]/', '', $schemaName);
+
+    // Ensure the trigger function exists in public (shared across schemas)
+    $pdo->exec("
+        CREATE OR REPLACE FUNCTION public.update_updated_at_column()
+        RETURNS TRIGGER AS \$\$
+        BEGIN
+            NEW.updated_at = CURRENT_TIMESTAMP;
+            RETURN NEW;
+        END;
+        \$\$ LANGUAGE plpgsql
+    ");
+
+    $pdo->exec('CREATE SCHEMA IF NOT EXISTS ' . $schemaName);
+
+    // Set search_path to new schema so all CREATE TABLE go there
+    $pdo->exec('SET search_path TO ' . $schemaName . ', public');
+
+    // --- Per-hotel tables ---
+
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS admins (
+            id SERIAL PRIMARY KEY,
+            username VARCHAR(50) NOT NULL,
+            password VARCHAR(255) NOT NULL,
+            email VARCHAR(100),
+            role VARCHAR(20) NOT NULL DEFAULT 'admin',
+            hotel_id INT NOT NULL DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            last_login TIMESTAMP NULL,
+            UNIQUE (username, hotel_id)
+        )
+    ");
+
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS images (
+            id SERIAL PRIMARY KEY,
+            filename VARCHAR(255) NOT NULL,
+            original_filename VARCHAR(255),
+            section VARCHAR(50) NOT NULL,
+            position INT NOT NULL DEFAULT 1,
+            slot_name VARCHAR(100),
+            title VARCHAR(255),
+            alt_text VARCHAR(255),
+            hotel_id INT NOT NULL DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE (section, position, hotel_id)
+        )
+    ");
+
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS login_attempts (
+            id SERIAL PRIMARY KEY,
+            ip_address VARCHAR(45) NOT NULL,
+            hotel_id INT NOT NULL DEFAULT 1,
+            attempted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ");
+
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS persistent_tokens (
+            id SERIAL PRIMARY KEY,
+            admin_id INT NOT NULL,
+            token_hash VARCHAR(64) NOT NULL UNIQUE,
+            hotel_id INT NOT NULL DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            last_used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (admin_id) REFERENCES admins(id) ON DELETE CASCADE
+        )
+    ");
+
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS room_service_categories (
+            id SERIAL PRIMARY KEY,
+            code VARCHAR(50) NOT NULL,
+            name VARCHAR(100) NOT NULL,
+            time_start TIME DEFAULT NULL,
+            time_end TIME DEFAULT NULL,
+            is_active BOOLEAN DEFAULT TRUE,
+            position INT DEFAULT 0,
+            hotel_id INT NOT NULL DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE (code, hotel_id)
+        )
+    ");
+
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS room_service_items (
+            id SERIAL PRIMARY KEY,
+            name VARCHAR(100) NOT NULL,
+            description TEXT,
+            price DECIMAL(10, 2) NOT NULL,
+            image VARCHAR(255) DEFAULT NULL,
+            category VARCHAR(50) DEFAULT 'general',
+            is_active BOOLEAN DEFAULT TRUE,
+            position INT DEFAULT 0,
+            hotel_id INT NOT NULL DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ");
+
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS room_service_orders (
+            id SERIAL PRIMARY KEY,
+            room_number VARCHAR(20) NOT NULL,
+            guest_name VARCHAR(100) DEFAULT NULL,
+            phone VARCHAR(30) DEFAULT NULL,
+            total_amount DECIMAL(10, 2) NOT NULL,
+            payment_method VARCHAR(20) NOT NULL DEFAULT 'room_charge' CHECK (payment_method IN ('cash', 'card', 'room_charge')),
+            status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'confirmed', 'preparing', 'delivered', 'cancelled')),
+            delivery_datetime TIMESTAMP NOT NULL,
+            notes TEXT,
+            hotel_id INT NOT NULL DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ");
+
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS room_service_order_items (
+            id SERIAL PRIMARY KEY,
+            order_id INT NOT NULL,
+            item_id INT NOT NULL,
+            item_name VARCHAR(100) NOT NULL,
+            item_price DECIMAL(10, 2) NOT NULL,
+            quantity INT NOT NULL DEFAULT 1,
+            subtotal DECIMAL(10, 2) NOT NULL,
+            hotel_id INT NOT NULL DEFAULT 1,
+            FOREIGN KEY (order_id) REFERENCES room_service_orders(id) ON DELETE CASCADE,
+            FOREIGN KEY (item_id) REFERENCES room_service_items(id) ON DELETE RESTRICT
+        )
+    ");
+
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS guest_messages (
+            id SERIAL PRIMARY KEY,
+            room_number VARCHAR(20) NOT NULL,
+            guest_name VARCHAR(100) DEFAULT NULL,
+            category VARCHAR(50) NOT NULL DEFAULT 'general',
+            subject VARCHAR(255) DEFAULT NULL,
+            message TEXT NOT NULL,
+            status VARCHAR(20) NOT NULL DEFAULT 'new' CHECK (status IN ('new', 'read', 'in_progress', 'resolved')),
+            admin_notes TEXT DEFAULT NULL,
+            hotel_id INT NOT NULL DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ");
+
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS rooms (
+            id SERIAL PRIMARY KEY,
+            room_number VARCHAR(20) NOT NULL UNIQUE,
+            floor SMALLINT DEFAULT NULL,
+            room_type VARCHAR(20) NOT NULL DEFAULT 'double' CHECK (room_type IN ('single', 'double', 'twin', 'suite', 'family', 'accessible')),
+            capacity SMALLINT NOT NULL DEFAULT 2,
+            bed_count SMALLINT NOT NULL DEFAULT 1,
+            surface_area DECIMAL(5,2) DEFAULT NULL,
+            status VARCHAR(20) NOT NULL DEFAULT 'available' CHECK (status IN ('available', 'occupied', 'maintenance', 'out_of_order')),
+            housekeeping_status VARCHAR(20) NOT NULL DEFAULT 'cleaned' CHECK (housekeeping_status IN ('pending', 'in_progress', 'cleaned', 'inspected')),
+            last_cleaned_at TIMESTAMP DEFAULT NULL,
+            last_inspection_at TIMESTAMP DEFAULT NULL,
+            last_checkout_at TIMESTAMP DEFAULT NULL,
+            amenities JSONB DEFAULT NULL,
+            notes TEXT DEFAULT NULL,
+            is_active BOOLEAN NOT NULL DEFAULT TRUE,
+            hotel_id INT NOT NULL DEFAULT 1,
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )
+    ");
+
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS housekeeping_logs (
+            id SERIAL PRIMARY KEY,
+            room_id INT NOT NULL,
+            action VARCHAR(30) NOT NULL CHECK (action IN ('cleaning_started', 'cleaning_completed', 'inspection_passed', 'inspection_failed', 'maintenance_requested', 'maintenance_completed', 'status_changed')),
+            previous_status VARCHAR(30) DEFAULT NULL,
+            new_status VARCHAR(30) DEFAULT NULL,
+            performed_by VARCHAR(100) DEFAULT NULL,
+            notes TEXT DEFAULT NULL,
+            hotel_id INT NOT NULL DEFAULT 1,
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE
+        )
+    ");
+
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS pages (
+            id SERIAL PRIMARY KEY,
+            slug VARCHAR(50) NOT NULL,
+            code VARCHAR(50) NOT NULL,
+            title VARCHAR(100) NOT NULL,
+            nav_title VARCHAR(50) DEFAULT NULL,
+            meta_title VARCHAR(150) DEFAULT NULL,
+            meta_description VARCHAR(300) DEFAULT NULL,
+            meta_keywords VARCHAR(255) DEFAULT NULL,
+            hero_section_code VARCHAR(50) DEFAULT NULL,
+            page_type VARCHAR(20) NOT NULL DEFAULT 'standard' CHECK (page_type IN ('standard', 'home', 'contact', 'special')),
+            template VARCHAR(50) DEFAULT 'default',
+            display_order INT NOT NULL DEFAULT 0,
+            show_in_nav BOOLEAN NOT NULL DEFAULT TRUE,
+            is_active BOOLEAN NOT NULL DEFAULT TRUE,
+            i18n_nav_key VARCHAR(100) DEFAULT NULL,
+            i18n_hero_title_key VARCHAR(100) DEFAULT NULL,
+            i18n_hero_subtitle_key VARCHAR(100) DEFAULT NULL,
+            hotel_id INT NOT NULL DEFAULT 1,
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE (slug, hotel_id),
+            UNIQUE (code, hotel_id)
+        )
+    ");
+
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS page_translations (
+            id SERIAL PRIMARY KEY,
+            page_id INT NOT NULL,
+            lang_code VARCHAR(5) NOT NULL,
+            title VARCHAR(100) DEFAULT NULL,
+            nav_title VARCHAR(50) DEFAULT NULL,
+            meta_title VARCHAR(150) DEFAULT NULL,
+            meta_description VARCHAR(300) DEFAULT NULL,
+            hero_title VARCHAR(150) DEFAULT NULL,
+            hero_subtitle VARCHAR(255) DEFAULT NULL,
+            hotel_id INT NOT NULL DEFAULT 1,
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE (page_id, lang_code),
+            FOREIGN KEY (page_id) REFERENCES pages(id) ON DELETE CASCADE
+        )
+    ");
+
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS qr_scans (
+            id SERIAL PRIMARY KEY,
+            room_id INT NOT NULL,
+            scanned_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            ip_address VARCHAR(45) DEFAULT NULL,
+            user_agent TEXT DEFAULT NULL,
+            hotel_id INT NOT NULL DEFAULT 1,
+            FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE
+        )
+    ");
+
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS push_subscriptions (
+            id SERIAL PRIMARY KEY,
+            room_id INT NOT NULL,
+            endpoint TEXT NOT NULL,
+            p256dh_key VARCHAR(255) NOT NULL,
+            auth_key VARCHAR(255) NOT NULL,
+            user_agent VARCHAR(500) DEFAULT NULL,
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            last_used_at TIMESTAMP DEFAULT NULL,
+            is_active BOOLEAN NOT NULL DEFAULT TRUE,
+            hotel_id INT NOT NULL DEFAULT 1,
+            FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE
+        )
+    ");
+
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS room_service_item_translations (
+            id SERIAL PRIMARY KEY,
+            item_id INT NOT NULL,
+            language_code VARCHAR(5) NOT NULL,
+            name VARCHAR(255) NOT NULL,
+            description TEXT,
+            hotel_id INT NOT NULL DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE (item_id, language_code),
+            FOREIGN KEY (item_id) REFERENCES room_service_items(id) ON DELETE CASCADE
+        )
+    ");
+
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS room_service_category_translations (
+            id SERIAL PRIMARY KEY,
+            category_code VARCHAR(50) NOT NULL,
+            language_code VARCHAR(5) NOT NULL,
+            name VARCHAR(100) NOT NULL,
+            hotel_id INT NOT NULL DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE (category_code, language_code)
+        )
+    ");
+
+    // --- Triggers (reference public function) ---
+    $triggerTables = ['images', 'room_service_items', 'room_service_orders',
+                      'room_service_categories', 'guest_messages', 'rooms', 'pages'];
+    foreach ($triggerTables as $table) {
+        $pdo->exec("
+            DROP TRIGGER IF EXISTS update_{$table}_updated_at ON {$table};
+            CREATE TRIGGER update_{$table}_updated_at BEFORE UPDATE ON {$table}
+            FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column()
+        ");
+    }
+
+    // Reset search_path to public
+    $pdo->exec('SET search_path TO public');
+}
+
 // --- Hotel Provisioning ---
 
 /**
  * Provision default data for a newly created hotel.
- * Seeds admin user, room service categories, default pages, image slots.
+ * Seeds admin user, room service categories, default pages.
+ * Data is inserted into the hotel's own schema via search_path.
  */
 function provisionHotelData(int $hotelId): void {
     $pdo = getSuperDatabase();
+
+    // Get the hotel's schema name
+    $stmt = $pdo->prepare('SELECT schema_name, slug FROM public.hotels WHERE id = ?');
+    $stmt->execute([$hotelId]);
+    $hotel = $stmt->fetch();
+    $schemaName = $hotel['schema_name'] ?? null;
+
+    // Set search_path to hotel schema if available
+    if ($schemaName) {
+        $schemaName = preg_replace('/[^a-z0-9_]/', '', $schemaName);
+        $pdo->exec('SET search_path TO ' . $schemaName . ', public');
+    }
 
     // 1. Default admin user (admin / admin123)
     $adminHash = password_hash('admin123', PASSWORD_DEFAULT);
@@ -297,6 +655,9 @@ function provisionHotelData(int $hotelId): void {
     if (!is_dir($uploadsDir)) {
         @mkdir($uploadsDir, 0755, true);
     }
+
+    // Reset search_path
+    $pdo->exec('SET search_path TO public');
 }
 
 /**
