@@ -73,7 +73,7 @@ if (isset($_GET['view'])) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
-    <title>Room Service - Commandes | Admin <?= h($hotelName) ?></title>
+    <title><?= h(establishmentLabel('orders_title')) ?> | Admin <?= h($hotelName) ?></title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Lato:wght@300;400;500;700&display=swap" rel="stylesheet">
@@ -483,7 +483,7 @@ if (isset($_GET['view'])) {
                         <line x1="3" y1="18" x2="21" y2="18"/>
                     </svg>
                 </button>
-                <h1>Room Service - Commandes</h1>
+                <h1><?= h(establishmentLabel('orders_title')) ?></h1>
                 <a href="<?= SITE_URL ?>/room-service" target="_blank" class="btn btn-outline">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>

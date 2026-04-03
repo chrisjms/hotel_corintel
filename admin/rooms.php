@@ -232,7 +232,7 @@ if (isset($_GET['edit']) && is_numeric($_GET['edit'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestion des Chambres - <?= h($hotelName) ?></title>
+    <title>Gestion des <?= h(establishmentLabel('rooms_label')) ?> - <?= h($hotelName) ?></title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Lato:wght@300;400;500;700&display=swap" rel="stylesheet">
     <script>(function(){if(localStorage.getItem('admin_theme')==='dark')document.documentElement.setAttribute('data-theme','dark')})();function toggleAdminTheme(){var h=document.documentElement,d=h.getAttribute('data-theme')==='dark';h.setAttribute('data-theme',d?'light':'dark');localStorage.setItem('admin_theme',d?'light':'dark')}</script>
@@ -680,7 +680,7 @@ if (isset($_GET['edit']) && is_numeric($_GET['edit'])) {
                         <line x1="3" y1="18" x2="21" y2="18"/>
                     </svg>
                 </button>
-                <h1>Gestion des Chambres</h1>
+                <h1>Gestion des <?= h(establishmentLabel('rooms_label')) ?></h1>
                 <a href="<?= SITE_URL ?>/" target="_blank" class="btn btn-outline">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
@@ -702,7 +702,7 @@ if (isset($_GET['edit']) && is_numeric($_GET['edit'])) {
                 <div class="room-stats">
                     <div class="stat-card">
                         <div class="stat-value"><?= $stats['total'] ?></div>
-                        <div class="stat-label">Total Chambres</div>
+                        <div class="stat-label">Total <?= h(establishmentLabel('rooms_label')) ?></div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-value" style="color: #48BB78;"><?= $stats['by_status'][ROOM_STATUS_AVAILABLE] ?? 0 ?></div>
@@ -900,7 +900,7 @@ if (isset($_GET['edit']) && is_numeric($_GET['edit'])) {
                             <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
                             <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="3" height="3"/>
                         </svg>
-                        QR Codes Room Service
+                        QR Codes <?= h(establishmentLabel('service_name')) ?>
                     </span>
                     <div class="qr-actions-buttons">
                         <button type="button" class="btn btn-sm btn-qr" onclick="printAllQrCodes('sticker')">
@@ -987,7 +987,7 @@ if (isset($_GET['edit']) && is_numeric($_GET['edit'])) {
                                         <td>
                                             <div class="action-buttons">
                                                 <button type="button" class="btn btn-sm btn-qr btn-icon"
-                                                        title="QR Code Room Service"
+                                                        title="QR Code <?= h(establishmentLabel('service_name')) ?>"
                                                         onclick="showQrCode(<?= $room['id'] ?>, '<?= h($room['room_number']) ?>', '<?= h(generateRoomServiceUrl($room['id'], $room['room_number'])) ?>')">
                                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                                         <rect x="3" y="3" width="7" height="7"/>
@@ -1033,17 +1033,17 @@ if (isset($_GET['edit']) && is_numeric($_GET['edit'])) {
         <div class="qr-modal" onclick="event.stopPropagation()">
             <div class="qr-modal-header">
                 <h3><?= h($hotelName) ?></h3>
-                <p>QR Code Room Service - Chambre <span id="qrRoomNumber"></span></p>
+                <p>QR Code <?= h(establishmentLabel('service_name')) ?> - <?= h(establishmentLabel('room_unit')) ?> <span id="qrRoomNumber"></span></p>
             </div>
             <div class="qr-modal-body">
                 <!-- QR Preview with Branding -->
                 <div class="qr-preview" id="qrPreview">
                     <div class="hotel-brand"><?= h($hotelName) ?></div>
-                    <div class="room-label">Chambre <span id="qrRoomLabel"></span></div>
+                    <div class="room-label"><?= h(establishmentLabel('room_unit')) ?> <span id="qrRoomLabel"></span></div>
                     <div class="qr-code-wrapper">
                         <div id="qrCodeContainer"></div>
                     </div>
-                    <p class="scan-instruction">Scannez pour accéder au Room Service</p>
+                    <p class="scan-instruction"><?= h(establishmentLabel('qr_scan_text')) ?></p>
                 </div>
 
                 <!-- URL Display -->
@@ -1121,6 +1121,9 @@ if (isset($_GET['edit']) && is_numeric($_GET['edit'])) {
     <script>
         // Hotel configuration
         const hotelName = <?= json_encode($hotelName) ?>;
+        const serviceName = <?= json_encode(establishmentLabel('service_name')) ?>;
+        const serviceQrText = <?= json_encode(establishmentLabel('qr_scan_text')) ?>;
+        const roomUnit = <?= json_encode(establishmentLabel('room_unit')) ?>;
         const hotelColors = {
             primary: '#8B6F47',
             primaryDark: '#6B5635',
@@ -1297,7 +1300,7 @@ if (isset($_GET['edit']) && is_numeric($_GET['edit'])) {
             // Room number
             ctx.fillStyle = '#333';
             ctx.font = `bold ${Math.round(size * 0.08)}px Georgia, serif`;
-            ctx.fillText('Chambre ' + currentRoomNumber, canvas.width / 2, padding + Math.round(size * 0.18));
+            ctx.fillText(roomUnit + ' ' + currentRoomNumber, canvas.width / 2, padding + Math.round(size * 0.18));
 
             // QR Code
             const qrImg = new Image();
@@ -1307,7 +1310,7 @@ if (isset($_GET['edit']) && is_numeric($_GET['edit'])) {
                 // Instruction
                 ctx.fillStyle = '#666';
                 ctx.font = `${Math.round(size * 0.04)}px Arial, sans-serif`;
-                ctx.fillText('Scannez pour accéder au Room Service', canvas.width / 2, canvas.height - padding);
+                ctx.fillText(serviceQrText, canvas.width / 2, canvas.height - padding);
 
                 // Download
                 const link = document.createElement('a');
@@ -1343,7 +1346,7 @@ if (isset($_GET['edit']) && is_numeric($_GET['edit'])) {
 
         // Sticker Template (5x5cm)
         function getStickerTemplate(qrSrc, roomNumber) {
-            return `<!DOCTYPE html><html><head><title>Sticker - Chambre ${roomNumber}</title>
+            return `<!DOCTYPE html><html><head><title>Sticker - ${roomUnit} ${roomNumber}</title>
             <style>
                 * { margin: 0; padding: 0; box-sizing: border-box; }
                 @page { size: 50mm 50mm; margin: 0; }
@@ -1356,15 +1359,15 @@ if (isset($_GET['edit']) && is_numeric($_GET['edit'])) {
             </style></head>
             <body><div class="sticker">
                 <div class="hotel">${hotelName}</div>
-                <div class="room">Chambre ${roomNumber}</div>
+                <div class="room">${roomUnit} ${roomNumber}</div>
                 <div class="qr"><img src="${qrSrc}"></div>
-                <div class="scan">Scannez pour le Room Service</div>
+                <div class="scan">${serviceQrText}</div>
             </div></body></html>`;
         }
 
         // Tent Card Template (folding table tent)
         function getTentCardTemplate(qrSrc, roomNumber) {
-            return `<!DOCTYPE html><html><head><title>Chevalet - Chambre ${roomNumber}</title>
+            return `<!DOCTYPE html><html><head><title>Chevalet - ${roomUnit} ${roomNumber}</title>
             <style>
                 * { margin: 0; padding: 0; box-sizing: border-box; }
                 @page { size: A5 landscape; margin: 0; }
@@ -1386,15 +1389,15 @@ if (isset($_GET['edit']) && is_numeric($_GET['edit'])) {
                 <div class="tent">
                     <div class="side">
                         <div class="hotel">${hotelName}</div>
-                        <div class="room">Chambre ${roomNumber}</div>
+                        <div class="room">${roomUnit} ${roomNumber}</div>
                         <div class="qr"><img src="${qrSrc}"></div>
-                        <div class="scan">Scannez ce QR code<br>pour accéder au Room Service</div>
+                        <div class="scan">${serviceQrText}</div>
                     </div>
                     <div class="side">
                         <div class="hotel">${hotelName}</div>
-                        <div class="room">Chambre ${roomNumber}</div>
+                        <div class="room">${roomUnit} ${roomNumber}</div>
                         <div class="qr"><img src="${qrSrc}"></div>
-                        <div class="scan">Scannez ce QR code<br>pour accéder au Room Service</div>
+                        <div class="scan">${serviceQrText}</div>
                     </div>
                 </div>
             <script>window.onload = function() { window.print(); }<\/script>
@@ -1403,7 +1406,7 @@ if (isset($_GET['edit']) && is_numeric($_GET['edit'])) {
 
         // Poster Template (A5/A4)
         function getPosterTemplate(qrSrc, roomNumber) {
-            return `<!DOCTYPE html><html><head><title>Affiche - Chambre ${roomNumber}</title>
+            return `<!DOCTYPE html><html><head><title>Affiche - ${roomUnit} ${roomNumber}</title>
             <style>
                 * { margin: 0; padding: 0; box-sizing: border-box; }
                 @page { size: A5; margin: 0; }
@@ -1422,9 +1425,9 @@ if (isset($_GET['edit']) && is_numeric($_GET['edit'])) {
                 <div class="poster">
                     <div class="hotel">${hotelName}</div>
                     <div class="divider"></div>
-                    <div class="room">Chambre ${roomNumber}</div>
+                    <div class="room">${roomUnit} ${roomNumber}</div>
                     <div class="qr"><img src="${qrSrc}"></div>
-                    <div class="title">Room Service</div>
+                    <div class="title">${serviceName}</div>
                     <div class="scan">Scannez ce QR code avec votre téléphone<br>pour découvrir notre carte et passer commande</div>
                     <div class="footer">Service disponible 24h/24</div>
                 </div>
@@ -1472,9 +1475,9 @@ if (isset($_GET['edit']) && is_numeric($_GET['edit'])) {
             const stickers = qrCodes.map(qr => `
                 <div class="sticker">
                     <div class="hotel">${hotelName}</div>
-                    <div class="room">Ch. ${qr.room_number}</div>
+                    <div class="room">${roomUnit} ${qr.room_number}</div>
                     <div class="qr"><img src="${qr.qrSrc}"></div>
-                    <div class="scan">Room Service</div>
+                    <div class="scan">${serviceName}</div>
                 </div>
             `).join('');
 

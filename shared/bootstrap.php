@@ -33,6 +33,15 @@ if (!function_exists('getHotelId')) {
     }
 }
 
+/**
+ * Get current establishment type (shorthand)
+ */
+if (!function_exists('getEstablishmentType')) {
+    function getEstablishmentType(): string {
+        return HotelContext::getInstance()->getType();
+    }
+}
+
 // Dynamic constants based on hotel context
 if (!defined('SITE_URL') && $ctx->getSiteUrl()) {
     define('SITE_URL', $ctx->getSiteUrl());

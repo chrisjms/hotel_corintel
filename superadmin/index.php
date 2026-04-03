@@ -6,6 +6,7 @@
 require_once __DIR__ . '/../shared/bootstrap.php';
 require_once __DIR__ . '/includes/super-auth.php';
 require_once __DIR__ . '/includes/super-functions.php';
+require_once HOTEL_ROOT . '/shared/includes/modules/establishment-types.php';
 
 superRequireAuth();
 
@@ -119,6 +120,7 @@ $activeHotels = count(array_filter($hotels, fn($h) => $h['is_active']));
                             <div class="hotel-card">
                                 <div class="hotel-card-header">
                                     <h3><?= htmlspecialchars($hotel['name']) ?></h3>
+                                    <span class="hotel-type-badge" style="background: <?= ($hotel['type'] ?? 'hotel') === 'hotel' ? '#8B6F47' : '#E53E3E' ?>; color: #fff; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.7rem; font-weight: 600; text-transform: uppercase;"><?= htmlspecialchars(ESTABLISHMENT_TYPES[$hotel['type'] ?? 'hotel']['label'] ?? 'Hôtel') ?></span>
                                     <span class="hotel-status <?= $hotel['is_active'] ? 'active' : 'inactive' ?>">
                                         <span class="dot"></span>
                                         <?= $hotel['is_active'] ? 'Actif' : 'Inactif' ?>

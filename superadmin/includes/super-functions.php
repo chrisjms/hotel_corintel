@@ -41,6 +41,9 @@ function ensureHotelsTable(): void {
     $pdo->exec('ALTER TABLE hotels ADD COLUMN IF NOT EXISTS schema_name VARCHAR(100) NULL');
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_hotels_schema_name ON hotels (schema_name)');
 
+    // Add type column if missing (migration 011)
+    $pdo->exec("ALTER TABLE hotels ADD COLUMN IF NOT EXISTS type VARCHAR(50) NOT NULL DEFAULT 'hotel'");
+
     $pdo->exec('
         CREATE TABLE IF NOT EXISTS super_admin_login_tokens (
             id SERIAL PRIMARY KEY,
@@ -121,11 +124,13 @@ function createHotel(array $data): array {
         return ['success' => false, 'message' => 'Erreur lors de la création du schema: ' . $e->getMessage()];
     }
 
+    $type = trim($data['type'] ?? 'hotel');
+
     $stmt = $pdo->prepare('
-        INSERT INTO public.hotels (name, slug, site_url, admin_url, notes, schema_name)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO public.hotels (name, slug, site_url, admin_url, notes, schema_name, type)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
     ');
-    $stmt->execute([$name, $slug, $siteUrl, $adminUrl, $notes, $schemaName]);
+    $stmt->execute([$name, $slug, $siteUrl, $adminUrl, $notes, $schemaName, $type]);
     $hotelId = $pdo->lastInsertId();
 
     // Populate hotel name in the per-hotel settings table
@@ -163,11 +168,13 @@ function updateHotel(int $id, array $data): array {
         return ['success' => false, 'message' => 'Ce slug est déjà utilisé.'];
     }
 
+    $type = trim($data['type'] ?? 'hotel');
+
     $stmt = $pdo->prepare('
-        UPDATE public.hotels SET name = ?, slug = ?, site_url = ?, admin_url = ?, notes = ?, is_active = ?
+        UPDATE public.hotels SET name = ?, slug = ?, site_url = ?, admin_url = ?, notes = ?, is_active = ?, type = ?
         WHERE id = ?
     ');
-    $stmt->execute([$name, $slug, $siteUrl, $adminUrl, $notes, $isActive, $id]);
+    $stmt->execute([$name, $slug, $siteUrl, $adminUrl, $notes, $isActive, $type, $id]);
 
     return ['success' => true, 'message' => 'Hôtel mis à jour avec succès.'];
 }

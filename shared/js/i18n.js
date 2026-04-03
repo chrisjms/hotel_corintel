@@ -24,6 +24,9 @@
       // Load translations from PHP API
       await this.loadTranslations();
 
+      // Override translations based on establishment type (e.g., pizzeria: "Room Service" → "Menu")
+      this.applyEstablishmentOverrides();
+
       // Get saved language or detect from browser
       this.currentLang = this.getSavedLanguage() || this.detectLanguage();
 
@@ -446,6 +449,34 @@
 
     /**
      * Get nested value from object using dot notation
+     * Apply establishment type overrides to translations.
+     * When window.establishmentConfig is set (injected by PHP), override
+     * the relevant i18n keys so "Room Service" becomes "Menu" etc.
+     */
+    applyEstablishmentOverrides() {
+      const config = window.establishmentConfig;
+      if (!config || config.type === 'hotel') return;
+      if (!this.translations) return;
+
+      const langCodes = ['fr', 'en', 'es', 'it'];
+      langCodes.forEach(lang => {
+        const t = this.translations[lang];
+        if (!t) return;
+
+        // Override nav and footer labels
+        if (config.navLink && config.navLink[lang]) {
+          if (t.nav) t.nav.roomService = config.navLink[lang];
+          if (t.footer) t.footer.roomService = config.navLink[lang];
+        }
+
+        // Override room service section labels
+        if (config.serviceName && config.serviceName[lang] && t.roomService) {
+          t.roomService.heroTitle = config.serviceName[lang];
+        }
+      });
+    },
+
+    /**
      * e.g., getNestedValue(obj, 'home.heroTitle') returns obj.home.heroTitle
      */
     getNestedValue(obj, path) {

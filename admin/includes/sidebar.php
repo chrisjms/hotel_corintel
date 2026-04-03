@@ -35,7 +35,7 @@ $navGroups = [
         ]
     ],
     [
-        'separator' => 'Room Service',
+        'separator' => establishmentLabel('service_separator'),
         'items' => [
             ['href' => 'room-service-categories.php', 'label' => 'Catégories', 'permission' => 'content',
              'icon' => '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>'],
@@ -59,7 +59,7 @@ $navGroups = [
     [
         'separator' => 'Administration',
         'items' => [
-            ['href' => 'rooms.php', 'label' => 'Chambres', 'permission' => 'rooms',
+            ['href' => 'rooms.php', 'label' => establishmentLabel('rooms_label'), 'permission' => 'rooms',
              'icon' => '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><rect x="9" y="13" width="6" height="9"/>'],
             ['href' => 'users.php', 'label' => 'Utilisateurs', 'permission' => 'settings',
              'icon' => '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>'],

@@ -95,6 +95,7 @@ $navPages = getNavigationPages();
     <link rel="stylesheet" href="style.css">
     <?= getThemeCSS() ?>
     <?= getHotelNameJS() ?>
+    <?= getEstablishmentLabelsJS() ?>
 </head>
 <body>
     <!-- Header -->
@@ -118,7 +119,7 @@ $navPages = getNavigationPages();
                     // Insert Room Service link before Contact
                     if ($navPage['slug'] === 'contact' || $navPage['page_type'] === 'contact'):
                 ?>
-                <a href="room-service.php" class="nav-link nav-link-room-service" data-i18n="nav.roomService">Room Service <?php if ($roomSession): ?><span class="nav-room-badge">Ch. <?= h($roomSession['room_number']) ?></span><?php else: ?><span class="nav-qr-badge" data-i18n="footer.qrOnly">QR</span><?php endif; ?></a>
+                <a href="room-service.php" class="nav-link nav-link-room-service" data-i18n="nav.roomService"><?= h(establishmentLabel('nav_link')) ?> <?php if ($roomSession): ?><span class="nav-room-badge">Ch. <?= h($roomSession['room_number']) ?></span><?php else: ?><span class="nav-qr-badge" data-i18n="footer.qrOnly">QR</span><?php endif; ?></a>
                 <?php endif; ?>
                 <a href="<?= h($navUrl) ?>" class="nav-link<?= $isActive ? ' active' : '' ?>"<?= $navI18nKey ? ' data-i18n="' . h($navI18nKey) . '"' : '' ?>><?= h($navPage['nav_title'] ?: $navPage['title']) ?></a>
                 <?php endforeach; ?>
@@ -187,7 +188,7 @@ $navPages = getNavigationPages();
                         <li><a href="services.php" data-i18n="footer.restaurant">Restaurant</a></li>
                         <li><a href="services.php" data-i18n="footer.bar">Bar</a></li>
                         <li class="room-service-item">
-                            <a href="room-service.php" data-i18n="footer.roomService">Room Service</a>
+                            <a href="room-service.php" data-i18n="footer.roomService"><?= h(establishmentLabel('nav_link')) ?></a>
                             <span class="qr-badge" data-i18n="footer.qrOnly">QR code</span>
                         </li>
                     </ul>

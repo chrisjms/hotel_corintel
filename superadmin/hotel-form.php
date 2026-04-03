@@ -6,6 +6,7 @@
 require_once __DIR__ . '/../shared/bootstrap.php';
 require_once __DIR__ . '/includes/super-auth.php';
 require_once __DIR__ . '/includes/super-functions.php';
+require_once HOTEL_ROOT . '/shared/includes/modules/establishment-types.php';
 
 superRequireAuth();
 
@@ -27,6 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $data = [
             'name'      => $_POST['name'] ?? '',
             'slug'      => $_POST['slug'] ?? '',
+            'type'      => $_POST['type'] ?? 'hotel',
             'site_url'  => $_POST['site_url'] ?? '',
             'admin_url' => $_POST['admin_url'] ?? '',
             'notes'     => $_POST['notes'] ?? '',
@@ -80,6 +82,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $formData = [
     'name'      => $_POST['name']      ?? ($hotel['name'] ?? ''),
     'slug'      => $_POST['slug']      ?? ($hotel['slug'] ?? ''),
+    'type'      => $_POST['type']      ?? ($hotel['type'] ?? 'hotel'),
     'site_url'  => $_POST['site_url']  ?? ($hotel['site_url'] ?? ''),
     'admin_url' => $_POST['admin_url'] ?? ($hotel['admin_url'] ?? ''),
     'notes'     => $_POST['notes']     ?? ($hotel['notes'] ?? ''),
@@ -141,6 +144,15 @@ $formData = [
                                        pattern="[a-z0-9-]+"
                                        title="Lettres minuscules, chiffres et tirets uniquement">
                                 <small>Généré automatiquement si vide</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="type">Type d'établissement</label>
+                                <select id="type" name="type">
+                                    <?php foreach (getEstablishmentTypeOptions() as $code => $label): ?>
+                                        <option value="<?= htmlspecialchars($code) ?>" <?= $formData['type'] === $code ? 'selected' : '' ?>><?= htmlspecialchars($label) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
                             </div>
 
                             <div class="form-group">
