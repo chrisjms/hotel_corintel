@@ -2,7 +2,7 @@ FROM php:8.2-apache
 COPY shared/ /var/www/html/shared/
 COPY superadmin/ /var/www/html/superadmin/
 RUN a2enmod rewrite
-RUN echo "DirectoryIndex index.html index.php" >> /etc/apache2/apache2.conf
+RUN sed -i 's|DocumentRoot /var/www/html|DocumentRoot /var/www/html/superadmin|g' /etc/apache2/sites-available/000-default.conf
 RUN sed -i 's/AllowOverride None/AllowOverride All/g' /etc/apache2/apache2.conf
-RUN echo "DocumentRoot /var/www/html/superadmin/" >> /etc/apache2/apache2.conf
+RUN echo "DirectoryIndex index.html index.php" >> /etc/apache2/apache2.conf
 EXPOSE 80
