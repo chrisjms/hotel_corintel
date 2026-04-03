@@ -216,7 +216,15 @@ $activeHotels = count(array_filter($hotels, fn($h) => $h['is_active']));
     if (closeBtn) closeBtn.addEventListener('click', closeSidebar);
 
     // Cross-login: Open Admin
+    // window.open() must be called synchronously (before async fetch) to avoid Safari popup blocker
     function openAdmin(hotelId) {
+        const popup = window.open('', '_blank');
+        if (!popup) {
+            alert('Veuillez autoriser les popups pour ce site.');
+            return;
+        }
+        popup.document.write('<p style="font-family:system-ui;padding:2rem">Connexion en cours...</p>');
+
         fetch('api/generate-cross-login.php', {
             method: 'POST',
             headers: {
@@ -228,12 +236,14 @@ $activeHotels = count(array_filter($hotels, fn($h) => $h['is_active']));
         .then(r => r.json())
         .then(data => {
             if (data.success && data.url) {
-                window.open(data.url, '_blank');
+                popup.location.href = data.url;
             } else {
+                popup.close();
                 alert(data.message || 'Erreur lors de la génération du lien.');
             }
         })
         .catch(() => {
+            popup.close();
             alert('Erreur de connexion.');
         });
     }

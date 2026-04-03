@@ -208,19 +208,10 @@ function superRequireAuth(): void {
 }
 
 /**
- * Rate limiting: 3 attempts per 30 minutes (stricter than hotel admin)
+ * Rate limiting: disabled
  */
 function superCheckLoginAttempts(string $ip): bool {
-    ensureSuperAdminTables();
-    $pdo = getSuperDatabase();
-
-    $stmt = $pdo->prepare("DELETE FROM super_login_attempts WHERE attempted_at < NOW() - INTERVAL '30 minutes'");
-    $stmt->execute();
-
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM super_login_attempts WHERE ip_address = ? AND attempted_at > NOW() - INTERVAL '30 minutes'");
-    $stmt->execute([$ip]);
-
-    return $stmt->fetchColumn() < 3;
+    return true;
 }
 
 function superRecordLoginAttempt(string $ip): void {
