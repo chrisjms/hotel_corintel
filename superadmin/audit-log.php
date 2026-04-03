@@ -74,7 +74,6 @@ $actionLabels = [
                                         <th>Utilisateur</th>
                                         <th>Action</th>
                                         <th>Hôtel</th>
-                                        <th>Détails</th>
                                         <th>IP</th>
                                     </tr>
                                 </thead>
@@ -89,9 +88,6 @@ $actionLabels = [
                                                 </span>
                                             </td>
                                             <td><?= htmlspecialchars($log['hotel_name'] ?? '-') ?></td>
-                                            <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                                                <?= htmlspecialchars($log['details'] ?? '') ?>
-                                            </td>
                                             <td style="font-family: monospace; font-size: 0.8rem;"><?= htmlspecialchars($log['ip_address'] ?? '') ?></td>
                                         </tr>
                                     <?php endforeach; ?>
