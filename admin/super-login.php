@@ -64,8 +64,8 @@ $pdo->exec('
         used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
 ');
-$pdo->exec('CREATE INDEX IF NOT EXISTS idx_public.super_admin_login_tokens_nonce ON public.super_admin_login_tokens (token_nonce)');
-$pdo->exec('CREATE INDEX IF NOT EXISTS idx_public.super_admin_login_tokens_used_at ON public.super_admin_login_tokens (used_at)');
+$pdo->exec('CREATE INDEX IF NOT EXISTS idx_super_admin_login_tokens_nonce ON public.super_admin_login_tokens (token_nonce)');
+$pdo->exec('CREATE INDEX IF NOT EXISTS idx_super_admin_login_tokens_used_at ON public.super_admin_login_tokens (used_at)');
 
 // Clean old nonces (older than 5 minutes)
 $pdo->exec("DELETE FROM public.super_admin_login_tokens WHERE used_at < NOW() - INTERVAL '5 minutes'");
