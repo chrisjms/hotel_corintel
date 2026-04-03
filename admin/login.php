@@ -1,11 +1,12 @@
 <?php
+require_once __DIR__ . '/../shared/bootstrap.php';
 /**
  * Admin Login Page
  * Hotel Corintel
  */
 
-require_once __DIR__ . '/../includes/auth.php';
-require_once __DIR__ . '/../includes/functions.php';
+require_once HOTEL_ROOT . '/shared/includes/auth.php';
+require_once HOTEL_ROOT . '/shared/includes/functions.php';
 
 // Redirect if already logged in
 if (isLoggedIn()) {
@@ -90,7 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </form>
 
         <div class="login-footer">
-            <a href="../index.html">Retour au site</a>
+            <a href="<?= SITE_URL ?>/">Retour au site</a>
         </div>
     </div>
 </body>

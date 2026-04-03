@@ -1,11 +1,12 @@
 <?php
+require_once __DIR__ . '/../shared/bootstrap.php';
 /**
  * Room Service Items Management
  * Hotel Corintel
  */
 
-require_once __DIR__ . '/../includes/auth.php';
-require_once __DIR__ . '/../includes/functions.php';
+require_once HOTEL_ROOT . '/shared/includes/auth.php';
+require_once HOTEL_ROOT . '/shared/includes/functions.php';
 
 requireRole('content');
 
@@ -563,7 +564,7 @@ foreach ($items as $item) {
                                                             <td>
                                                                 <div class="item-info">
                                                                     <?php if ($item['image']): ?>
-                                                                        <img src="../<?= h($item['image']) ?>" alt="<?= h($item['name']) ?>" class="item-image">
+                                                                        <img src="/<?= h($item['image']) ?>" alt="<?= h($item['name']) ?>" class="item-image">
                                                                     <?php else: ?>
                                                                         <div class="item-image" style="display: flex; align-items: center; justify-content: center;">
                                                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 24px; height: 24px; color: var(--admin-text-light);">

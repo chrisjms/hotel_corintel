@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Contact Hothello - Get in touch to discuss your hotel's digital transformation. We're here to help.">
+    <title>Contact | Hothello - Digital Solutions for Hospitality</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <span hidden data-i18n-title="meta.title.contact"></span>
+    <span hidden data-i18n-meta-description="meta.description.contact"></span>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container header__inner">
+            <a href="index.html" class="logo">
+                <span class="logo__icon">H</span>
+                <span class="logo__text">Hothello</span>
+            </a>
+
+            <nav class="nav nav--center">
+                <ul class="nav__list">
+                    <li><a href="index.html" class="nav__link" data-i18n="nav.home">Home</a></li>
+                    <li><a href="services.html" class="nav__link" data-i18n="nav.services">Services</a></li>
+                    <li><a href="pricing.html" class="nav__link" data-i18n="nav.pricing">Pricing</a></li>
+                    <li><a href="blog.html" class="nav__link" data-i18n="nav.blog">Blog</a></li>
+                    <li><a href="contact.html" class="nav__link nav__link--active" data-i18n="nav.contact">Contact</a></li>
+                </ul>
+            </nav>
+
+            <div class="header__actions">
+                <div class="lang-switcher">
+                    <button class="lang-switcher__btn" aria-label="Change language">
+                        <svg class="lang-switcher__globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="2" y1="12" x2="22" y2="12"/>
+                            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                        </svg>
+                        <span class="lang-switcher__current">EN</span>
+                        <svg class="lang-switcher__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"/>
+                        </svg>
+                    </button>
+                    <div class="lang-switcher__dropdown">
+                        <button class="lang-switcher__option active" data-lang="en">
+                            <span>English</span>
+                        </button>
+                        <button class="lang-switcher__option" data-lang="fr">
+                            <span>Français</span>
+                        </button>
+                    </div>
+                </div>
+
+                <button class="nav__toggle" aria-label="Toggle navigation">
+                    <span class="nav__toggle-bar"></span>
+                    <span class="nav__toggle-bar"></span>
+                    <span class="nav__toggle-bar"></span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <!-- Page Hero -->
+        <section class="page-hero">
+            <div class="container">
+                <h1 class="page-hero__title" data-i18n="contact.pageTitle">Get in Touch</h1>
+                <p class="page-hero__description" data-i18n="contact.pageDescription">
+                    Ready to transform your hotel's guest experience? Let's start a conversation.
+                </p>
+            </div>
+        </section>
+
+        <!-- Contact Section -->
+        <section class="section">
+            <div class="container">
+                <div class="contact-grid">
+                    <!-- Contact Info -->
+                    <div class="contact-info-section">
+                        <h2 data-i18n="contact.title">Let's Discuss Your Project</h2>
+                        <p class="text-lead" style="margin-top: var(--space-4); margin-bottom: var(--space-8);" data-i18n="contact.lead">
+                            We're two hospitality enthusiasts committed to helping hotels like yours succeed in the digital age.
+                        </p>
+
+                        <div class="contact-info">
+                            <div class="contact-info__item">
+                                <div class="contact-info__icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                                        <polyline points="22,6 12,13 2,6"/>
+                                    </svg>
+                                </div>
+                                <div class="contact-info__content">
+                                    <h4 data-i18n="contact.email">Email Us</h4>
+                                    <p>contact@hothello.com</p>
+                                </div>
+                            </div>
+
+                            <div class="contact-info__item">
+                                <div class="contact-info__icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                                        <circle cx="12" cy="10" r="3"/>
+                                    </svg>
+                                </div>
+                                <div class="contact-info__content">
+                                    <h4 data-i18n="contact.location">Location</h4>
+                                    <p data-i18n="contact.locationValue">Based in France, serving hotels worldwide</p>
+                                </div>
+                            </div>
+
+                            <div class="contact-info__item">
+                                <div class="contact-info__icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="10"/>
+                                        <path d="M12 6v6l4 2"/>
+                                    </svg>
+                                </div>
+                                <div class="contact-info__content">
+                                    <h4 data-i18n="contact.responseTime">Response Time</h4>
+                                    <p data-i18n="contact.responseTimeValue">We typically respond within 24-48 hours</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Contact Form -->
+                    <div class="contact-card">
+                        <h3 style="margin-bottom: var(--space-2);" data-i18n="contact.form.title">Send Us a Message</h3>
+                        <p style="color: var(--color-gray-600); margin-bottom: var(--space-8);" data-i18n="contact.form.subtitle">
+                            Fill out the form below and we'll get back to you as soon as possible.
+                        </p>
+
+                        <form class="form" id="contactForm">
+                            <div class="form__group">
+                                <label class="form__label" for="name" data-i18n="contact.form.name">Full Name *</label>
+                                <input type="text" class="form__input" id="name" name="name" required placeholder="John Doe">
+                            </div>
+
+                            <div class="form__group">
+                                <label class="form__label" for="email" data-i18n="contact.form.emailLabel">Email Address *</label>
+                                <input type="email" class="form__input" id="email" name="email" required placeholder="john.doe@hotel.com">
+                            </div>
+
+                            <div class="form__group">
+                                <label class="form__label" for="establishment" data-i18n="contact.form.establishment">Establishment Name *</label>
+                                <input type="text" class="form__input" id="establishment" name="establishment" required placeholder="Grand Hotel & Spa">
+                            </div>
+
+                            <div class="form__group">
+                                <label class="form__label" for="interest" data-i18n="contact.form.interest">Primary Interest</label>
+                                <select class="form__input" id="interest" name="interest">
+                                    <option value="" data-i18n="contact.form.interestPlaceholder">Select a service</option>
+                                    <option value="communication" data-i18n="contact.form.interestCommunication">Smooth Communication</option>
+                                    <option value="management" data-i18n="contact.form.interestManagement">Centralized Management</option>
+                                    <option value="room-service" data-i18n="contact.form.interestRoomService">Optimized Room Service</option>
+                                    <option value="full-solution" data-i18n="contact.form.interestFull">Complete Solution</option>
+                                    <option value="custom" data-i18n="contact.form.interestCustom">Custom / Tailor-made</option>
+                                </select>
+                            </div>
+
+                            <div class="form__group">
+                                <label class="form__label" for="message" data-i18n="contact.form.message">Your Message *</label>
+                                <textarea class="form__textarea" id="message" name="message" required data-i18n-placeholder="contact.form.messagePlaceholder" placeholder="Tell us about your project, your challenges, and how we can help you..."></textarea>
+                            </div>
+
+                            <button type="submit" class="btn btn--primary btn--full btn--large">
+                                <span data-i18n="contact.form.submit">Send Message</span>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="22" y1="2" x2="11" y2="13"/>
+                                    <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                                </svg>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Why Contact Section -->
+        <section class="section section--gray">
+            <div class="container">
+                <div class="section__header">
+                    <span class="section__label" data-i18n="contact.process.label">What to Expect</span>
+                    <h2 class="section__title" data-i18n="contact.process.title">Our Process After You Reach Out</h2>
+                </div>
+
+                <div class="grid grid--4">
+                    <div class="feature">
+                        <div class="feature__icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                                <polyline points="22 4 12 14.01 9 11.01"/>
+                            </svg>
+                        </div>
+                        <h3 class="feature__title" data-i18n="contact.process.step1.title">1. Acknowledgment</h3>
+                        <p class="feature__description" data-i18n="contact.process.step1.description">
+                            We confirm receipt of your message within 24 hours.
+                        </p>
+                    </div>
+
+                    <div class="feature">
+                        <div class="feature__icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                            </svg>
+                        </div>
+                        <h3 class="feature__title" data-i18n="contact.process.step2.title">2. Discovery Call</h3>
+                        <p class="feature__description" data-i18n="contact.process.step2.description">
+                            We schedule a call to understand your needs in depth.
+                        </p>
+                    </div>
+
+                    <div class="feature">
+                        <div class="feature__icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                <polyline points="14 2 14 8 20 8"/>
+                                <line x1="16" y1="13" x2="8" y2="13"/>
+                                <line x1="16" y1="17" x2="8" y2="17"/>
+                            </svg>
+                        </div>
+                        <h3 class="feature__title" data-i18n="contact.process.step3.title">3. Proposal</h3>
+                        <p class="feature__description" data-i18n="contact.process.step3.description">
+                            We prepare a tailored proposal based on your requirements.
+                        </p>
+                    </div>
+
+                    <div class="feature">
+                        <div class="feature__icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M18 8h1a4 4 0 0 1 0 8h-1"/>
+                                <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/>
+                                <line x1="6" y1="1" x2="6" y2="4"/>
+                                <line x1="10" y1="1" x2="10" y2="4"/>
+                                <line x1="14" y1="1" x2="14" y2="4"/>
+                            </svg>
+                        </div>
+                        <h3 class="feature__title" data-i18n="contact.process.step4.title">4. Getting Started</h3>
+                        <p class="feature__description" data-i18n="contact.process.step4.description">
+                            Once approved, we begin bringing your vision to life.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Trust Section -->
+        <section class="section">
+            <div class="container container--narrow">
+                <div class="quote">
+                    <p class="quote__text" data-i18n="testimonials.quote2">
+                        "From the first contact, we knew Hothello was different. They listened to our needs, understood our challenges, and delivered exactly what we needed. The personal touch makes all the difference."
+                    </p>
+                    <p class="quote__author" data-i18n="testimonials.author2">Philippe Martin</p>
+                    <p class="quote__role" data-i18n="testimonials.role2">Owner, Château Resort & Spa</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer__grid">
+                <div class="footer__brand">
+                    <a href="index.html" class="logo">
+                        <span class="logo__icon">H</span>
+                        <span class="logo__text">Hothello</span>
+                    </a>
+                    <p data-i18n="footer.description">
+                        Digital transformation solutions for hospitality establishments. Built by two friends committed to delivering modern, reliable, and efficient software.
+                    </p>
+                </div>
+
+                <div class="footer__column">
+                    <h4 data-i18n="footer.navigation">Navigation</h4>
+                    <ul class="footer__links">
+                        <li><a href="index.html" class="footer__link" data-i18n="nav.home">Home</a></li>
+                        <li><a href="services.html" class="footer__link" data-i18n="nav.services">Services</a></li>
+                        <li><a href="pricing.html" class="footer__link" data-i18n="nav.pricing">Pricing</a></li>
+                        <li><a href="contact.html" class="footer__link" data-i18n="nav.contact">Contact</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer__column">
+                    <h4 data-i18n="footer.servicesTitle">Services</h4>
+                    <ul class="footer__links">
+                        <li><a href="services.html#communication" class="footer__link" data-i18n="services.communication.title">Smooth Communication</a></li>
+                        <li><a href="services.html#management" class="footer__link" data-i18n="services.management.title">Centralized Management</a></li>
+                        <li><a href="services.html#room-service" class="footer__link" data-i18n="services.roomService.title">Room Service</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer__column">
+                    <h4 data-i18n="footer.contactTitle">Contact</h4>
+                    <div class="footer__contact-item">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                            <polyline points="22,6 12,13 2,6"/>
+                        </svg>
+                        <span>contact@hothello.com</span>
+                    </div>
+                    <div class="footer__contact-item">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                            <circle cx="12" cy="10" r="3"/>
+                        </svg>
+                        <span>France</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="footer__bottom">
+                <p data-i18n="footer.copyright">&copy; 2025 Hothello. All rights reserved.</p>
+                <div class="footer__legal">
+                    <a href="#" data-i18n="footer.privacy">Privacy Policy</a>
+                    <a href="#" data-i18n="footer.terms">Terms of Service</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/main.js"></script>
+</body>
+</html>

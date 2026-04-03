@@ -1,11 +1,12 @@
 <?php
+require_once __DIR__ . '/../shared/bootstrap.php';
 /**
  * Room Service Categories Management
  * Hotel Corintel - Full CRUD for categories
  */
 
-require_once __DIR__ . '/../includes/auth.php';
-require_once __DIR__ . '/../includes/functions.php';
+require_once HOTEL_ROOT . '/shared/includes/auth.php';
+require_once HOTEL_ROOT . '/shared/includes/functions.php';
 
 requireRole('content');
 

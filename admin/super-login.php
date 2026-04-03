@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../shared/bootstrap.php';
 /**
  * Super Admin Cross-Login Entry Point
  *
@@ -10,8 +11,8 @@
  * Signature: HMAC-SHA256(payload, shared_secret)
  */
 
-require_once __DIR__ . '/../config/database.php';
-require_once __DIR__ . '/../includes/auth.php';
+require_once HOTEL_ROOT . '/shared/config/database.php';
+require_once HOTEL_ROOT . '/shared/includes/auth.php';
 
 $token = $_GET['token'] ?? '';
 
@@ -57,21 +58,21 @@ $pdo = getDatabase();
 
 // Ensure nonce table exists
 $pdo->exec('
-    CREATE TABLE IF NOT EXISTS super_admin_login_tokens (
+    CREATE TABLE IF NOT EXISTS public.super_admin_login_tokens (
         id SERIAL PRIMARY KEY,
         token_nonce VARCHAR(64) NOT NULL UNIQUE,
         used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
 ');
-$pdo->exec('CREATE INDEX IF NOT EXISTS idx_super_admin_login_tokens_nonce ON super_admin_login_tokens (token_nonce)');
-$pdo->exec('CREATE INDEX IF NOT EXISTS idx_super_admin_login_tokens_used_at ON super_admin_login_tokens (used_at)');
+$pdo->exec('CREATE INDEX IF NOT EXISTS idx_super_admin_login_tokens_nonce ON public.super_admin_login_tokens (token_nonce)');
+$pdo->exec('CREATE INDEX IF NOT EXISTS idx_super_admin_login_tokens_used_at ON public.super_admin_login_tokens (used_at)');
 
 // Clean old nonces (older than 5 minutes)
-$pdo->exec("DELETE FROM super_admin_login_tokens WHERE used_at < NOW() - INTERVAL '5 minutes'");
+$pdo->exec("DELETE FROM public.super_admin_login_tokens WHERE used_at < NOW() - INTERVAL '5 minutes'");
 
 // Try to insert nonce (will fail if already used)
 try {
-    $stmt = $pdo->prepare('INSERT INTO super_admin_login_tokens (token_nonce) VALUES (?)');
+    $stmt = $pdo->prepare('INSERT INTO public.super_admin_login_tokens (token_nonce) VALUES (?)');
     $stmt->execute([$nonce]);
 } catch (PDOException $e) {
     // Duplicate nonce = replay attack

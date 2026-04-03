@@ -1,11 +1,12 @@
 <?php
+require_once __DIR__ . '/../shared/bootstrap.php';
 /**
  * Admin Users Management
  * Hotel Corintel
  */
 
-require_once __DIR__ . '/../includes/auth.php';
-require_once __DIR__ . '/../includes/functions.php';
+require_once HOTEL_ROOT . '/shared/includes/auth.php';
+require_once HOTEL_ROOT . '/shared/includes/functions.php';
 
 requireRole('settings');
 
@@ -65,8 +66,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 // Check uniqueness
-                $stmt = $pdo->prepare('SELECT COUNT(*) FROM admins WHERE username = ?');
-                $stmt->execute([$username]);
+                $stmt = $pdo->prepare('SELECT COUNT(*) FROM admins WHERE username = ? AND hotel_id = ?');
+                $stmt->execute([$username, getHotelId()]);
                 if ($stmt->fetchColumn() > 0) {
                     $message = 'Ce nom d\'utilisateur existe déjà.';
                     $messageType = 'error';
@@ -74,8 +75,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 $hash = password_hash($password, PASSWORD_DEFAULT);
-                $stmt = $pdo->prepare('INSERT INTO admins (username, password, email, role) VALUES (?, ?, ?, ?)');
-                $stmt->execute([$username, $hash, $email ?: null, $role]);
+                $stmt = $pdo->prepare('INSERT INTO admins (username, password, email, role, hotel_id) VALUES (?, ?, ?, ?, ?)');
+                $stmt->execute([$username, $hash, $email ?: null, $role, getHotelId()]);
 
                 $message = 'Utilisateur créé avec succès.';
                 $messageType = 'success';
@@ -98,8 +99,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     break;
                 }
 
-                $stmt = $pdo->prepare('UPDATE admins SET role = ? WHERE id = ?');
-                $stmt->execute([$newRole, $targetId]);
+                $stmt = $pdo->prepare('UPDATE admins SET role = ? WHERE id = ? AND hotel_id = ?');
+                $stmt->execute([$newRole, $targetId, getHotelId()]);
 
                 $message = 'Rôle mis à jour avec succès.';
                 $messageType = 'success';
@@ -116,12 +117,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 $hash = password_hash($newPassword, PASSWORD_DEFAULT);
-                $stmt = $pdo->prepare('UPDATE admins SET password = ? WHERE id = ?');
-                $stmt->execute([$hash, $targetId]);
+                $stmt = $pdo->prepare('UPDATE admins SET password = ? WHERE id = ? AND hotel_id = ?');
+                $stmt->execute([$hash, $targetId, getHotelId()]);
 
                 // Invalidate persistent tokens for that user
-                $stmt = $pdo->prepare('DELETE FROM persistent_tokens WHERE admin_id = ?');
-                $stmt->execute([$targetId]);
+                $stmt = $pdo->prepare('DELETE FROM persistent_tokens WHERE admin_id = ? AND hotel_id = ?');
+                $stmt->execute([$targetId, getHotelId()]);
 
                 $message = 'Mot de passe réinitialisé avec succès.';
                 $messageType = 'success';
@@ -138,10 +139,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 // Cannot delete the last admin
-                $stmt = $pdo->prepare("SELECT COUNT(*) FROM admins WHERE role = 'admin' AND id != ?");
-                $stmt->execute([$targetId]);
-                $targetRole = $pdo->prepare('SELECT role FROM admins WHERE id = ?');
-                $targetRole->execute([$targetId]);
+                $stmt = $pdo->prepare("SELECT COUNT(*) FROM admins WHERE role = 'admin' AND id != ? AND hotel_id = ?");
+                $stmt->execute([$targetId, getHotelId()]);
+                $targetRole = $pdo->prepare('SELECT role FROM admins WHERE id = ? AND hotel_id = ?');
+                $targetRole->execute([$targetId, getHotelId()]);
                 $deletingRole = $targetRole->fetchColumn();
 
                 if ($deletingRole === 'admin' && $stmt->fetchColumn() === 0) {
@@ -151,12 +152,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 // Delete persistent tokens first
-                $stmt = $pdo->prepare('DELETE FROM persistent_tokens WHERE admin_id = ?');
-                $stmt->execute([$targetId]);
+                $stmt = $pdo->prepare('DELETE FROM persistent_tokens WHERE admin_id = ? AND hotel_id = ?');
+                $stmt->execute([$targetId, getHotelId()]);
 
                 // Delete user
-                $stmt = $pdo->prepare('DELETE FROM admins WHERE id = ?');
-                $stmt->execute([$targetId]);
+                $stmt = $pdo->prepare('DELETE FROM admins WHERE id = ? AND hotel_id = ?');
+                $stmt->execute([$targetId, getHotelId()]);
 
                 $message = 'Utilisateur supprimé avec succès.';
                 $messageType = 'success';
@@ -167,7 +168,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Fetch all admin users
 $pdo = getDatabase();
-$stmt = $pdo->query('SELECT id, username, email, role, created_at, last_login FROM admins ORDER BY created_at ASC');
+$stmt = $pdo->prepare('SELECT id, username, email, role, created_at, last_login FROM admins WHERE hotel_id = ? ORDER BY created_at ASC');
+$stmt->execute([getHotelId()]);
 $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <!DOCTYPE html>

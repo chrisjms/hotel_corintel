@@ -1,12 +1,13 @@
 <?php
+require_once __DIR__ . '/../../shared/bootstrap.php';
 /**
  * Orders Page Real-Time Updates API
  * Returns current orders list with filters
  * Hotel Corintel
  */
 
-require_once __DIR__ . '/../../includes/auth.php';
-require_once __DIR__ . '/../../includes/functions.php';
+require_once HOTEL_ROOT . '/shared/includes/auth.php';
+require_once HOTEL_ROOT . '/shared/includes/functions.php';
 
 // Require authentication + permission
 if (!isLoggedIn() || !hasPermission('orders')) {

@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Hothello Pricing - Transparent, flexible plans adapted to your hotel's needs. No fixed commitments.">
+    <title>Pricing | Hothello - Digital Solutions for Hospitality</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <span hidden data-i18n-title="meta.title.pricing"></span>
+    <span hidden data-i18n-meta-description="meta.description.pricing"></span>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container header__inner">
+            <a href="index.html" class="logo">
+                <span class="logo__icon">H</span>
+                <span class="logo__text">Hothello</span>
+            </a>
+
+            <nav class="nav nav--center">
+                <ul class="nav__list">
+                    <li><a href="index.html" class="nav__link" data-i18n="nav.home">Home</a></li>
+                    <li><a href="services.html" class="nav__link" data-i18n="nav.services">Services</a></li>
+                    <li><a href="pricing.html" class="nav__link nav__link--active" data-i18n="nav.pricing">Pricing</a></li>
+                    <li><a href="blog.html" class="nav__link" data-i18n="nav.blog">Blog</a></li>
+                    <li><a href="contact.html" class="nav__link" data-i18n="nav.contact">Contact</a></li>
+                </ul>
+            </nav>
+
+            <div class="header__actions">
+                <div class="lang-switcher">
+                    <button class="lang-switcher__btn" aria-label="Change language">
+                        <svg class="lang-switcher__globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="2" y1="12" x2="22" y2="12"/>
+                            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                        </svg>
+                        <span class="lang-switcher__current">EN</span>
+                        <svg class="lang-switcher__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"/>
+                        </svg>
+                    </button>
+                    <div class="lang-switcher__dropdown">
+                        <button class="lang-switcher__option active" data-lang="en">
+                            <span>English</span>
+                        </button>
+                        <button class="lang-switcher__option" data-lang="fr">
+                            <span>Français</span>
+                        </button>
+                    </div>
+                </div>
+
+                <button class="nav__toggle" aria-label="Toggle navigation">
+                    <span class="nav__toggle-bar"></span>
+                    <span class="nav__toggle-bar"></span>
+                    <span class="nav__toggle-bar"></span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <!-- Page Hero -->
+        <section class="page-hero">
+            <div class="container">
+                <h1 class="page-hero__title" data-i18n="pricing.pageTitle">Transparent Pricing</h1>
+                <p class="page-hero__description" data-i18n="pricing.pageDescription">
+                    Flexible plans adapted to your establishment's needs. No fixed commitments, no hidden fees.
+                </p>
+            </div>
+        </section>
+
+        <!-- Pricing Section -->
+        <section class="section">
+            <div class="container">
+                <div class="grid grid--3">
+                    <!-- Essential Plan -->
+                    <div class="pricing-card">
+                        <div class="pricing-card__header">
+                            <h3 class="pricing-card__name" data-i18n="pricing.essential.name">Essential</h3>
+                            <p class="pricing-card__tagline" data-i18n="pricing.essential.tagline">Perfect for starting your digital journey</p>
+                            <p class="pricing-card__best-for" data-i18n="pricing.essential.bestFor">Ideal for boutique hotels with 1-30 rooms</p>
+                        </div>
+
+                        <div class="pricing-card__price">
+                            <span class="pricing-card__price-label" data-i18n="pricing.essential.price">Tailored pricing</span>
+                            <span class="pricing-card__price-note" data-i18n="pricing.essential.priceNote">Based on your establishment</span>
+                        </div>
+
+                        <ul class="pricing-card__features">
+                            <li class="pricing-card__feature">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="20 6 9 17 4 12"/>
+                                </svg>
+                                <span data-i18n="pricing.features.establishment">Information about your establishment</span>
+                            </li>
+                            <li class="pricing-card__feature">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="20 6 9 17 4 12"/>
+                                </svg>
+                                <span data-i18n="pricing.features.partnerships">Partnerships showcase</span>
+                            </li>
+                            <li class="pricing-card__feature">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="20 6 9 17 4 12"/>
+                                </svg>
+                                <span data-i18n="pricing.features.activities">Activities & mobility info</span>
+                            </li>
+                            <li class="pricing-card__feature pricing-card__feature--disabled">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="18" y1="6" x2="6" y2="18"/>
+                                    <line x1="6" y1="6" x2="18" y2="18"/>
+                                </svg>
+                                <span data-i18n="pricing.features.roomService">Digital room service</span>
+                            </li>
+                            <li class="pricing-card__feature pricing-card__feature--disabled">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="18" y1="6" x2="6" y2="18"/>
+                                    <line x1="6" y1="6" x2="18" y2="18"/>
+                                </svg>
+                                <span data-i18n="pricing.features.statistics">Statistics and insights</span>
+                            </li>
+                            <li class="pricing-card__feature pricing-card__feature--disabled">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="18" y1="6" x2="6" y2="18"/>
+                                    <line x1="6" y1="6" x2="18" y2="18"/>
+                                </svg>
+                                <span data-i18n="pricing.features.reviews">Customer reviews management</span>
+                            </li>
+                        </ul>
+
+                        <div class="pricing-card__action">
+                            <a href="contact.html" class="btn btn--outline btn--full" data-i18n="pricing.essential.cta">Contact Us</a>
+                        </div>
+                    </div>
+
+                    <!-- Premium Plan -->
+                    <div class="pricing-card pricing-card--featured">
+                        <div class="pricing-card__badge" data-i18n="pricing.premium.badge">Most Popular</div>
+
+                        <div class="pricing-card__header">
+                            <h3 class="pricing-card__name" data-i18n="pricing.premium.name">Premium</h3>
+                            <p class="pricing-card__tagline" data-i18n="pricing.premium.tagline">Complete solution for enhanced experiences</p>
+                            <p class="pricing-card__best-for" data-i18n="pricing.premium.bestFor">For mid-size hotels with 30-150 rooms</p>
+                        </div>
+
+                        <div class="pricing-card__price">
+                            <span class="pricing-card__price-label" data-i18n="pricing.premium.price">Tailored pricing</span>
+                            <span class="pricing-card__price-note" data-i18n="pricing.premium.priceNote">Based on your establishment</span>
+                        </div>
+
+                        <ul class="pricing-card__features">
+                            <li class="pricing-card__feature">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="20 6 9 17 4 12"/>
+                                </svg>
+                                <span data-i18n="pricing.features.establishment">Information about your establishment</span>
+                            </li>
+                            <li class="pricing-card__feature">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="20 6 9 17 4 12"/>
+                                </svg>
+                                <span data-i18n="pricing.features.partnerships">Partnerships showcase</span>
+                            </li>
+                            <li class="pricing-card__feature">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="20 6 9 17 4 12"/>
+                                </svg>
+                                <span data-i18n="pricing.features.activities">Activities & mobility info</span>
+                            </li>
+                            <li class="pricing-card__feature">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="20 6 9 17 4 12"/>
+                                </svg>
+                                <span data-i18n="pricing.features.roomService">Digital room service</span>
+                            </li>
+                            <li class="pricing-card__feature">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="20 6 9 17 4 12"/>
+                                </svg>
+                                <span data-i18n="pricing.features.statistics">Statistics and insights</span>
+                            </li>
+                            <li class="pricing-card__feature">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="20 6 9 17 4 12"/>
+                                </svg>
+                                <span data-i18n="pricing.features.reviews">Customer reviews management</span>
+                            </li>
+                            <li class="pricing-card__feature pricing-card__feature--disabled">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="18" y1="6" x2="6" y2="18"/>
+                                    <line x1="6" y1="6" x2="18" y2="18"/>
+                                </svg>
+                                <span data-i18n="pricing.features.onSiteBooking">On-site service booking</span>
+                            </li>
+                            <li class="pricing-card__feature pricing-card__feature--disabled">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="18" y1="6" x2="6" y2="18"/>
+                                    <line x1="6" y1="6" x2="18" y2="18"/>
+                                </svg>
+                                <span data-i18n="pricing.features.nearbyBooking">Nearby activities booking</span>
+                            </li>
+                        </ul>
+
+                        <div class="pricing-card__action">
+                            <a href="contact.html" class="btn btn--primary btn--full" data-i18n="pricing.premium.cta">Contact Us</a>
+                        </div>
+                    </div>
+
+                    <!-- Custom Plan -->
+                    <div class="pricing-card">
+                        <div class="pricing-card__header">
+                            <h3 class="pricing-card__name" data-i18n="pricing.custom.name">Tailor-made</h3>
+                            <p class="pricing-card__tagline" data-i18n="pricing.custom.tagline">Fully customized to your specific needs</p>
+                            <p class="pricing-card__best-for" data-i18n="pricing.custom.bestFor">For large establishments with 150+ rooms</p>
+                        </div>
+
+                        <div class="pricing-card__price">
+                            <span class="pricing-card__price-label" data-i18n="pricing.custom.price">Custom pricing</span>
+                            <span class="pricing-card__price-note" data-i18n="pricing.custom.priceNote">Let's discuss your project</span>
+                        </div>
+
+                        <ul class="pricing-card__features">
+                            <li class="pricing-card__feature">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="20 6 9 17 4 12"/>
+                                </svg>
+                                <span data-i18n="pricing.features.establishment">Information about your establishment</span>
+                            </li>
+                            <li class="pricing-card__feature">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="20 6 9 17 4 12"/>
+                                </svg>
+                                <span data-i18n="pricing.features.partnerships">Partnerships showcase</span>
+                            </li>
+                            <li class="pricing-card__feature">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="20 6 9 17 4 12"/>
+                                </svg>
+                                <span data-i18n="pricing.features.activities">Activities & mobility info</span>
+                            </li>
+                            <li class="pricing-card__feature">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="20 6 9 17 4 12"/>
+                                </svg>
+                                <span data-i18n="pricing.features.roomService">Digital room service</span>
+                            </li>
+                            <li class="pricing-card__feature">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="20 6 9 17 4 12"/>
+                                </svg>
+                                <span data-i18n="pricing.features.statistics">Statistics and insights</span>
+                            </li>
+                            <li class="pricing-card__feature">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="20 6 9 17 4 12"/>
+                                </svg>
+                                <span data-i18n="pricing.features.reviews">Customer reviews management</span>
+                            </li>
+                            <li class="pricing-card__feature">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="20 6 9 17 4 12"/>
+                                </svg>
+                                <span data-i18n="pricing.features.onSiteBooking">Booking of on-site services</span>
+                            </li>
+                            <li class="pricing-card__feature">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="20 6 9 17 4 12"/>
+                                </svg>
+                                <span data-i18n="pricing.features.nearbyBooking">Booking of nearby activities</span>
+                            </li>
+                        </ul>
+
+                        <div class="pricing-card__action">
+                            <a href="contact.html" class="btn btn--outline btn--full" data-i18n="pricing.custom.cta">Contact Us</a>
+                        </div>
+                    </div>
+                </div>
+
+                <p class="text-center" style="margin-top: var(--space-12); color: var(--color-gray-600);" data-i18n="pricing.allPlansNote">
+                    All plans include ongoing support and regular updates. No long-term contracts required.
+                </p>
+            </div>
+        </section>
+
+        <!-- FAQ Section -->
+        <section class="section section--gray">
+            <div class="container container--narrow">
+                <div class="section__header">
+                    <span class="section__label" data-i18n="pricing.faq.label">Questions</span>
+                    <h2 class="section__title" data-i18n="pricing.faq.title">Frequently Asked</h2>
+                </div>
+
+                <div class="faq-list">
+                    <div class="faq-item">
+                        <button class="faq-item__question" aria-expanded="false" aria-controls="faq-1">
+                            <span data-i18n="pricing.faq.q1">Why don't you display fixed prices?</span>
+                            <svg class="faq-item__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                        </button>
+                        <div class="faq-item__answer" id="faq-1">
+                            <p data-i18n="pricing.faq.a1">
+                                Every hotel is different. The number of rooms, services offered, and specific requirements all affect the implementation. We believe in transparent, honest pricing that reflects the actual value we deliver to your establishment.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <button class="faq-item__question" aria-expanded="false" aria-controls="faq-2">
+                            <span data-i18n="pricing.faq.q2">Are there any long-term contracts?</span>
+                            <svg class="faq-item__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                        </button>
+                        <div class="faq-item__answer" id="faq-2">
+                            <p data-i18n="pricing.faq.a2">
+                                No. We don't believe in locking our clients into long-term agreements. Our service quality speaks for itself, and we're confident you'll want to continue working with us.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <button class="faq-item__question" aria-expanded="false" aria-controls="faq-3">
+                            <span data-i18n="pricing.faq.q3">Can I upgrade my plan later?</span>
+                            <svg class="faq-item__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                        </button>
+                        <div class="faq-item__answer" id="faq-3">
+                            <p data-i18n="pricing.faq.a3">
+                                Absolutely. You can start with the Essential plan and upgrade to Premium or Tailor-made as your needs evolve. We'll help you transition smoothly.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <button class="faq-item__question" aria-expanded="false" aria-controls="faq-4">
+                            <span data-i18n="pricing.faq.q4">What kind of support is included?</span>
+                            <svg class="faq-item__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                        </button>
+                        <div class="faq-item__answer" id="faq-4">
+                            <p data-i18n="pricing.faq.a4">
+                                All plans include email support and regular platform updates. Premium and Tailor-made plans include priority support with faster response times. We're always here to help.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <button class="faq-item__question" aria-expanded="false" aria-controls="faq-5">
+                            <span data-i18n="pricing.faq.q5">How long does implementation take?</span>
+                            <svg class="faq-item__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                        </button>
+                        <div class="faq-item__answer" id="faq-5">
+                            <p data-i18n="pricing.faq.a5">
+                                It depends on the complexity of your requirements. Essential plans can be ready in a few days, while Tailor-made solutions require more time for customization. We'll give you a clear timeline during our consultation.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA Section -->
+        <section class="cta">
+            <div class="container">
+                <h2 class="cta__title" data-i18n="cta.notSure">Not Sure Which Plan is Right for You?</h2>
+                <p class="cta__description" data-i18n="cta.notSureDescription">
+                    Let's have a conversation. We'll help you find the perfect solution for your hotel's unique needs.
+                </p>
+                <a href="contact.html" class="btn btn--outline-white btn--large" data-i18n="cta.freeConsultation">Schedule a Free Consultation</a>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer__grid">
+                <div class="footer__brand">
+                    <a href="index.html" class="logo">
+                        <span class="logo__icon">H</span>
+                        <span class="logo__text">Hothello</span>
+                    </a>
+                    <p data-i18n="footer.description">
+                        Digital transformation solutions for hospitality establishments. Built by two friends committed to delivering modern, reliable, and efficient software.
+                    </p>
+                </div>
+
+                <div class="footer__column">
+                    <h4 data-i18n="footer.navigation">Navigation</h4>
+                    <ul class="footer__links">
+                        <li><a href="index.html" class="footer__link" data-i18n="nav.home">Home</a></li>
+                        <li><a href="services.html" class="footer__link" data-i18n="nav.services">Services</a></li>
+                        <li><a href="pricing.html" class="footer__link" data-i18n="nav.pricing">Pricing</a></li>
+                        <li><a href="contact.html" class="footer__link" data-i18n="nav.contact">Contact</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer__column">
+                    <h4 data-i18n="footer.servicesTitle">Services</h4>
+                    <ul class="footer__links">
+                        <li><a href="services.html#communication" class="footer__link" data-i18n="services.communication.title">Smooth Communication</a></li>
+                        <li><a href="services.html#management" class="footer__link" data-i18n="services.management.title">Centralized Management</a></li>
+                        <li><a href="services.html#room-service" class="footer__link" data-i18n="services.roomService.title">Room Service</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer__column">
+                    <h4 data-i18n="footer.contactTitle">Contact</h4>
+                    <div class="footer__contact-item">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                            <polyline points="22,6 12,13 2,6"/>
+                        </svg>
+                        <span>contact@hothello.com</span>
+                    </div>
+                    <div class="footer__contact-item">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                            <circle cx="12" cy="10" r="3"/>
+                        </svg>
+                        <span>France</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="footer__bottom">
+                <p data-i18n="footer.copyright">&copy; 2025 Hothello. All rights reserved.</p>
+                <div class="footer__legal">
+                    <a href="#" data-i18n="footer.privacy">Privacy Policy</a>
+                    <a href="#" data-i18n="footer.terms">Terms of Service</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/main.js"></script>
+</body>
+</html>

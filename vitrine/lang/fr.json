@@ -1,0 +1,343 @@
+{
+  "meta": {
+    "lang": "fr",
+    "title": {
+      "home": "Hothello | Solutions Digitales pour l'Hôtellerie",
+      "services": "Services | Hothello - Solutions Digitales pour l'Hôtellerie",
+      "pricing": "Tarifs | Hothello - Solutions Digitales pour l'Hôtellerie",
+      "contact": "Contact | Hothello - Solutions Digitales pour l'Hôtellerie"
+    },
+    "description": {
+      "home": "Hothello - Solutions de transformation digitale pour les établissements hôteliers. Des logiciels modernes, fiables et adaptés à vos besoins.",
+      "services": "Services Hothello - Communication digitale, gestion centralisée et service en chambre optimisé pour les hôtels.",
+      "pricing": "Tarifs Hothello - Des offres transparentes et flexibles adaptées à vos besoins. Sans engagement.",
+      "contact": "Contactez Hothello - Discutons de la transformation digitale de votre hôtel. Nous sommes là pour vous aider."
+    }
+  },
+  "nav": {
+    "home": "Accueil",
+    "services": "Services",
+    "pricing": "Tarifs",
+    "blog": "Blog",
+    "contact": "Contact",
+    "getStarted": "Commencer"
+  },
+  "hero": {
+    "label": "Transformation Digitale pour l'Hôtellerie",
+    "title": "Simplifiez la Transition",
+    "titleHighlight": "Digitale de Votre Hôtel",
+    "description": "Hothello vous propose des solutions logicielles modernes, fiables et performantes, adaptées à votre établissement. Créées par deux passionnés d'hôtellerie, pour des professionnels comme vous.",
+    "cta": "Commencer Votre Transformation",
+    "ctaSecondary": "Découvrir Nos Services",
+    "stats": {
+      "satisfaction": "Satisfaction Client",
+      "paper": "Utilisation de Papier",
+      "access": "Accès Digital"
+    }
+  },
+  "mission": {
+    "label": "Pourquoi Hothello",
+    "title": "Conçu pour l'Excellence Hôtelière",
+    "description": "Nous comprenons les défis uniques de la gestion hôtelière. Nos solutions ont un seul objectif : vous aider à offrir des expériences exceptionnelles tout en simplifiant vos opérations.",
+    "performance": {
+      "title": "Performance",
+      "description": "Des solutions rapides et réactives qui optimisent vos opérations quotidiennes et améliorent l'efficacité de tous vos services."
+    },
+    "clarity": {
+      "title": "Clarté",
+      "description": "Des interfaces intuitives qui ne nécessitent aucune expertise technique. Une information claire pour vos clients, une gestion simple pour votre équipe."
+    },
+    "experience": {
+      "title": "Expérience Client",
+      "description": "Placez vos clients au cœur de votre activité grâce à des outils digitaux qui améliorent leur confort et leur satisfaction."
+    }
+  },
+  "services": {
+    "label": "Nos Services",
+    "title": "Des Solutions Digitales Efficaces",
+    "description": "Des outils complets conçus pour moderniser chaque aspect de votre établissement, de la communication client au service en chambre.",
+    "exploreAll": "Découvrir Tous les Services",
+    "communication": {
+      "title": "Communication Fluide",
+      "description": "Remplacez les brochures papier obsolètes par des plateformes digitales élégantes. Offrez à vos clients une information claire et accessible sur votre établissement et ses environs.",
+      "descriptionLong": "À l'ère du digital, vos clients s'attendent à un accès instantané à l'information. Nos solutions de communication digitale remplacent les supports papier traditionnels par des interfaces numériques élégantes et faciles à naviguer, accessibles depuis n'importe quel appareil.",
+      "descriptionExtra": "Des équipements de l'hôtel aux attractions locales, vos clients auront tout ce dont ils ont besoin à portée de main — disponible 24h/24, toujours à jour, et dans leur langue préférée.",
+      "features": {
+        "portals": "Portails d'information digitaux",
+        "language": "Support multilingue",
+        "updates": "Mises à jour en temps réel",
+        "qr": "Intégration de QR codes"
+      }
+    },
+    "management": {
+      "title": "Gestion Centralisée",
+      "description": "Prenez le contrôle grâce à des tableaux de bord intuitifs. Gérez tout votre contenu, vos services et vos interactions clients depuis une plateforme unifiée.",
+      "descriptionLong": "Gérer plusieurs systèmes et plateformes est chronophage et source d'erreurs. Notre solution de gestion centralisée rassemble tout — contenu, services, équipes et analyses — en une seule plateforme unifiée.",
+      "descriptionExtra": "Grâce aux contrôles d'accès basés sur les rôles, votre équipe peut collaborer efficacement tout en maintenant la sécurité et la cohérence sur tous les points de contact.",
+      "features": {
+        "dashboard": "Tableau de bord unifié",
+        "cms": "Système de gestion de contenu",
+        "staff": "Gestion des accès équipe",
+        "coordination": "Outils de coordination"
+      }
+    },
+    "roomService": {
+      "title": "Room Service Optimisé",
+      "description": "Transformez votre room service avec des systèmes de commande en ligne. Améliorez vos processus, réduisez les temps d'attente et augmentez le confort de vos clients.",
+      "descriptionLong": "Le room service traditionnel repose sur les appels téléphoniques, les bons papier et une coordination manuelle. Notre solution digitale modernise l'ensemble du processus — de la consultation du menu à la commande jusqu'au suivi de la livraison.",
+      "descriptionExtra": "Vos clients profitent d'une expérience de commande fluide tandis que votre équipe cuisine bénéficie d'une gestion des commandes claire et organisée. Résultat : un service plus rapide, moins d'erreurs et des clients plus satisfaits.",
+      "features": {
+        "menus": "Menus digitaux",
+        "ordering": "Système de commande en ligne",
+        "tracking": "Suivi des commandes & notifications",
+        "kitchen": "Intégration cuisine"
+      }
+    },
+    "additional": {
+      "label": "Plus de Fonctionnalités",
+      "title": "Tout ce Dont Vous Avez Besoin",
+      "description": "Au-delà de nos services principaux, Hothello propose des fonctionnalités supplémentaires pour vous aider à offrir une hospitalité exceptionnelle.",
+      "partnerships": {
+        "title": "Partenariats",
+        "description": "Mettez en avant vos partenaires locaux, restaurants et attractions pour enrichir l'expérience de vos clients."
+      },
+      "activities": {
+        "title": "Activités & Mobilité",
+        "description": "Aidez vos clients à découvrir les activités locales, les options de transport et les points d'intérêt."
+      },
+      "statistics": {
+        "title": "Statistiques & Insights",
+        "description": "Suivez l'engagement, les services populaires et le comportement des clients pour prendre des décisions éclairées."
+      },
+      "reviews": {
+        "title": "Gestion des Avis",
+        "description": "Collectez et gérez les retours clients pour améliorer continuellement vos services."
+      }
+    },
+    "process": {
+      "label": "Comment Ça Marche",
+      "title": "Un Processus de Mise en Place Simple",
+      "description": "Démarrer avec Hothello est simple. Nous vous accompagnons à chaque étape.",
+      "consultation": {
+        "title": "1. Consultation",
+        "timeline": "Jour 1",
+        "description": "Nous discutons de vos besoins, défis et objectifs pour comprendre votre établissement."
+      },
+      "configuration": {
+        "title": "2. Configuration",
+        "timeline": "1-2 semaines",
+        "description": "Nous configurons votre plateforme avec votre identité, votre contenu et vos exigences spécifiques."
+      },
+      "training": {
+        "title": "3. Formation",
+        "timeline": "2-3 jours",
+        "description": "Votre équipe apprend à utiliser le système avec un accompagnement pratique et de la documentation."
+      },
+      "launch": {
+        "title": "4. Lancement",
+        "timeline": "Semaine 3-4",
+        "description": "Passez en production en toute confiance, sachant que nous sommes là pour vous accompagner."
+      }
+    }
+  },
+  "story": {
+    "label": "Notre Histoire",
+    "title": "Créé par Deux Amis, Pour les Professionnels de l'Hôtellerie",
+    "lead": "Hothello est né d'une passion commune pour l'hôtellerie et la technologie.",
+    "p1": "Nous avons constaté de nos propres yeux comment les hôtels luttaient avec des systèmes obsolètes, des processus papier et des outils fragmentés. Nous savions qu'il devait y avoir une meilleure solution.",
+    "p2": "Aujourd'hui, nous nous engageons à fournir des solutions logicielles modernes, fiables et efficaces, adaptées à chaque établissement. Chaque fonctionnalité que nous développons est conçue avec les directeurs d'hôtel et leurs clients à l'esprit.",
+    "tailored": "Solutions sur mesure",
+    "tailoredDesc": "Pas de solution unique. Nous nous adaptons à vos besoins.",
+    "support": "Support personnalisé",
+    "supportDesc": "Communication directe, sans file d'attente de tickets.",
+    "improvement": "Amélioration continue",
+    "improvementDesc": "Nous évoluons avec votre activité."
+  },
+  "testimonials": {
+    "label": "Ce Que Disent Nos Clients",
+    "quote1": "Hothello a transformé notre façon de communiquer avec nos clients. La transition digitale s'est faite en douceur et notre équipe s'est rapidement adaptée. Nous avons constaté une amélioration significative de nos scores de satisfaction client.",
+    "author1": "Marie Laurent",
+    "role1": "Directrice Générale, Boutique Hôtel & Spa",
+    "quote2": "Dès le premier contact, nous avons su que Hothello était différent. Ils ont écouté nos besoins, compris nos défis et livré exactement ce dont nous avions besoin. L'approche personnalisée fait toute la différence.",
+    "author2": "Philippe Martin",
+    "role2": "Propriétaire, Château Resort & Spa",
+    "quote3": "Depuis le passage au room service digital de Hothello, les commandes ont augmenté de 40 % et les erreurs en cuisine sont tombées à quasiment zéro. Le retour sur investissement était évident dès le premier mois.",
+    "author3": "Sophie Durand",
+    "role3": "Directrice des Opérations, Hôtel & Resort Les Terrasses",
+    "quote4": "Nous avons éliminé plus de 10 000 pages imprimées par an et nos clients adorent tout avoir sur leur téléphone. Le support multilingue à lui seul nous a fait gagner un temps considérable.",
+    "author4": "Jean-Marc Tessier",
+    "role4": "Propriétaire, Maison d'Hôtes du Parc"
+  },
+  "trustBar": {
+    "label": "La confiance des professionnels de l'hôtellerie"
+  },
+  "pricing": {
+    "pageTitle": "Tarification Transparente",
+    "pageDescription": "Des offres flexibles adaptées aux besoins de votre établissement. Sans engagement, sans frais cachés.",
+    "allPlansNote": "Toutes les offres incluent un support continu et des mises à jour régulières. Aucun contrat longue durée requis.",
+    "essential": {
+      "name": "Essentiel",
+      "tagline": "Idéal pour démarrer votre transition digitale",
+      "bestFor": "Pour les hôtels boutique de 1 à 30 chambres",
+      "price": "Tarif personnalisé",
+      "priceNote": "Selon votre établissement",
+      "cta": "Nous Contacter"
+    },
+    "premium": {
+      "name": "Premium",
+      "badge": "Le Plus Populaire",
+      "tagline": "Solution complète pour une expérience enrichie",
+      "bestFor": "Pour les hôtels de taille moyenne de 30 à 150 chambres",
+      "price": "Tarif personnalisé",
+      "priceNote": "Selon votre établissement",
+      "cta": "Nous Contacter"
+    },
+    "custom": {
+      "name": "Sur Mesure",
+      "tagline": "Entièrement personnalisé selon vos besoins spécifiques",
+      "bestFor": "Pour les grands établissements de 150+ chambres",
+      "price": "Tarif sur devis",
+      "priceNote": "Discutons de votre projet",
+      "cta": "Nous Contacter"
+    },
+    "features": {
+      "establishment": "Informations sur votre établissement",
+      "partnerships": "Mise en avant des partenariats",
+      "activities": "Infos activités & mobilité",
+      "roomService": "Room service digital",
+      "statistics": "Statistiques et insights",
+      "reviews": "Gestion des avis clients",
+      "onSiteBooking": "Réservation de services sur place",
+      "nearbyBooking": "Réservation d'activités à proximité",
+      "customIntegrations": "Intégrations personnalisées"
+    },
+    "comparison": {
+      "label": "Comparer les Offres",
+      "title": "Détail des Fonctionnalités",
+      "description": "Découvrez exactement ce qui est inclus dans chaque offre pour trouver celle qui convient à votre hôtel.",
+      "feature": "Fonctionnalité",
+      "establishmentDesc": "Présentation digitale de votre hôtel",
+      "partnershipsDesc": "Mise en avant des partenaires locaux",
+      "activitiesDesc": "Infos activités locales & transports",
+      "roomServiceDesc": "Commande en ligne & gestion des menus",
+      "statisticsDesc": "Analyses d'utilisation & rapports",
+      "reviewsDesc": "Collecte & gestion des avis clients",
+      "onSiteDesc": "Réservations spa, restaurant",
+      "nearbyDesc": "Tours, excursions, expériences",
+      "integrationsDesc": "Connexion à vos systèmes existants"
+    },
+    "faq": {
+      "label": "Questions",
+      "title": "Questions Fréquentes",
+      "q1": "Pourquoi n'affichez-vous pas de prix fixes ?",
+      "a1": "Chaque hôtel est différent. Le nombre de chambres, les services proposés et les exigences spécifiques influencent tous la mise en œuvre. Nous croyons en une tarification transparente et honnête qui reflète la valeur réelle que nous apportons à votre établissement.",
+      "q2": "Y a-t-il des contrats longue durée ?",
+      "a2": "Non. Nous ne croyons pas à l'enfermement de nos clients dans des engagements à long terme. La qualité de notre service parle d'elle-même, et nous sommes convaincus que vous voudrez continuer à travailler avec nous.",
+      "q3": "Puis-je mettre à niveau mon offre plus tard ?",
+      "a3": "Absolument. Vous pouvez commencer avec l'offre Essentiel et passer à Premium ou Sur Mesure selon l'évolution de vos besoins. Nous vous accompagnerons dans cette transition.",
+      "q4": "Quel type de support est inclus ?",
+      "a4": "Toutes les offres incluent un support par email et des mises à jour régulières de la plateforme. Les offres Premium et Sur Mesure incluent un support prioritaire avec des délais de réponse plus courts. Nous sommes toujours là pour vous aider.",
+      "q5": "Combien de temps dure la mise en place ?",
+      "a5": "Cela dépend de la complexité de vos besoins. Les offres Essentiel peuvent être prêtes en quelques jours, tandis que les solutions Sur Mesure nécessitent plus de temps pour la personnalisation. Nous vous donnerons un calendrier clair lors de notre consultation."
+    }
+  },
+  "contact": {
+    "pageTitle": "Contactez-nous",
+    "pageDescription": "Prêt à transformer l'expérience client de votre hôtel ? Discutons ensemble.",
+    "title": "Parlons de Votre Projet",
+    "lead": "Nous sommes deux passionnés d'hôtellerie engagés à aider des hôtels comme le vôtre à réussir leur transformation digitale.",
+    "email": "Email",
+    "location": "Localisation",
+    "locationValue": "Basés en France, au service des hôtels du monde entier",
+    "responseTime": "Délai de Réponse",
+    "responseTimeValue": "Nous répondons généralement sous 24-48 heures",
+    "form": {
+      "title": "Envoyez-nous un Message",
+      "subtitle": "Remplissez le formulaire ci-dessous et nous vous répondrons dans les plus brefs délais.",
+      "name": "Nom complet",
+      "emailLabel": "Adresse Email",
+      "establishment": "Nom de l'Établissement",
+      "interest": "Intérêt Principal",
+      "interestPlaceholder": "Sélectionner un service",
+      "interestCommunication": "Communication Fluide",
+      "interestManagement": "Gestion Centralisée",
+      "interestRoomService": "Room Service Optimisé",
+      "interestFull": "Solution Complète",
+      "interestCustom": "Sur Mesure",
+      "message": "Votre Message",
+      "messagePlaceholder": "Parlez-nous de votre projet, de vos défis et de comment nous pouvons vous aider...",
+      "submit": "Envoyer le Message",
+      "successTitle": "Message Envoyé avec Succès !",
+      "successMessage": "Merci de nous avoir contactés. Nous avons bien reçu votre message et vous répondrons sous 24-48 heures.",
+      "backHome": "Retour à l'Accueil"
+    },
+    "process": {
+      "label": "À Quoi S'Attendre",
+      "title": "Notre Processus Après Votre Prise de Contact",
+      "step1": {
+        "title": "1. Accusé de Réception",
+        "description": "Nous confirmons la réception de votre message sous 24 heures."
+      },
+      "step2": {
+        "title": "2. Appel Découverte",
+        "description": "Nous planifions un appel pour comprendre vos besoins en profondeur."
+      },
+      "step3": {
+        "title": "3. Proposition",
+        "description": "Nous préparons une proposition sur mesure basée sur vos exigences."
+      },
+      "step4": {
+        "title": "4. Démarrage",
+        "description": "Une fois validé, nous commençons à concrétiser votre vision."
+      }
+    }
+  },
+  "cta": {
+    "transform": "Prêt à Transformer Votre Hôtel ?",
+    "transformDescription": "Discutons de la façon dont Hothello peut vous aider à offrir des expériences client exceptionnelles tout en simplifiant vos opérations.",
+    "modernize": "Prêt à Moderniser Votre Hôtel ?",
+    "modernizeDescription": "Discutons des services adaptés à votre établissement. Sans engagement.",
+    "schedule": "Planifier une Consultation",
+    "getInTouch": "Nous Contacter",
+    "viewPricing": "Voir les Tarifs",
+    "notSure": "Vous ne Savez Pas Quelle Offre Choisir ?",
+    "notSureDescription": "Parlons-en. Nous vous aiderons à trouver la solution parfaite pour les besoins uniques de votre hôtel.",
+    "freeConsultation": "Planifier une Consultation Gratuite"
+  },
+  "footer": {
+    "description": "Solutions de transformation digitale pour les établissements hôteliers. Créé par deux amis engagés à fournir des logiciels modernes, fiables et efficaces.",
+    "navigation": "Navigation",
+    "servicesTitle": "Services",
+    "contactTitle": "Contact",
+    "copyright": "© 2025 Hothello. Tous droits réservés.",
+    "privacy": "Politique de Confidentialité",
+    "terms": "Conditions d'Utilisation"
+  },
+  "blog": {
+    "pageTitle": "Blog & Ressources",
+    "pageDescription": "Conseils, guides et astuces pour aider votre hôtel à prospérer à l'ère du digital.",
+    "readMore": "Lire l'Article",
+    "article1": {
+      "title": "5 Façons Dont le Room Service Digital Booste les Revenus",
+      "excerpt": "Découvrez comment les hôtels augmentent leurs commandes de room service jusqu'à 40 % grâce aux menus digitaux et à la commande en ligne — et pourquoi les clients préfèrent cette solution.",
+      "date": "Février 2025",
+      "tag": "Room Service"
+    },
+    "article2": {
+      "title": "Zéro Papier : Guide de la Communication Digitale pour les Hôtels",
+      "excerpt": "Comment remplacer les brochures imprimées, annuaires et dépliants par des alternatives digitales qui réduisent les coûts et ravissent les clients.",
+      "date": "Janvier 2025",
+      "tag": "Communication"
+    },
+    "article3": {
+      "title": "Le Vrai Coût des Systèmes Hôteliers Obsolètes",
+      "excerpt": "Gaspillage de papier, inefficacité du personnel et attentes non satisfaites — nous analysons les coûts cachés de l'absence de digitalisation.",
+      "date": "Décembre 2024",
+      "tag": "Insights"
+    }
+  },
+  "common": {
+    "learnMore": "En Savoir Plus",
+    "required": "Requis"
+  }
+}

@@ -4,9 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Hotel website. Two main surfaces:
-- **Client site**: Public guest-facing pages (home, services, activities, contact, room service)
-- **Admin panel**: Staff dashboard for managing orders, messages, rooms, content, and settings
+Multi-hotel platform with four surfaces, each in its own folder:
+- **Client site** (`client/`): Public guest-facing pages ([slug].hothello.ovh)
+- **Admin panel** (`admin/`): Staff dashboard (admin-[slug].hothello.ovh)
+- **Super admin** (`superadmin/`): Global platform management (superadmin.hothello.ovh)
+- **Vitrine** (`vitrine/`): Showcase site (hothello.ovh)
+- **Shared code** (`shared/`): Config, includes, JS, uploads — never a DocumentRoot
 
 ## Tech Stack
 
@@ -14,54 +17,151 @@ Hotel website. Two main surfaces:
 |-------|------------|
 | Backend | PHP (no framework), Apache with mod_rewrite |
 | Frontend | HTML5, CSS3, Vanilla JavaScript |
-| Database | MySQL/MariaDB with PDO (utf8mb4) |
+| Database | PostgreSQL via Supabase (PDO, `pgsql:` driver) |
+| File storage | Cloudflare R2 |
 | i18n | Custom JS-based system (FR, EN, ES, IT) |
-| Hosting | OVH shared hosting |
+| Hosting | VPS OVH Starter (~6€/mois) |
+| SSL | Certbot / Let's Encrypt (wildcard via DNS challenge API OVH) |
 
 **Do NOT introduce** PHP frameworks, JS frameworks, CSS frameworks, Node.js/npm, or Composer dependencies.
+
+## Workflow Rule — Commit Message
+
+**À la fin de chaque réponse impliquant une modification de code**, générer un message de commit git adapté au travail effectué, au format :
+
+```
+<type>(<scope>): <résumé en français>
+
+<détail optionnel si nécessaire>
+```
+
+Types : `feat`, `fix`, `refactor`, `chore`, `docs`
+Scope : surface concernée (`hotel-context`, `superadmin`, `admin`, `client`, `shared`, etc.)
+
+## Infrastructure
+
+### Hébergement actuel — Render.com (staging)
+Déploiement temporaire sur Render.com en attendant la migration VPS. Pas de wildcard DNS disponible → hotel détecté via `?hotel=slug` + cookie.
+
+| Service Render | URL | Usage |
+|---|---|---|
+| `hothello-client` | `hothello-client.onrender.com` | Site client |
+| `hothello-admin` | `hothello-admin.onrender.com` | Panel admin |
+| `hothello-superadmin` | `hothello-superadmin.onrender.com` | Super admin |
+
+**Accès multi-hotel sur Render** :
+- Client : `https://hothello-client.onrender.com/?hotel=<slug>`
+- Admin : `https://hothello-admin.onrender.com/?hotel=<slug>` (le slug est persisté en cookie `_hotel_slug`, 30 jours)
+- Le slug est automatiquement conservé entre les redirections (ex: `requireAuth()` → `login.php`) grâce au cookie
+
+### Serveur VPS OVH (futur)
+- **Offre** : VPS Starter (2 vCPU, 2 Go RAM, 20 Go SSD), OS Ubuntu 24
+- **Stack** : Apache + PHP + Certbot
+- **Déploiement** : SSH manuel (`git pull`)
+- **Virtual hosts** : 1 par site (vitrine, superadmin, et 2 par hôtel : client + admin)
+
+### Noms de domaine (OVH)
+- Domaine principal : `hothello.ovh`
+- Wildcard DNS : `*.hothello.ovh` → IP du VPS
+
+| Sous-domaine | Usage |
+|---|---|
+| `hothello.ovh` | Site vitrine |
+| `superadmin.hothello.ovh` | Super admin |
+| `[hotel].hothello.ovh` | Site client de chaque hôtel |
+| `admin-[hotel].hothello.ovh` | Panel admin de chaque hôtel |
+
+### Base de données — Supabase (PostgreSQL)
+- Connexion via pgBouncer pooler : port `6543`, `sslmode=require`, `ATTR_EMULATE_PREPARES => true`
+- Config dans `shared/config/database.php` (DSN `pgsql:`)
+- **Booléens** : PostgreSQL retourne `'t'`/`'f'` via PDO. Dans le code PHP, utiliser `filter_var($val, FILTER_VALIDATE_BOOLEAN)` pour tester les valeurs booléennes récupérées de la DB. Dans les requêtes SQL, utiliser `= TRUE` / `= FALSE` (jamais `= 1` / `= 0`).
+- **Intervalles de date** : utiliser `NOW() - INTERVAL '15 minutes'` (jamais `DATE_SUB`)
+- **Agrégation** : `STRING_AGG()` (jamais `GROUP_CONCAT`)
+- **Auto-incrément** : `SERIAL` (jamais `AUTO_INCREMENT`)
+- **Schéma global** : `shared/setup/schema.sql` + migrations dans `shared/config/migrations/`
+- **Schéma par hotel** : chaque hotel a son propre schema PostgreSQL `hotel_{slug}` créé automatiquement à la création de l'hotel via superadmin. Le `search_path` est positionné sur ce schema dès la résolution du contexte hotel.
+- **Multi-tenancy** : toutes les tables per-hotel ont une colonne `hotel_id` (compatibilité) ET sont dans leur schema dédié. La migration `010_add_schema_name_to_hotels.sql` ajoute la colonne `schema_name` à la table `public.hotels`.
+- **DDL pgBouncer** : ne jamais grouper plusieurs instructions SQL dans un seul `exec()`. Toujours séparer chaque statement (`CREATE TABLE`, `ALTER TABLE`, `CREATE TRIGGER`, etc.) en appels `exec()` distincts.
 
 ## Development
 
 ```bash
-# Run locally (PHP built-in server)
-php -S localhost:8000
+# Run locally (PHP built-in server) — each surface separately
+php -S localhost:8000 -t client/ client/router.php   # Client site
+php -S localhost:8001 -t admin/                        # Admin panel
+php -S localhost:8002 -t superadmin/                   # Super admin
 
-# First-time setup (creates all DB tables + default admin account)
-# Via browser: visit setup/install.php?confirm=1
-# Via CLI: php setup/install.php
+# Accès local multi-hotel :
+# Client : http://localhost:8000/?hotel=corintel
+# Admin  : http://localhost:8001/?hotel=corintel&context=admin
+# Superadmin : http://localhost:8002/ (pas de hotel requis)
+
+# First-time setup : exécuter les fichiers SQL dans cet ordre via Supabase SQL Editor
+# 1. shared/setup/schema.sql
+# 2. shared/setup/003_create_guest_messages_table.sql
+# 3. shared/config/migrations/003 à 010 (dans l'ordre numérique)
 ```
 
 No build step, no bundler, no preprocessor. Edit PHP/JS/CSS files directly.
 
 ## Architecture
 
+### Folder Structure
+
+```
+hotel/
+├── shared/          # Shared code & assets (never a DocumentRoot)
+│   ├── bootstrap.php    # Defines HOTEL_ROOT constant, loads hotel context
+│   ├── config/          # database.php, hotel-context.php, apache-vhosts.conf, migrations/
+│   ├── includes/        # auth.php, functions.php, content-helper.php, images-helper.php, i18n.php
+│   ├── js/              # translations.js, i18n.js, animations.js, images.js
+│   ├── uploads/         # Per-hotel uploads (hotel_{ID}/)
+│   ├── images/          # Legacy static images
+│   └── setup/           # schema.sql, install.php
+├── client/          # [slug].hothello.ovh — guest-facing pages
+├── admin/           # admin-[slug].hothello.ovh — hotel staff dashboard
+├── superadmin/      # superadmin.hothello.ovh — platform management
+└── vitrine/         # hothello.ovh — static showcase site
+```
+
 ### Routing
 
-File-based routing with `.htaccess` rewrites:
+Each surface has its own Apache VHost with separate DocumentRoot. Shared assets (JS, uploads, images) served via Apache `Alias` directives.
+
+**Client site** (`client/.htaccess`):
 - Static pages: `index.php`, `services.php`, `activites.php`, `contact.php`, `room-service.php`
-- Dynamic pages: URLs like `/my-page` rewrite to `page.php?slug=my-page` (looked up in `pages` DB table)
-- Admin: `/admin/*` served directly (no rewrite)
-- APIs: `/api/*` and `/admin/api/*` served directly
+- Dynamic pages: URLs like `/my-page` rewrite to `page.php?slug=my-page`
+- APIs: `client/api/*` served directly
+
+**Admin panel**: served directly at its own subdomain
+**Super admin**: served directly at its own subdomain
 
 ### Database Connection
 
-Singleton pattern in `config/database.php` via `getDatabase(): PDO`. Every file that needs DB access does:
+Singleton pattern in `shared/config/database.php` via `getDatabase(): PDO`. Every entry point includes bootstrap first:
 ```php
-require_once __DIR__ . '/../config/database.php';  // or via includes/functions.php
+require_once __DIR__ . '/../shared/bootstrap.php';  // defines HOTEL_ROOT constant
+require_once HOTEL_ROOT . '/shared/includes/functions.php';
 $pdo = getDatabase();
 ```
 
+Connexion PostgreSQL via Supabase pgBouncer (port 6543). `ATTR_EMULATE_PREPARES => true` obligatoire en mode transaction pgBouncer.
+
 ### Key Include Files
 
-- `includes/functions.php` — All helper functions (images, room service, orders, messages, content, pages, QR tokens). This is the main utility file.
-- `includes/auth.php` — Admin authentication (session + persistent token cookies)
-- `includes/images-helper.php` — `img()`, `imgTag()` shorthand for image rendering with fallbacks
-- `includes/content-helper.php` — `content()`, `contentFirst()`, `contentImage()` for dynamic content blocks
+- `shared/bootstrap.php` — Entry point bootstrap, defines `HOTEL_ROOT`, résout le contexte hotel, appelle `requireHotel()` pour les surfaces client/admin
+- `shared/config/hotel-context.php` — `HotelContext` singleton : résolution hotel (sous-domaine → `?hotel=slug` → cookie `_hotel_slug`), `SET search_path` automatique
+- `shared/includes/functions.php` — All helper functions (images, room service, orders, messages, content, pages, QR tokens)
+- `shared/includes/auth.php` — Admin authentication (session + persistent token cookies)
+- `shared/includes/images-helper.php` — `img()`, `imgTag()` shorthand for image rendering with fallbacks
+- `shared/includes/content-helper.php` — `content()`, `contentFirst()`, `contentImage()` for dynamic content blocks
+- `superadmin/includes/super-auth.php` — Super admin authentication (separate from hotel admin)
+- `superadmin/includes/super-functions.php` — CRUD hotels, création schema PostgreSQL, provisioning données par défaut
 
 ### QR Code → Room Service Flow
 
 1. Admin generates QR codes per room in `admin/rooms.php` using HMAC-SHA256 tokens
-2. Guest scans QR → `scan.php?room=X&token=TOKEN` validates token, sets `$_SESSION['room_service_access']`
+2. Guest scans QR → `client/scan.php?room=X&token=TOKEN` validates token, sets `$_SESSION['room_service_access']`
 3. All 5 client pages check `getRoomServiceSession()` to show room badge in nav + unlock contact modal
 4. `room-service.php` uses `checkRoomServiceAccess()` (checks session OR URL params)
 5. Cart stored client-side in localStorage; order submitted via POST
@@ -74,7 +174,7 @@ $pdo = getDatabase();
 
 ### i18n System
 
-- Static strings: `js/translations.js` (nested objects per language) + `js/i18n.js` (applies translations)
+- Static strings: `shared/js/translations.js` (nested objects per language) + `shared/js/i18n.js` (applies translations)
 - HTML attributes: `data-i18n="key.subkey"` (innerHTML), `data-i18n-placeholder` (inputs), `data-i18n-aria`, `data-i18n-title`
 - DB-driven translations: Hero overlays and dynamic sections stored in translation tables, injected as `window.heroOverlayTranslations` / `window.dynamicSectionsTranslations`
 - Language detection: Browser language → localStorage (`hotel_corintel_lang`) → defaults to French
@@ -90,8 +190,10 @@ No WebSockets. Polling via `setInterval` (every 5s) to:
 
 - Session-based (`hotel_admin_session`) with persistent token cookies (`hotel_admin_auth`)
 - All admin pages call `requireAuth()` at top
-- Rate limiting: 5 login attempts per IP per 15 minutes
+- Rate limiting: 5 login attempts per IP per 15 minutes (désactivé sur le superadmin)
 - Persistent tokens: SHA256-hashed in `persistent_tokens` table
+- **Cross-login superadmin → admin** : token HMAC-SHA256, 60s d'expiration, nonce anti-replay. L'URL générée inclut `?hotel=slug` pour la compatibilité Render.
+- **Safari popup fix** : `window.open()` appelé synchroniquement au clic, URL assignée après le fetch (évite le blocage popup Safari)
 
 ## Code Conventions
 
@@ -126,7 +228,7 @@ No WebSockets. Polling via `setInterval` (every 5s) to:
 
 ### Page Pattern
 
-Each client page is self-contained: includes its own dependencies, inline JS, and calls `getRoomServiceSession()` at top. The contact modal and mobile nav JS are duplicated across all 5 pages (not extracted to shared file). `page.php` has fully inline scripts since it has no shared JS file.
+Each client page (in `client/`) is self-contained: starts with `require_once __DIR__ . '/../shared/bootstrap.php'`, includes its own dependencies via `HOTEL_ROOT`, inline JS, and calls `getRoomServiceSession()` at top. The contact modal and mobile nav JS are duplicated across all 5 pages.
 
 ## Status Workflows
 
@@ -152,13 +254,13 @@ Each client page is self-contained: includes its own dependencies, inline JS, an
 ## Development Rules
 
 ### Code Style
-- Use existing CSS variables (defined in `:root` in style.css)
+- Use existing CSS variables (defined in `:root` in `client/style.css`)
 - Follow existing naming conventions (kebab-case for CSS, camelCase for JS)
 - Keep PHP files self-contained (each page includes its own dependencies)
 - Use PDO prepared statements for all database queries
 
 ### i18n
-- Add translations to `js/translations.js` for all 4 languages
+- Add translations to `shared/js/translations.js` for all 4 languages
 - Use `data-i18n="key.subkey"` attributes in HTML
 - Use `data-i18n-placeholder` for input placeholders
 
