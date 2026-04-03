@@ -422,6 +422,17 @@ function getCurrentAdmin(): ?array {
         return null;
     }
 
+    // Super admin cross-login: no real admin row exists, return synthetic data
+    if (!empty($_SESSION['is_super_admin'])) {
+        return [
+            'id' => 0,
+            'username' => $_SESSION['admin_username'] ?? 'Super Admin',
+            'email' => null,
+            'role' => 'admin',
+            'last_login' => date('Y-m-d H:i:s'),
+        ];
+    }
+
     $pdo = getDatabase();
     $stmt = $pdo->prepare('SELECT id, username, email, role, last_login FROM admins WHERE id = ? AND hotel_id = ?');
     $stmt->execute([$_SESSION['admin_id'], getHotelId()]);
