@@ -248,13 +248,29 @@ class HotelContext {
         if ($this->hotelId === null) {
             http_response_code(404);
             $slug = htmlspecialchars($this->slug ?? '');
-            $detail = $this->loadError
-                ? 'Erreur DB : ' . htmlspecialchars($this->loadError)
-                : ($slug ? "Aucun hotel actif avec le slug \"$slug\"." : "Aucun hotel spécifié. Ajoutez ?hotel=slug à l'URL.");
+            $currentUrl = strtok($_SERVER['REQUEST_URI'] ?? '/', '?');
+            $currentUrl = htmlspecialchars($currentUrl);
+
+            if ($this->loadError) {
+                $body = '<h1>Erreur de connexion</h1><p>' . htmlspecialchars($this->loadError) . '</p>';
+            } elseif ($slug) {
+                $body = '<h1>Hotel introuvable</h1><p>Aucun hotel actif avec le slug <strong>' . $slug . '</strong>.</p>'
+                    . '<form method="GET" action="' . $currentUrl . '" style="margin-top:1.5rem">'
+                    . '<input name="hotel" placeholder="Slug de l\'hotel" value="' . $slug . '" style="padding:.6rem 1rem;font-size:1rem;border:1px solid #ccc;border-radius:6px;margin-right:.5rem">'
+                    . '<button type="submit" style="padding:.6rem 1.2rem;background:#8B6F47;color:#fff;border:none;border-radius:6px;font-size:1rem;cursor:pointer">Accéder</button>'
+                    . '</form>';
+            } else {
+                $body = '<h1>Hotel non spécifié</h1>'
+                    . '<form method="GET" action="' . $currentUrl . '" style="margin-top:1.5rem">'
+                    . '<input name="hotel" placeholder="Slug de l\'hotel (ex: corintel)" style="padding:.6rem 1rem;font-size:1rem;border:1px solid #ccc;border-radius:6px;margin-right:.5rem;width:220px">'
+                    . '<button type="submit" style="padding:.6rem 1.2rem;background:#8B6F47;color:#fff;border:none;border-radius:6px;font-size:1rem;cursor:pointer">Accéder</button>'
+                    . '</form>';
+            }
+
             die('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Hotel introuvable</title>
-            <style>body{font-family:system-ui,sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;background:#FAF6F0;color:#333;}
-            .error{text-align:center;padding:2rem;max-width:600px;}.error h1{font-size:2.5rem;color:#8B6F47;margin-bottom:0.5rem;}.error p{font-size:1rem;opacity:0.7;word-break:break-all;}</style></head>
-            <body><div class="error"><h1>Hotel introuvable</h1><p>' . $detail . '</p></div></body></html>');
+            <style>body{font-family:system-ui,sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;background:#FAF6F0;color:#444;}
+            .box{text-align:center;padding:2rem;max-width:480px;}h1{color:#8B6F47;margin-bottom:.75rem;}p{opacity:.75;margin-bottom:0;word-break:break-all;}</style></head>
+            <body><div class="box">' . $body . '</div></body></html>');
         }
     }
 }
