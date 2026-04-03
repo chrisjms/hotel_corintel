@@ -15,7 +15,7 @@ seedSectionTemplates();
 
 // Fix existing gallery sections that are missing has_gallery flag
 $pdo = getDatabase();
-$stmtFixGallery = $pdo->prepare("UPDATE content_sections SET has_gallery = 1 WHERE template_type = 'gallery_style' AND has_gallery = 0 AND hotel_id = ?");
+$stmtFixGallery = $pdo->prepare("UPDATE content_sections SET has_gallery = TRUE WHERE template_type = 'gallery_style' AND has_gallery = FALSE AND hotel_id = ?");
 $stmtFixGallery->execute([getHotelId()]);
 
 $admin = getCurrentAdmin();
