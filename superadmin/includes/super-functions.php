@@ -73,14 +73,14 @@ function ensureHotelsTable(): void {
 function getAllHotels(): array {
     ensureHotelsTable();
     $pdo = getSuperDatabase();
-    $stmt = $pdo->query('SELECT * FROM hotels ORDER BY name ASC');
+    $stmt = $pdo->query('SELECT * FROM public.hotels ORDER BY name ASC');
     return $stmt->fetchAll();
 }
 
 function getHotelById(int $id): ?array {
     ensureHotelsTable();
     $pdo = getSuperDatabase();
-    $stmt = $pdo->prepare('SELECT * FROM hotels WHERE id = ?');
+    $stmt = $pdo->prepare('SELECT * FROM public.hotels WHERE id = ?');
     $stmt->execute([$id]);
     return $stmt->fetch() ?: null;
 }
@@ -104,7 +104,7 @@ function createHotel(array $data): array {
     }
 
     // Check uniqueness
-    $stmt = $pdo->prepare('SELECT id FROM hotels WHERE slug = ?');
+    $stmt = $pdo->prepare('SELECT id FROM public.hotels WHERE slug = ?');
     $stmt->execute([$slug]);
     if ($stmt->fetch()) {
         return ['success' => false, 'message' => 'Ce slug est déjà utilisé.'];
@@ -122,7 +122,7 @@ function createHotel(array $data): array {
     }
 
     $stmt = $pdo->prepare('
-        INSERT INTO hotels (name, slug, site_url, admin_url, notes, schema_name)
+        INSERT INTO public.hotels (name, slug, site_url, admin_url, notes, schema_name)
         VALUES (?, ?, ?, ?, ?, ?)
     ');
     $stmt->execute([$name, $slug, $siteUrl, $adminUrl, $notes, $schemaName]);
@@ -146,14 +146,14 @@ function updateHotel(int $id, array $data): array {
     }
 
     // Check slug uniqueness (exclude current hotel)
-    $stmt = $pdo->prepare('SELECT id FROM hotels WHERE slug = ? AND id != ?');
+    $stmt = $pdo->prepare('SELECT id FROM public.hotels WHERE slug = ? AND id != ?');
     $stmt->execute([$slug, $id]);
     if ($stmt->fetch()) {
         return ['success' => false, 'message' => 'Ce slug est déjà utilisé.'];
     }
 
     $stmt = $pdo->prepare('
-        UPDATE hotels SET name = ?, slug = ?, site_url = ?, admin_url = ?, notes = ?, is_active = ?
+        UPDATE public.hotels SET name = ?, slug = ?, site_url = ?, admin_url = ?, notes = ?, is_active = ?
         WHERE id = ?
     ');
     $stmt->execute([$name, $slug, $siteUrl, $adminUrl, $notes, $isActive, $id]);
@@ -166,11 +166,11 @@ function deleteHotel(int $id): array {
     $pdo = getSuperDatabase();
 
     // Get hotel info before deletion (for schema cleanup)
-    $stmt = $pdo->prepare('SELECT schema_name FROM hotels WHERE id = ?');
+    $stmt = $pdo->prepare('SELECT schema_name FROM public.hotels WHERE id = ?');
     $stmt->execute([$id]);
     $hotel = $stmt->fetch();
 
-    $stmt = $pdo->prepare('DELETE FROM hotels WHERE id = ?');
+    $stmt = $pdo->prepare('DELETE FROM public.hotels WHERE id = ?');
     $stmt->execute([$id]);
 
     if ($stmt->rowCount() === 0) {
@@ -203,13 +203,13 @@ function deleteHotel(int $id): array {
 function countHotels(): int {
     ensureHotelsTable();
     $pdo = getSuperDatabase();
-    return (int)$pdo->query('SELECT COUNT(*) FROM hotels')->fetchColumn();
+    return (int)$pdo->query('SELECT COUNT(*) FROM public.hotels')->fetchColumn();
 }
 
 function countActiveHotels(): int {
     ensureHotelsTable();
     $pdo = getSuperDatabase();
-    return (int)$pdo->query('SELECT COUNT(*) FROM hotels WHERE is_active = TRUE')->fetchColumn();
+    return (int)$pdo->query('SELECT COUNT(*) FROM public.hotels WHERE is_active = TRUE')->fetchColumn();
 }
 
 // --- Audit Logging ---
@@ -220,7 +220,7 @@ function logAudit(int $superAdminId, string $action, ?int $hotelId = null, ?stri
     $ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
 
     $stmt = $pdo->prepare('
-        INSERT INTO super_admin_audit_log (super_admin_id, action, hotel_id, details, ip_address)
+        INSERT INTO public.super_admin_audit_log (super_admin_id, action, hotel_id, details, ip_address)
         VALUES (?, ?, ?, ?, ?)
     ');
     $stmt->execute([$superAdminId, $action, $hotelId, $details, $ip]);
@@ -232,9 +232,9 @@ function getAuditLog(int $limit = 50, int $offset = 0): array {
 
     $stmt = $pdo->prepare('
         SELECT al.*, sa.username AS admin_username, h.name AS hotel_name
-        FROM super_admin_audit_log al
-        LEFT JOIN super_admins sa ON sa.id = al.super_admin_id
-        LEFT JOIN hotels h ON h.id = al.hotel_id
+        FROM public.super_admin_audit_log al
+        LEFT JOIN public.super_admins sa ON sa.id = al.super_admin_id
+        LEFT JOIN public.hotels h ON h.id = al.hotel_id
         ORDER BY al.created_at DESC
         LIMIT ? OFFSET ?
     ');
@@ -245,7 +245,7 @@ function getAuditLog(int $limit = 50, int $offset = 0): array {
 function countAuditLogs(): int {
     ensureHotelsTable();
     $pdo = getSuperDatabase();
-    return (int)$pdo->query('SELECT COUNT(*) FROM super_admin_audit_log')->fetchColumn();
+    return (int)$pdo->query('SELECT COUNT(*) FROM public.super_admin_audit_log')->fetchColumn();
 }
 
 // --- Cross-Login Token Generation ---

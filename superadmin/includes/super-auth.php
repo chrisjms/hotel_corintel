@@ -67,7 +67,7 @@ function ensureSuperAdminTables(): void {
     $pdo = getSuperDatabase();
 
     $pdo->exec('
-        CREATE TABLE IF NOT EXISTS super_admins (
+        CREATE TABLE IF NOT EXISTS public.super_admins (
             id SERIAL PRIMARY KEY,
             username VARCHAR(50) NOT NULL UNIQUE,
             password VARCHAR(255) NOT NULL,
@@ -77,10 +77,10 @@ function ensureSuperAdminTables(): void {
             last_login TIMESTAMP NULL
         )
     ');
-    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_super_admins_username ON super_admins (username)');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_super_admins_username ON public.super_admins (username)');
 
     $pdo->exec('
-        CREATE TABLE IF NOT EXISTS super_persistent_tokens (
+        CREATE TABLE IF NOT EXISTS public.super_persistent_tokens (
             id SERIAL PRIMARY KEY,
             super_admin_id INT NOT NULL,
             token_hash VARCHAR(64) NOT NULL UNIQUE,
@@ -88,17 +88,17 @@ function ensureSuperAdminTables(): void {
             last_used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ');
-    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_super_persistent_tokens_admin ON super_persistent_tokens (super_admin_id)');
-    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_super_persistent_tokens_token ON super_persistent_tokens (token_hash)');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_super_persistent_tokens_admin ON public.super_persistent_tokens (super_admin_id)');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_super_persistent_tokens_token ON public.super_persistent_tokens (token_hash)');
 
     $pdo->exec('
-        CREATE TABLE IF NOT EXISTS super_login_attempts (
+        CREATE TABLE IF NOT EXISTS public.super_login_attempts (
             id SERIAL PRIMARY KEY,
             ip_address VARCHAR(45) NOT NULL,
             attempted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ');
-    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_super_login_attempts_ip_time ON super_login_attempts (ip_address, attempted_at)');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_super_login_attempts_ip_time ON public.super_login_attempts (ip_address, attempted_at)');
 }
 
 /**
@@ -112,8 +112,8 @@ function superRestoreSessionFromToken(string $token): bool {
 
     $stmt = $pdo->prepare('
         SELECT pt.super_admin_id, a.username
-        FROM super_persistent_tokens pt
-        JOIN super_admins a ON a.id = pt.super_admin_id
+        FROM public.super_persistent_tokens pt
+        JOIN public.super_admins a ON a.id = pt.super_admin_id
         WHERE pt.token_hash = ? AND a.is_active = TRUE
     ');
     $stmt->execute([hash('sha256', $token)]);
@@ -123,7 +123,7 @@ function superRestoreSessionFromToken(string $token): bool {
         $_SESSION['super_admin_id'] = $result['super_admin_id'];
         $_SESSION['super_admin_username'] = $result['username'];
 
-        $stmt = $pdo->prepare('UPDATE super_persistent_tokens SET last_used_at = NOW() WHERE token_hash = ?');
+        $stmt = $pdo->prepare('UPDATE public.super_persistent_tokens SET last_used_at = NOW() WHERE token_hash = ?');
         $stmt->execute([hash('sha256', $token)]);
 
         return true;
@@ -143,11 +143,11 @@ function superCreatePersistentToken(int $adminId): string {
     $token = bin2hex(random_bytes(32));
     $tokenHash = hash('sha256', $token);
 
-    $stmt = $pdo->prepare('DELETE FROM super_persistent_tokens WHERE super_admin_id = ?');
+    $stmt = $pdo->prepare('DELETE FROM public.super_persistent_tokens WHERE super_admin_id = ?');
     $stmt->execute([$adminId]);
 
     $stmt = $pdo->prepare('
-        INSERT INTO super_persistent_tokens (super_admin_id, token_hash, created_at, last_used_at)
+        INSERT INTO public.super_persistent_tokens (super_admin_id, token_hash, created_at, last_used_at)
         VALUES (?, ?, NOW(), NOW())
     ');
     $stmt->execute([$adminId, $tokenHash]);
@@ -175,7 +175,7 @@ function superCreatePersistentToken(int $adminId): string {
 function superDeletePersistentToken(int $adminId): void {
     ensureSuperAdminTables();
     $pdo = getSuperDatabase();
-    $stmt = $pdo->prepare('DELETE FROM super_persistent_tokens WHERE super_admin_id = ?');
+    $stmt = $pdo->prepare('DELETE FROM public.super_persistent_tokens WHERE super_admin_id = ?');
     $stmt->execute([$adminId]);
     superClearPersistentTokenCookie();
 }
@@ -216,13 +216,13 @@ function superCheckLoginAttempts(string $ip): bool {
 
 function superRecordLoginAttempt(string $ip): void {
     $pdo = getSuperDatabase();
-    $stmt = $pdo->prepare('INSERT INTO super_login_attempts (ip_address) VALUES (?)');
+    $stmt = $pdo->prepare('INSERT INTO public.super_login_attempts (ip_address) VALUES (?)');
     $stmt->execute([$ip]);
 }
 
 function superClearLoginAttempts(string $ip): void {
     $pdo = getSuperDatabase();
-    $stmt = $pdo->prepare('DELETE FROM super_login_attempts WHERE ip_address = ?');
+    $stmt = $pdo->prepare('DELETE FROM public.super_login_attempts WHERE ip_address = ?');
     $stmt->execute([$ip]);
 }
 
@@ -249,7 +249,7 @@ function superAttemptLogin(string $username, string $password): array {
     }
 
     $pdo = getSuperDatabase();
-    $stmt = $pdo->prepare('SELECT id, username, password FROM super_admins WHERE username = ? AND is_active = TRUE');
+    $stmt = $pdo->prepare('SELECT id, username, password FROM public.super_admins WHERE username = ? AND is_active = TRUE');
     $stmt->execute([$username]);
     $admin = $stmt->fetch();
 
@@ -263,7 +263,7 @@ function superAttemptLogin(string $username, string $password): array {
 
     superClearLoginAttempts($ip);
 
-    $stmt = $pdo->prepare('UPDATE super_admins SET last_login = NOW() WHERE id = ?');
+    $stmt = $pdo->prepare('UPDATE public.super_admins SET last_login = NOW() WHERE id = ?');
     $stmt->execute([$admin['id']]);
 
     $_SESSION['super_admin_id'] = $admin['id'];
@@ -325,7 +325,7 @@ function superVerifyCsrfToken(string $token): bool {
 function superChangePassword(int $adminId, string $currentPassword, string $newPassword): array {
     $pdo = getSuperDatabase();
 
-    $stmt = $pdo->prepare('SELECT password FROM super_admins WHERE id = ?');
+    $stmt = $pdo->prepare('SELECT password FROM public.super_admins WHERE id = ?');
     $stmt->execute([$adminId]);
     $admin = $stmt->fetch();
 
@@ -338,7 +338,7 @@ function superChangePassword(int $adminId, string $currentPassword, string $newP
     }
 
     $hash = password_hash($newPassword, PASSWORD_DEFAULT);
-    $stmt = $pdo->prepare('UPDATE super_admins SET password = ? WHERE id = ?');
+    $stmt = $pdo->prepare('UPDATE public.super_admins SET password = ? WHERE id = ?');
     $stmt->execute([$hash, $adminId]);
 
     return ['success' => true, 'message' => 'Mot de passe modifié avec succès.'];

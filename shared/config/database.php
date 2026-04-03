@@ -43,6 +43,10 @@ function getDatabase(): PDO {
 
             $pdo = new PDO($dsn, DB_USER, DB_PASS, $options);
             $pdo->exec("SET client_encoding = 'UTF8'");
+            // Reset search_path to public on every new connection.
+            // pgBouncer pools connections: a previous request may have SET search_path
+            // to a hotel schema, and that setting persists on the pooled connection.
+            $pdo->exec("SET search_path TO public");
         } catch (PDOException $e) {
             error_log('Database connection failed: ' . $e->getMessage());
             die('Database connection error: ' . $e->getMessage());
