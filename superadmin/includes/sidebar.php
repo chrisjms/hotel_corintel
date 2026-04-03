@@ -21,11 +21,18 @@
             </div>
 
             <nav class="sidebar-nav">
-                <a href="index.php" class="nav-item<?= $currentPage === 'index.php' ? ' active' : '' ?>">
+                <?php $sidebarType = $_GET['type'] ?? 'hotel'; ?>
+                <a href="index.php?type=hotel" class="nav-item<?= $currentPage === 'index.php' && $sidebarType === 'hotel' ? ' active' : '' ?>">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
                     </svg>
-                    Hotels
+                    Hôtels
+                </a>
+                <a href="index.php?type=pizzeria" class="nav-item<?= $currentPage === 'index.php' && $sidebarType === 'pizzeria' ? ' active' : '' ?>">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/><path d="M8 12l2 2 4-4"/>
+                    </svg>
+                    Pizzerias
                 </a>
                 <a href="audit-log.php" class="nav-item<?= $currentPage === 'audit-log.php' ? ' active' : '' ?>">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

@@ -15,6 +15,11 @@ $csrfToken = superGenerateCsrfToken();
 $message = '';
 $messageType = '';
 
+// Determine which type we're viewing
+$viewType = ($_GET['type'] ?? 'hotel') === 'pizzeria' ? 'pizzeria' : 'hotel';
+$typeLabel = ESTABLISHMENT_TYPES[$viewType]['label'] ?? 'Hôtel';
+$typeLabelPlural = $viewType === 'hotel' ? 'Hôtels' : 'Pizzerias';
+
 // Handle hotel deletion
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     if (!superVerifyCsrfToken($_POST['csrf_token'] ?? '')) {
@@ -37,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
 }
 
-$hotels = getAllHotels();
+$hotels = getAllHotels($viewType);
 $totalHotels = count($hotels);
 $activeHotels = count(array_filter($hotels, fn($h) => $h['is_active']));
 ?>
@@ -47,7 +52,7 @@ $activeHotels = count(array_filter($hotels, fn($h) => $h['is_active']));
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
-    <title>Dashboard | Super Admin</title>
+    <title><?= htmlspecialchars($typeLabelPlural) ?> | Super Admin</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -65,10 +70,10 @@ $activeHotels = count(array_filter($hotels, fn($h) => $h['is_active']));
                         <line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/>
                     </svg>
                 </button>
-                <h1>Hotels</h1>
-                <a href="hotel-form.php" class="btn btn-primary">
+                <h1><?= htmlspecialchars($typeLabelPlural) ?></h1>
+                <a href="hotel-form.php?type=<?= htmlspecialchars($viewType) ?>" class="btn btn-primary">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                    Ajouter un hôtel
+                    Ajouter <?= $viewType === 'hotel' ? 'un hôtel' : 'une pizzeria' ?>
                 </a>
             </header>
 
@@ -89,7 +94,7 @@ $activeHotels = count(array_filter($hotels, fn($h) => $h['is_active']));
                         </div>
                         <div>
                             <div class="stat-value"><?= $totalHotels ?></div>
-                            <div class="stat-label">Total Hotels</div>
+                            <div class="stat-label">Total <?= htmlspecialchars($typeLabelPlural) ?></div>
                         </div>
                     </div>
                     <div class="stat-card">
@@ -100,7 +105,7 @@ $activeHotels = count(array_filter($hotels, fn($h) => $h['is_active']));
                         </div>
                         <div>
                             <div class="stat-value"><?= $activeHotels ?></div>
-                            <div class="stat-label">Hotels actifs</div>
+                            <div class="stat-label"><?= htmlspecialchars($typeLabelPlural) ?> actifs</div>
                         </div>
                     </div>
                 </div>
@@ -111,8 +116,8 @@ $activeHotels = count(array_filter($hotels, fn($h) => $h['is_active']));
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                             <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
                         </svg>
-                        <p>Aucun hôtel enregistré</p>
-                        <a href="hotel-form.php" class="btn btn-primary">Ajouter un hôtel</a>
+                        <p>Aucun<?= $viewType === 'hotel' ? ' hôtel enregistré' : 'e pizzeria enregistrée' ?></p>
+                        <a href="hotel-form.php?type=<?= htmlspecialchars($viewType) ?>" class="btn btn-primary">Ajouter <?= $viewType === 'hotel' ? 'un hôtel' : 'une pizzeria' ?></a>
                     </div>
                 <?php else: ?>
                     <div class="hotels-grid">
@@ -120,7 +125,6 @@ $activeHotels = count(array_filter($hotels, fn($h) => $h['is_active']));
                             <div class="hotel-card">
                                 <div class="hotel-card-header">
                                     <h3><?= htmlspecialchars($hotel['name']) ?></h3>
-                                    <span class="hotel-type-badge" style="background: <?= ($hotel['type'] ?? 'hotel') === 'hotel' ? '#8B6F47' : '#E53E3E' ?>; color: #fff; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.7rem; font-weight: 600; text-transform: uppercase;"><?= htmlspecialchars(ESTABLISHMENT_TYPES[$hotel['type'] ?? 'hotel']['label'] ?? 'Hôtel') ?></span>
                                     <span class="hotel-status <?= $hotel['is_active'] ? 'active' : 'inactive' ?>">
                                         <span class="dot"></span>
                                         <?= $hotel['is_active'] ? 'Actif' : 'Inactif' ?>

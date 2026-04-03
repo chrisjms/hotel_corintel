@@ -73,10 +73,15 @@ function ensureHotelsTable(): void {
 
 // --- Hotel CRUD ---
 
-function getAllHotels(): array {
+function getAllHotels(?string $type = null): array {
     ensureHotelsTable();
     $pdo = getSuperDatabase();
-    $stmt = $pdo->query('SELECT * FROM public.hotels ORDER BY name ASC');
+    if ($type) {
+        $stmt = $pdo->prepare('SELECT * FROM public.hotels WHERE type = ? ORDER BY name ASC');
+        $stmt->execute([$type]);
+    } else {
+        $stmt = $pdo->query('SELECT * FROM public.hotels ORDER BY name ASC');
+    }
     return $stmt->fetchAll();
 }
 

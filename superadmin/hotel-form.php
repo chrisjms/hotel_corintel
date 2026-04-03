@@ -19,6 +19,11 @@ $editId = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 $hotel = $editId ? getHotelById($editId) : null;
 $isEdit = $hotel !== null;
 
+// Determine establishment type for labels
+$formType = $hotel['type'] ?? ($_GET['type'] ?? 'hotel');
+$formTypeLabel = $formType === 'pizzeria' ? 'pizzeria' : 'hôtel';
+$formTypeLabelUn = $formType === 'pizzeria' ? 'une pizzeria' : 'un hôtel';
+
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!superVerifyCsrfToken($_POST['csrf_token'] ?? '')) {
@@ -63,7 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     provisionHotelData($newHotelId);
                 }
                 logAudit($_SESSION['super_admin_id'], 'hotel_created', $newHotelId, json_encode(['name' => $data['name']]));
-                header('Location: index.php');
+                header('Location: index.php?type=' . urlencode($data['type'] ?? 'hotel'));
                 exit;
             }
         }
@@ -82,7 +87,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $formData = [
     'name'      => $_POST['name']      ?? ($hotel['name'] ?? ''),
     'slug'      => $_POST['slug']      ?? ($hotel['slug'] ?? ''),
-    'type'      => $_POST['type']      ?? ($hotel['type'] ?? 'hotel'),
+    'type'      => $_POST['type']      ?? ($hotel['type'] ?? ($_GET['type'] ?? 'hotel')),
     'site_url'  => $_POST['site_url']  ?? ($hotel['site_url'] ?? ''),
     'admin_url' => $_POST['admin_url'] ?? ($hotel['admin_url'] ?? ''),
     'notes'     => $_POST['notes']     ?? ($hotel['notes'] ?? ''),
@@ -95,7 +100,7 @@ $formData = [
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
-    <title><?= $isEdit ? 'Modifier' : 'Ajouter' ?> un hôtel | Super Admin</title>
+    <title><?= $isEdit ? 'Modifier' : 'Ajouter' ?> <?= $formTypeLabelUn ?> | Super Admin</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -113,8 +118,8 @@ $formData = [
                         <line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/>
                     </svg>
                 </button>
-                <h1><?= $isEdit ? 'Modifier l\'hôtel' : 'Ajouter un hôtel' ?></h1>
-                <a href="index.php" class="btn btn-outline">Retour</a>
+                <h1><?= $isEdit ? 'Modifier' : 'Ajouter' ?> <?= $formTypeLabelUn ?></h1>
+                <a href="index.php?type=<?= htmlspecialchars($formType) ?>" class="btn btn-outline">Retour</a>
             </header>
 
             <div class="sa-content">
@@ -130,10 +135,10 @@ $formData = [
                             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
 
                             <div class="form-group">
-                                <label for="name">Nom de l'hôtel *</label>
+                                <label for="name">Nom de l'établissement *</label>
                                 <input type="text" id="name" name="name" required
                                        value="<?= htmlspecialchars($formData['name']) ?>"
-                                       placeholder="Hôtel Bordeaux">
+                                       placeholder="<?= $formType === 'pizzeria' ? 'Pizzeria Roma' : 'Hôtel Bordeaux' ?>">
                             </div>
 
                             <div class="form-group">
@@ -182,16 +187,16 @@ $formData = [
                                         <input type="checkbox" name="is_active" value="1"
                                                <?= $formData['is_active'] ? 'checked' : '' ?>
                                                style="width: auto;">
-                                        Hôtel actif
+                                        Établissement actif
                                     </label>
                                 </div>
                             <?php endif; ?>
 
                             <div style="display: flex; gap: 0.75rem; margin-top: 1.5rem;">
                                 <button type="submit" class="btn btn-primary">
-                                    <?= $isEdit ? 'Enregistrer' : 'Ajouter l\'hôtel' ?>
+                                    <?= $isEdit ? 'Enregistrer' : 'Ajouter' ?>
                                 </button>
-                                <a href="index.php" class="btn btn-outline">Annuler</a>
+                                <a href="index.php?type=<?= htmlspecialchars($formType) ?>" class="btn btn-outline">Annuler</a>
                             </div>
                         </form>
                     </div>
