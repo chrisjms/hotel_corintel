@@ -1,7 +1,4 @@
  <?php
-  var_dump(file_exists(__DIR__ . '/../shared/bootstrap.php'));
-  var_dump(__DIR__);
-  die();
 require_once __DIR__ . '/../shared/bootstrap.php';
 /**
  * Admin Dashboard
