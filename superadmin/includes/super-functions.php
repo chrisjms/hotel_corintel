@@ -568,9 +568,200 @@ function createHotelSchema(PDO $pdo, string $schemaName): void {
         )
     ");
 
+    // --- Content & dynamic sections tables ---
+
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS settings (
+            id SERIAL PRIMARY KEY,
+            setting_key VARCHAR(100) NOT NULL,
+            setting_value TEXT,
+            hotel_id INT NOT NULL DEFAULT 1,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(setting_key, hotel_id)
+        )
+    ");
+
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS content_sections (
+            id SERIAL PRIMARY KEY,
+            code VARCHAR(50) NOT NULL,
+            name VARCHAR(100) NOT NULL,
+            description TEXT,
+            page VARCHAR(50) NOT NULL,
+            image_mode VARCHAR(20) DEFAULT 'optional' CHECK (image_mode IN ('required', 'optional', 'forbidden')),
+            max_blocks INT DEFAULT NULL,
+            has_title BOOLEAN DEFAULT TRUE,
+            has_description BOOLEAN DEFAULT TRUE,
+            has_link BOOLEAN DEFAULT FALSE,
+            sort_order INT DEFAULT 0,
+            has_overlay BOOLEAN DEFAULT FALSE,
+            overlay_subtitle VARCHAR(255) DEFAULT NULL,
+            overlay_title VARCHAR(255) DEFAULT NULL,
+            overlay_description TEXT DEFAULT NULL,
+            has_features BOOLEAN DEFAULT FALSE,
+            is_dynamic BOOLEAN DEFAULT FALSE,
+            template_type VARCHAR(50) DEFAULT NULL,
+            custom_name VARCHAR(100) DEFAULT NULL,
+            has_services BOOLEAN DEFAULT FALSE,
+            has_gallery BOOLEAN DEFAULT FALSE,
+            background_color VARCHAR(30) DEFAULT 'cream',
+            image_position VARCHAR(10) DEFAULT 'left',
+            text_alignment VARCHAR(10) DEFAULT 'center',
+            section_link_url VARCHAR(500) DEFAULT NULL,
+            section_link_text VARCHAR(100) DEFAULT NULL,
+            section_link_new_tab BOOLEAN DEFAULT TRUE,
+            hotel_id INT NOT NULL DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(code, hotel_id)
+        )
+    ");
+
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS content_blocks (
+            id SERIAL PRIMARY KEY,
+            section_code VARCHAR(50) NOT NULL,
+            title VARCHAR(255),
+            description TEXT,
+            image_filename VARCHAR(255),
+            image_alt VARCHAR(255),
+            link_url VARCHAR(500),
+            link_text VARCHAR(100),
+            position INT DEFAULT 0,
+            is_active BOOLEAN DEFAULT TRUE,
+            hotel_id INT NOT NULL DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ");
+
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS section_overlay_translations (
+            id SERIAL PRIMARY KEY,
+            section_code VARCHAR(50) NOT NULL,
+            language_code VARCHAR(5) NOT NULL,
+            overlay_subtitle VARCHAR(255),
+            overlay_title VARCHAR(255),
+            overlay_description TEXT,
+            hotel_id INT NOT NULL DEFAULT 1,
+            UNIQUE (section_code, language_code)
+        )
+    ");
+
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS section_features (
+            id SERIAL PRIMARY KEY,
+            section_code VARCHAR(50) NOT NULL,
+            icon_code VARCHAR(50) NOT NULL,
+            label VARCHAR(100) NOT NULL,
+            position INT DEFAULT 0,
+            is_active BOOLEAN DEFAULT TRUE,
+            hotel_id INT NOT NULL DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ");
+
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS section_feature_translations (
+            id SERIAL PRIMARY KEY,
+            feature_id INT NOT NULL,
+            language_code VARCHAR(5) NOT NULL,
+            label VARCHAR(100) NOT NULL,
+            hotel_id INT NOT NULL DEFAULT 1,
+            UNIQUE (feature_id, language_code),
+            FOREIGN KEY (feature_id) REFERENCES section_features(id) ON DELETE CASCADE
+        )
+    ");
+
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS section_link_translations (
+            id SERIAL PRIMARY KEY,
+            section_code VARCHAR(50) NOT NULL,
+            language_code VARCHAR(5) NOT NULL,
+            link_text VARCHAR(100) NOT NULL,
+            hotel_id INT NOT NULL DEFAULT 1,
+            UNIQUE (section_code, language_code)
+        )
+    ");
+
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS section_services (
+            id SERIAL PRIMARY KEY,
+            section_code VARCHAR(50) NOT NULL,
+            icon_code VARCHAR(50) NOT NULL,
+            label VARCHAR(100) NOT NULL,
+            description TEXT,
+            position INT DEFAULT 0,
+            is_active BOOLEAN DEFAULT TRUE,
+            hotel_id INT NOT NULL DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ");
+
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS section_service_translations (
+            id SERIAL PRIMARY KEY,
+            service_id INT NOT NULL,
+            language_code VARCHAR(5) NOT NULL,
+            label VARCHAR(100) NOT NULL,
+            description TEXT,
+            hotel_id INT NOT NULL DEFAULT 1,
+            UNIQUE (service_id, language_code),
+            FOREIGN KEY (service_id) REFERENCES section_services(id) ON DELETE CASCADE
+        )
+    ");
+
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS section_gallery_items (
+            id SERIAL PRIMARY KEY,
+            section_code VARCHAR(50) NOT NULL,
+            image_filename VARCHAR(255) NOT NULL,
+            image_alt VARCHAR(255),
+            title VARCHAR(100) NOT NULL,
+            description TEXT,
+            position INT DEFAULT 0,
+            is_active BOOLEAN DEFAULT TRUE,
+            hotel_id INT NOT NULL DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ");
+
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS section_gallery_item_translations (
+            id SERIAL PRIMARY KEY,
+            item_id INT NOT NULL,
+            language_code VARCHAR(5) NOT NULL,
+            title VARCHAR(100) NOT NULL,
+            description TEXT,
+            hotel_id INT NOT NULL DEFAULT 1,
+            UNIQUE (item_id, language_code),
+            FOREIGN KEY (item_id) REFERENCES section_gallery_items(id) ON DELETE CASCADE
+        )
+    ");
+
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS section_templates (
+            id SERIAL PRIMARY KEY,
+            code VARCHAR(50) UNIQUE NOT NULL,
+            name VARCHAR(100) NOT NULL,
+            description TEXT,
+            image_mode VARCHAR(20) DEFAULT 'optional' CHECK (image_mode IN ('required', 'optional', 'forbidden')),
+            max_blocks INT DEFAULT 1,
+            has_title BOOLEAN DEFAULT FALSE,
+            has_description BOOLEAN DEFAULT FALSE,
+            has_link BOOLEAN DEFAULT FALSE,
+            has_overlay BOOLEAN DEFAULT TRUE,
+            has_features BOOLEAN DEFAULT TRUE,
+            has_services BOOLEAN DEFAULT FALSE,
+            has_gallery BOOLEAN DEFAULT FALSE,
+            css_class VARCHAR(100) DEFAULT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ");
+
     // --- Triggers (reference public function) ---
     $triggerTables = ['images', 'room_service_items', 'room_service_orders',
-                      'room_service_categories', 'guest_messages', 'rooms', 'pages'];
+                      'room_service_categories', 'guest_messages', 'rooms', 'pages',
+                      'content_blocks', 'settings'];
     foreach ($triggerTables as $table) {
         $pdo->exec("
             DROP TRIGGER IF EXISTS update_{$table}_updated_at ON {$table};
