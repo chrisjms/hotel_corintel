@@ -6,6 +6,10 @@
 
 // getSuperDatabase() is defined in super-auth.php (always loaded before this file)
 
+// Supabase storage quota — adjust if you upgrade your plan
+// Free tier: 500 MB | Pro tier: 8 GB
+define('SUPABASE_DB_QUOTA_BYTES', 500 * 1024 * 1024); // 500 MB
+
 /**
  * Ensure hotels table exists
  */
@@ -1041,9 +1045,11 @@ function getMonitoringMetrics(): array {
     mt_srand(); // reset
 
     return [
-        'db_latency_ms'  => $dbLatency,
-        'db_size'        => $dbSize,
-        'db_size_human'  => formatBytes($dbSize),
+        'db_latency_ms'       => $dbLatency,
+        'db_size'             => $dbSize,
+        'db_size_human'       => formatBytes($dbSize),
+        'db_size_with_quota'  => formatBytes($dbSize) . ' / ' . formatBytes(SUPABASE_DB_QUOTA_BYTES),
+        'db_quota_pct'        => min(100, round(($dbSize / SUPABASE_DB_QUOTA_BYTES) * 100, 1)),
         'connections'    => $connections,
         'schemas'        => $schemas,
         'cpu_percent'    => $cpu,
@@ -1320,8 +1326,10 @@ function getDatabaseHealth(): array {
     } catch (PDOException $e) {}
 
     return [
-        'total_size'       => $totalSize,
-        'total_size_human' => formatBytes($totalSize),
+        'total_size'            => $totalSize,
+        'total_size_human'      => formatBytes($totalSize),
+        'total_size_with_quota' => formatBytes($totalSize) . ' / ' . formatBytes(SUPABASE_DB_QUOTA_BYTES),
+        'db_quota_pct'          => min(100, round(($totalSize / SUPABASE_DB_QUOTA_BYTES) * 100, 1)),
         'connections'      => $connections,
         'total_dead'       => $totalDeadTuples,
         'schema_count'     => count(array_filter($schemas, fn($s) => str_starts_with($s['name'], 'hotel_'))),

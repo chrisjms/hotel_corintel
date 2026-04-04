@@ -52,8 +52,8 @@ $maxSize = max(1, max(array_column($health['schemas'], 'size')));
                             </svg>
                         </div>
                         <div>
-                            <div class="stat-value" id="totalSize"><?= htmlspecialchars($health['total_size_human']) ?></div>
-                            <div class="stat-label">Taille totale DB</div>
+                            <div class="stat-value" id="totalSize"><?= htmlspecialchars($health['total_size_with_quota']) ?></div>
+                            <div class="stat-label">Taille totale DB <small style="opacity:0.6;">(quota Supabase)</small></div>
                         </div>
                     </div>
                     <div class="stat-card">
@@ -154,6 +154,42 @@ $maxSize = max(1, max(array_column($health['schemas'], 'size')));
                         </table>
                     </div>
                 </div>
+                <!-- Glossary -->
+                <div class="metrics-glossary">
+                    <div class="metrics-glossary-title">Glossaire des métriques</div>
+                    <div class="metrics-glossary-grid">
+                        <div class="glossary-item is-real">
+                            <div>
+                                <div class="glossary-item-label">🗄️ Taille totale DB <span class="badge badge-hotel" style="font-size:0.6rem;">réel</span></div>
+                                <div class="glossary-item-desc">Espace disque total occupé par l'ensemble de la base de données, incluant tous les hôtels et données système. Affiché sur le quota de votre offre Supabase. Si vous approchez 80–90% de la limite, envisagez de passer sur une offre supérieure.</div>
+                            </div>
+                        </div>
+                        <div class="glossary-item is-real">
+                            <div>
+                                <div class="glossary-item-label">🏗️ Schémas hôtel <span class="badge badge-hotel" style="font-size:0.6rem;">réel</span></div>
+                                <div class="glossary-item-desc">Chaque hôtel ou pizzeria a son propre espace isolé dans la base de données (appelé "schéma"). C'est comme un dossier séparé qui contient toutes les tables de cet établissement : commandes, messages, chambres, etc.</div>
+                            </div>
+                        </div>
+                        <div class="glossary-item is-real">
+                            <div>
+                                <div class="glossary-item-label">🔗 Pool de connexions <span class="badge badge-hotel" style="font-size:0.6rem;">réel</span></div>
+                                <div class="glossary-item-desc">Un "pool" est un groupe de connexions partagées entre toutes les requêtes de votre application. Plutôt que d'ouvrir/fermer une connexion à chaque requête (lent), on réutilise des connexions déjà ouvertes. <strong>Actives</strong> = requête en cours. <strong>Idle</strong> = connexion ouverte, en attente.</div>
+                            </div>
+                        </div>
+                        <div class="glossary-item is-real">
+                            <div>
+                                <div class="glossary-item-label">🧹 Dead tuples <span class="badge badge-hotel" style="font-size:0.6rem;">réel</span></div>
+                                <div class="glossary-item-desc">Lignes "fantômes" laissées après des suppressions ou modifications. PostgreSQL ne supprime pas immédiatement les anciennes données — il les marque comme mortes et les nettoie plus tard via le "vacuum". Un nombre élevé de dead tuples ralentit les recherches.</div>
+                            </div>
+                        </div>
+                        <div class="glossary-item is-real">
+                            <div>
+                                <div class="glossary-item-label">🔄 Dernier vacuum <span class="badge badge-hotel" style="font-size:0.6rem;">réel</span></div>
+                                <div class="glossary-item-desc">Date du dernier nettoyage automatique de la table par PostgreSQL. Le vacuum récupère l'espace occupé par les dead tuples. Si cette date est très ancienne (ou "jamais") sur une table active, c'est un signal que l'autovacuum devrait être vérifié.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </main>
     </div>
@@ -187,7 +223,7 @@ $maxSize = max(1, max(array_column($health['schemas'], 'size')));
         .then(result => {
             if (!result.success) return;
             const d = result.data;
-            document.getElementById('totalSize').textContent = d.total_size_human;
+            document.getElementById('totalSize').textContent = d.total_size_with_quota;
             document.getElementById('schemaCount').textContent = d.schema_count;
             document.getElementById('activeConn').textContent = d.connections.active + ' / ' + d.connections.total;
             document.getElementById('deadTuples').textContent = Number(d.total_dead).toLocaleString();

@@ -68,8 +68,8 @@ $ramColor = $metrics['ram_percent'] < 60 ? 'green' : ($metrics['ram_percent'] < 
                             </svg>
                         </div>
                         <div>
-                            <div class="stat-value" id="dbSize"><?= htmlspecialchars($metrics['db_size_human']) ?></div>
-                            <div class="stat-label">Taille DB</div>
+                            <div class="stat-value" id="dbSize"><?= htmlspecialchars($metrics['db_size_with_quota']) ?></div>
+                            <div class="stat-label">Taille DB <small style="opacity:0.6;">(quota Supabase)</small></div>
                         </div>
                     </div>
                     <div class="stat-card">
@@ -90,7 +90,7 @@ $ramColor = $metrics['ram_percent'] < 60 ? 'green' : ($metrics['ram_percent'] < 
                             </svg>
                         </div>
                         <div>
-                            <div class="stat-value" id="uptime"><?= $metrics['uptime_days'] ?> jours</div>
+                            <div class="stat-value" id="uptime"><?= $metrics['uptime_days'] ?> jours <span class="badge badge-simulated">simulé</span></div>
                             <div class="stat-label">Uptime</div>
                         </div>
                     </div>
@@ -100,7 +100,7 @@ $ramColor = $metrics['ram_percent'] < 60 ? 'green' : ($metrics['ram_percent'] < 
                 <div class="metric-grid">
                     <div class="metric-card">
                         <div class="metric-card-header">
-                            <h3>CPU</h3>
+                            <h3>CPU <span class="badge badge-simulated">simulé</span></h3>
                             <span style="font-size: 0.8rem; color: var(--sa-text-light);" id="cpuLabel"><?= $metrics['cpu_percent'] ?>%</span>
                         </div>
                         <div class="metric-value-large" id="cpuValue"><?= $metrics['cpu_percent'] ?>%</div>
@@ -114,7 +114,7 @@ $ramColor = $metrics['ram_percent'] < 60 ? 'green' : ($metrics['ram_percent'] < 
                     </div>
                     <div class="metric-card">
                         <div class="metric-card-header">
-                            <h3>RAM</h3>
+                            <h3>RAM <span class="badge badge-simulated">simulé</span></h3>
                             <span style="font-size: 0.8rem; color: var(--sa-text-light);" id="ramLabel"><?= $metrics['ram_percent'] ?>%</span>
                         </div>
                         <div class="metric-value-large" id="ramValue"><?= $metrics['ram_percent'] ?>%</div>
@@ -128,15 +128,64 @@ $ramColor = $metrics['ram_percent'] < 60 ? 'green' : ($metrics['ram_percent'] < 
                     </div>
                     <div class="metric-card">
                         <div class="metric-card-header">
-                            <h3>Requêtes / min</h3>
+                            <h3>Requêtes / min <span class="badge badge-simulated">simulé</span></h3>
                         </div>
                         <div class="metric-value-large" id="requestsMin"><?= $metrics['requests_min'] ?></div>
                         <div style="font-size: 0.8rem; color: var(--sa-text-light);">Trafic estimé</div>
                     </div>
                 </div>
 
+                <!-- Glossary -->
+                <div class="metrics-glossary">
+                    <div class="metrics-glossary-title">Glossaire des métriques</div>
+                    <div class="metrics-glossary-grid">
+                        <div class="glossary-item is-real">
+                            <div>
+                                <div class="glossary-item-label">⚡ Latence DB <span class="badge badge-hotel" style="font-size:0.6rem;">réel</span></div>
+                                <div class="glossary-item-desc">Temps que met la base de données pour répondre à une requête simple. En dessous de 50 ms c'est excellent, au-dessus de 200 ms il peut y avoir un problème de réseau ou de charge.</div>
+                            </div>
+                        </div>
+                        <div class="glossary-item is-real">
+                            <div>
+                                <div class="glossary-item-label">🗄️ Taille DB <span class="badge badge-hotel" style="font-size:0.6rem;">réel</span></div>
+                                <div class="glossary-item-desc">Espace disque occupé par toutes vos données (hôtels, commandes, messages…). Affiché sur le quota total de votre offre Supabase (500 MB en offre gratuite). À surveiller pour éviter d'approcher la limite.</div>
+                            </div>
+                        </div>
+                        <div class="glossary-item is-real">
+                            <div>
+                                <div class="glossary-item-label">🔗 Connexions <span class="badge badge-hotel" style="font-size:0.6rem;">réel</span></div>
+                                <div class="glossary-item-desc">Nombre de connexions ouvertes vers la base de données. <strong>Actives</strong> = une requête est en cours. <strong>Total</strong> = toutes les connexions ouvertes (actives + en attente). Un total élevé sans beaucoup d'actives est normal avec un pool de connexions.</div>
+                            </div>
+                        </div>
+                        <div class="glossary-item is-simulated">
+                            <div>
+                                <div class="glossary-item-label">⏱️ Uptime <span class="badge badge-simulated">simulé</span></div>
+                                <div class="glossary-item-desc">Durée depuis laquelle le serveur tourne sans interruption. Valeur simulée pour l'instant — sera réelle une fois migré sur le VPS OVH via <code>/proc/uptime</code>.</div>
+                            </div>
+                        </div>
+                        <div class="glossary-item is-simulated">
+                            <div>
+                                <div class="glossary-item-label">🖥️ CPU <span class="badge badge-simulated">simulé</span></div>
+                                <div class="glossary-item-desc">Pourcentage d'utilisation du processeur du serveur. En dessous de 60% = normal. 60–85% = charge élevée. Au-dessus de 85% = risque de ralentissements. Valeur simulée — Render.com ne fournit pas cette métrique via API.</div>
+                            </div>
+                        </div>
+                        <div class="glossary-item is-simulated">
+                            <div>
+                                <div class="glossary-item-label">💾 RAM <span class="badge badge-simulated">simulé</span></div>
+                                <div class="glossary-item-desc">Pourcentage de mémoire vive utilisée. Une RAM trop pleine (>90%) force le serveur à utiliser le disque dur à la place, ce qui est beaucoup plus lent. Valeur simulée — sera réelle sur VPS OVH.</div>
+                            </div>
+                        </div>
+                        <div class="glossary-item is-simulated">
+                            <div>
+                                <div class="glossary-item-label">📊 Requêtes / min <span class="badge badge-simulated">simulé</span></div>
+                                <div class="glossary-item-desc">Nombre de requêtes HTTP reçues par le serveur chaque minute. Permet de mesurer le trafic et d'anticiper les besoins en ressources. Valeur simulée — nécessiterait un outil comme Prometheus ou l'API Render pour être réelle.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Per-Schema Table -->
-                <div class="card">
+                <div class="card" style="margin-top: 1.5rem;">
                     <div class="card-header">
                         <h2>Lignes par schéma</h2>
                     </div>
@@ -204,7 +253,7 @@ $ramColor = $metrics['ram_percent'] < 60 ? 'green' : ($metrics['ram_percent'] < 
             const d = result.data;
 
             document.getElementById('dbLatency').textContent = d.db_latency_ms + ' ms';
-            document.getElementById('dbSize').textContent = d.db_size_human;
+            document.getElementById('dbSize').textContent = d.db_size_with_quota;
             document.getElementById('connections').textContent = d.connections.active + ' / ' + d.connections.total;
             document.getElementById('uptime').textContent = d.uptime_days + ' jours';
             document.getElementById('requestsMin').textContent = d.requests_min;
