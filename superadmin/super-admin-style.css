@@ -816,6 +816,14 @@ tbody tr:hover {
         flex-direction: column;
     }
 
+    .hotel-mini-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .bulk-hint {
+        display: none;
+    }
+
     .floating-action-bar {
         left: 0;
     }
@@ -998,26 +1006,65 @@ tbody tr:hover {
 .hotel-mini-stats {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 0.5rem;
-    margin-top: 0.75rem;
-    padding-top: 0.75rem;
+    gap: 0.75rem;
+    margin-top: 1rem;
+    padding-top: 1rem;
     border-top: 1px solid var(--sa-border);
 }
 
 .mini-stat {
     display: flex;
+    align-items: flex-start;
+    gap: 0.625rem;
+    padding: 0.5rem 0.625rem;
+    border-radius: 6px;
+    background: var(--sa-bg);
+    transition: background var(--sa-transition);
+}
+
+.mini-stat-icon {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 1px;
+}
+
+.mini-stat-icon svg {
+    width: 14px;
+    height: 14px;
+}
+
+.mini-stat-icon.icon-orders { background: rgba(66,153,225,0.12); color: var(--sa-primary); }
+.mini-stat-icon.icon-messages { background: rgba(237,137,54,0.12); color: var(--sa-warning); }
+.mini-stat-icon.icon-login { background: rgba(72,187,120,0.12); color: var(--sa-success); }
+.mini-stat-icon.icon-scans { background: rgba(159,122,234,0.12); color: #9F7AEA; }
+[data-theme="dark"] .mini-stat-icon.icon-scans { color: #B794F4; }
+
+.mini-stat-content {
+    display: flex;
     flex-direction: column;
+    min-width: 0;
 }
 
 .mini-stat-value {
-    font-weight: 600;
-    font-size: 1rem;
-    line-height: 1.3;
+    font-weight: 700;
+    font-size: 1.125rem;
+    line-height: 1.2;
+    color: var(--sa-text);
 }
 
 .mini-stat-label {
     color: var(--sa-text-light);
     font-size: 0.7rem;
+    line-height: 1.3;
+    margin-top: 1px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* --- Skeleton Loading --- */
@@ -1028,6 +1075,16 @@ tbody tr:hover {
     border-radius: 4px;
     height: 1rem;
     width: 60%;
+}
+
+.mini-stat .skeleton {
+    height: 1.125rem;
+    width: 2rem;
+}
+
+.mini-stat .skeleton-sm {
+    height: 0.625rem;
+    width: 4rem;
 }
 
 .skeleton-sm {
@@ -1339,8 +1396,18 @@ tbody tr:hover {
     align-items: center;
     gap: 0.75rem;
     margin-bottom: 1rem;
+    padding: 0.5rem 0.75rem;
     font-size: 0.875rem;
     color: var(--sa-text-light);
+    background: var(--sa-card);
+    border: 1px solid var(--sa-border);
+    border-radius: var(--sa-radius);
+}
+
+.select-all-bar .bulk-hint {
+    margin-left: auto;
+    font-size: 0.75rem;
+    opacity: 0.7;
 }
 
 /* --- Connection Pool (DB Health) --- */
