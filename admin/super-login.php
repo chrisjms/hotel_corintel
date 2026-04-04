@@ -56,16 +56,20 @@ if (abs(time() - $timestamp) > 60) {
 // Check nonce (replay prevention)
 $pdo = getDatabase();
 
-// Ensure nonce table exists
-$pdo->exec('
-    CREATE TABLE IF NOT EXISTS public.super_admin_login_tokens (
-        id SERIAL PRIMARY KEY,
-        token_nonce VARCHAR(64) NOT NULL UNIQUE,
-        used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-');
-$pdo->exec('CREATE INDEX IF NOT EXISTS idx_super_admin_login_tokens_nonce ON public.super_admin_login_tokens (token_nonce)');
-$pdo->exec('CREATE INDEX IF NOT EXISTS idx_super_admin_login_tokens_used_at ON public.super_admin_login_tokens (used_at)');
+// Ensure nonce table exists (only if table missing — avoid DDL on every request for pgBouncer stability)
+try {
+    $pdo->query('SELECT 1 FROM public.super_admin_login_tokens LIMIT 1');
+} catch (PDOException $e) {
+    $pdo->exec('
+        CREATE TABLE IF NOT EXISTS public.super_admin_login_tokens (
+            id SERIAL PRIMARY KEY,
+            token_nonce VARCHAR(64) NOT NULL UNIQUE,
+            used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_super_admin_login_tokens_nonce ON public.super_admin_login_tokens (token_nonce)');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_super_admin_login_tokens_used_at ON public.super_admin_login_tokens (used_at)');
+}
 
 // Clean old nonces (older than 5 minutes)
 $pdo->exec("DELETE FROM public.super_admin_login_tokens WHERE used_at < NOW() - INTERVAL '5 minutes'");
@@ -75,9 +79,15 @@ try {
     $stmt = $pdo->prepare('INSERT INTO public.super_admin_login_tokens (token_nonce) VALUES (?)');
     $stmt->execute([$nonce]);
 } catch (PDOException $e) {
-    // Duplicate nonce = replay attack
-    http_response_code(403);
-    die('Token déjà utilisé.');
+    // 23505 = unique_violation in PostgreSQL (actual duplicate nonce)
+    if ($e->getCode() === '23505') {
+        http_response_code(403);
+        die('Token déjà utilisé.');
+    }
+    // Other DB error — log and show a helpful message instead of false "déjà utilisé"
+    error_log('Cross-login nonce insert error: ' . $e->getMessage());
+    http_response_code(500);
+    die('Erreur serveur lors de la connexion. Veuillez réessayer.');
 }
 
 // Create hotel admin session with full access
