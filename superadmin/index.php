@@ -137,12 +137,7 @@ $activeHotels = count(array_filter($hotels, fn($h) => $h['is_active']));
                         <?php foreach ($hotels as $hotel): ?>
                             <div class="hotel-card">
                                 <div class="hotel-card-header">
-                                    <div style="display: flex; align-items: center; gap: 0.75rem;">
-                                        <label class="bulk-checkbox" onclick="event.stopPropagation();">
-                                            <input type="checkbox" class="hotel-select" value="<?= $hotel['id'] ?>" onchange="updateBulkBar()">
-                                        </label>
-                                        <h3><?= htmlspecialchars($hotel['name']) ?></h3>
-                                    </div>
+                                    <h3><?= htmlspecialchars($hotel['name']) ?></h3>
                                     <span class="hotel-status <?= $hotel['is_active'] ? 'active' : 'inactive' ?>">
                                         <span class="dot"></span>
                                         <?= $hotel['is_active'] ? 'Actif' : 'Inactif' ?>
