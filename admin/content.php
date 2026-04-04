@@ -41,6 +41,12 @@ $messageType = '';
 // Track which page tab to stay on after POST actions (null = don't force, string = page code)
 $stayOnPageTab = null;
 
+// If dynamic_pages is disabled, only allow the "general" tab
+if (!featureEnabled('dynamic_pages') && ($_GET['tab'] ?? '') !== 'general') {
+    header('Location: content.php?tab=general');
+    exit;
+}
+
 // Get current section from URL
 $currentSection = $_GET['section'] ?? null;
 $editBlockId = isset($_GET['edit']) ? (int)$_GET['edit'] : null;

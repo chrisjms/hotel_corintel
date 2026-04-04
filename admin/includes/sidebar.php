@@ -26,22 +26,23 @@ $navGroups = [
     [
         'separator' => 'Activité',
         'items' => [
-            ['href' => 'room-service-orders.php', 'label' => 'Commandes', 'permission' => 'orders',
+            ['href' => 'room-service-orders.php', 'label' => 'Commandes', 'permission' => 'orders', 'feature' => 'room_service',
              'icon' => '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>',
              'badge' => $pendingOrders, 'badge_id' => 'badgePendingOrders'],
-            ['href' => 'room-service-messages.php', 'label' => 'Messages', 'permission' => 'messages',
+            ['href' => 'room-service-messages.php', 'label' => 'Messages', 'permission' => 'messages', 'feature' => 'messaging',
              'icon' => '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
              'badge' => $unreadMessages, 'badge_id' => 'badgeUnreadMessages'],
         ]
     ],
     [
         'separator' => establishmentLabel('service_separator'),
+        'feature' => 'room_service',
         'items' => [
-            ['href' => 'room-service-categories.php', 'label' => 'Catégories', 'permission' => 'content',
+            ['href' => 'room-service-categories.php', 'label' => 'Catégories', 'permission' => 'content', 'feature' => 'room_service',
              'icon' => '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>'],
-            ['href' => 'room-service-items.php', 'label' => 'Articles', 'permission' => 'content',
+            ['href' => 'room-service-items.php', 'label' => 'Articles', 'permission' => 'content', 'feature' => 'room_service',
              'icon' => '<path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/>'],
-            ['href' => 'room-service-stats.php', 'label' => 'Statistiques', 'permission' => 'stats',
+            ['href' => 'room-service-stats.php', 'label' => 'Statistiques', 'permission' => 'stats', 'feature' => 'room_service',
              'icon' => '<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>'],
         ]
     ],
@@ -50,7 +51,7 @@ $navGroups = [
         'items' => [
             ['href' => 'content.php?tab=general', 'label' => 'Général', 'permission' => 'content', 'match' => 'content-general',
              'icon' => '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>'],
-            ['href' => 'content.php', 'label' => 'Sections', 'permission' => 'content', 'match' => 'content-sections',
+            ['href' => 'content.php', 'label' => 'Sections', 'permission' => 'content', 'match' => 'content-sections', 'feature' => 'dynamic_pages',
              'icon' => '<rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/>'],
             ['href' => 'theme.php', 'label' => 'Thème', 'permission' => 'content',
              'icon' => '<circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 0 0 20"/><path d="M12 2c-2.5 2.5-4 6-4 10s1.5 7.5 4 10"/>'],
@@ -110,9 +111,13 @@ function isNavItemActive(array $item, string $currentPage): bool {
 
             <nav class="sidebar-nav">
 <?php foreach ($navGroups as $group):
-    // Filter items by permission
+    // Skip entire group if it has a feature requirement that's disabled
+    if (isset($group['feature']) && !featureEnabled($group['feature'])) continue;
+    // Filter items by permission and feature toggle
     $visibleItems = array_filter($group['items'], function($item) {
-        return hasPermission($item['permission']);
+        if (!hasPermission($item['permission'])) return false;
+        if (isset($item['feature']) && !featureEnabled($item['feature'])) return false;
+        return true;
     });
     if (empty($visibleItems)) continue;
 ?>

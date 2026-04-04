@@ -66,8 +66,8 @@ $dynamicSectionsTranslations = !empty($dynamicSections) ? getDynamicSectionsTran
             $navUrl = $navPage['slug'] === '' ? 'index.php' : '/' . $navPage['slug'];
             $isActive = $navPage['page_type'] === 'home';
             $navI18nKey = $navPage['i18n_nav_key'] ?: '';
-            // Insert Room Service link before Contact
-            if ($navPage['slug'] === 'contact' || $navPage['page_type'] === 'contact'):
+            // Insert Room Service link before Contact (if feature enabled)
+            if (($navPage['slug'] === 'contact' || $navPage['page_type'] === 'contact') && featureEnabled('room_service')):
         ?>
         <a href="room-service.php" class="nav-link nav-link-room-service" data-i18n="nav.roomService">
           <?= h(establishmentLabel('nav_link')) ?>
@@ -80,12 +80,14 @@ $dynamicSectionsTranslations = !empty($dynamicSections) ? getDynamicSectionsTran
         <?php endif; ?>
         <a href="<?= h($navUrl) ?>" class="nav-link<?= $isActive ? ' active' : '' ?>"<?= $navI18nKey ? ' data-i18n="' . h($navI18nKey) . '"' : '' ?>><?= h($navPage['nav_title'] ?: $navPage['title']) ?></a>
         <?php endforeach; ?>
+        <?php if (featureEnabled('messaging')): ?>
         <button type="button" class="btn-contact-reception" id="btnContactReception" data-i18n="header.contactReception">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
           </svg>
           Contacter la réception
         </button>
+        <?php endif; ?>
       </nav>
       <div class="menu-toggle" id="menuToggle">
         <span></span>
@@ -238,10 +240,12 @@ $dynamicSectionsTranslations = !empty($dynamicSections) ? getDynamicSectionsTran
           <ul class="footer-links">
             <li><a href="services.php" data-i18n="footer.restaurant">Restaurant</a></li>
             <li><a href="services.php" data-i18n="footer.bar">Bar</a></li>
+            <?php if (featureEnabled('room_service')): ?>
             <li class="room-service-item">
               <a href="room-service.php" data-i18n="footer.roomService"><?= h(establishmentLabel('nav_link')) ?></a>
               <span class="qr-badge" data-i18n="footer.qrOnly">QR code</span>
             </li>
+            <?php endif; ?>
           </ul>
         </div>
         <div class="footer-contact">
@@ -287,6 +291,7 @@ $dynamicSectionsTranslations = !empty($dynamicSections) ? getDynamicSectionsTran
     </svg>
   </button>
 
+  <?php if (featureEnabled('messaging')): ?>
   <!-- Contact Reception Modal -->
   <div class="modal-overlay" id="contactReceptionModal">
     <div class="modal-content">
@@ -369,6 +374,7 @@ $dynamicSectionsTranslations = !empty($dynamicSections) ? getDynamicSectionsTran
       </div>
     </div>
   </div>
+  <?php endif; /* featureEnabled('messaging') */ ?>
 
   <!-- Scripts -->
   <script src="js/i18n.js"></script>

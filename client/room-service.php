@@ -10,6 +10,8 @@ require_once __DIR__ . '/../shared/bootstrap.php';
 
 require_once HOTEL_ROOT . '/shared/includes/functions.php';
 
+requireFeature('room_service', 'index.php');
+
 // =====================================================
 // ACCESS CONTROL - QR CODE VALIDATION
 // =====================================================

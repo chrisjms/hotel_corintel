@@ -14,6 +14,7 @@ require_once __DIR__ . '/../config/database.php';
 // Layer 0: No cross-module dependencies
 require_once __DIR__ . '/modules/utils.php';
 require_once __DIR__ . '/modules/establishment-types.php';
+require_once __DIR__ . '/modules/feature-toggles.php';
 require_once __DIR__ . '/modules/upload.php';
 require_once __DIR__ . '/modules/images-legacy.php';
 

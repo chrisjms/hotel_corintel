@@ -64,6 +64,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'send_
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'send_message') {
+    if (!featureEnabled('messaging')) {
+        if ($isAjaxRequest) {
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'error' => 'La messagerie est désactivée pour cet établissement.']);
+            exit;
+        }
+        header('Location: contact.php');
+        exit;
+    }
+
     // Guests must have a valid room session to contact the reception
     requireRoomSession($isAjaxRequest);
 
@@ -271,14 +281,18 @@ $contactInfo = getContactInfo();
         <a href="index.php" class="nav-link" data-i18n="nav.home">Accueil</a>
         <a href="services.php" class="nav-link" data-i18n="nav.services">Services</a>
         <a href="activites.php" class="nav-link" data-i18n="nav.activities">À découvrir</a>
+        <?php if (featureEnabled('room_service')): ?>
         <a href="room-service.php" class="nav-link nav-link-room-service" data-i18n="nav.roomService"><?= h(establishmentLabel('nav_link')) ?> <?php if ($roomSession): ?><span class="nav-room-badge">Ch. <?= h($roomSession['room_number']) ?></span><?php else: ?><span class="nav-qr-badge" data-i18n="footer.qrOnly">QR</span><?php endif; ?></a>
+        <?php endif; ?>
         <a href="contact.php" class="nav-link active" data-i18n="nav.contact">Contact</a>
+        <?php if (featureEnabled('messaging')): ?>
         <button type="button" class="btn-contact-reception" id="btnContactReception" data-i18n="header.contactReception">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
           </svg>
           Contacter la réception
         </button>
+        <?php endif; ?>
       </nav>
       <div class="menu-toggle" id="menuToggle">
         <span></span>
@@ -544,10 +558,12 @@ $contactInfo = getContactInfo();
             <li><a href="services.php" data-i18n="footer.bar">Bar</a></li>
             <li><a href="services.php" data-i18n="footer.boulodrome">Boulodrome</a></li>
             <li><a href="services.php" data-i18n="footer.parking">Parking</a></li>
+            <?php if (featureEnabled('room_service')): ?>
             <li class="room-service-item">
               <a href="room-service.php" data-i18n="footer.roomService"><?= h(establishmentLabel('nav_link')) ?></a>
               <span class="qr-badge" data-i18n="footer.qrOnly">QR code</span>
             </li>
+            <?php endif; ?>
           </ul>
         </div>
         <div class="footer-contact">
@@ -594,6 +610,7 @@ $contactInfo = getContactInfo();
   </button>
 
   <!-- Contact Reception Modal -->
+  <?php if (featureEnabled('messaging')): ?>
   <div class="modal-overlay" id="contactReceptionModal">
     <div class="modal-content">
       <div class="modal-header">
@@ -675,6 +692,7 @@ $contactInfo = getContactInfo();
       </div>
     </div>
   </div>
+  <?php endif; ?>
 
   <script src="js/i18n.js"></script>
   <script src="js/animations.js"></script>

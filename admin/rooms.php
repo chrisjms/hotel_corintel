@@ -893,7 +893,7 @@ if (isset($_GET['edit']) && is_numeric($_GET['edit'])) {
                 </div>
 
                 <!-- QR Actions Bar -->
-                <?php if (!empty($rooms)): ?>
+                <?php if (!empty($rooms) && featureEnabled('qr_codes')): ?>
                 <div class="qr-actions-bar">
                     <span class="qr-actions-label">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px;">
@@ -986,6 +986,7 @@ if (isset($_GET['edit']) && is_numeric($_GET['edit'])) {
                                         </td>
                                         <td>
                                             <div class="action-buttons">
+                                                <?php if (featureEnabled('qr_codes')): ?>
                                                 <button type="button" class="btn btn-sm btn-qr btn-icon"
                                                         title="QR Code <?= h(establishmentLabel('service_name')) ?>"
                                                         onclick="showQrCode(<?= $room['id'] ?>, '<?= h($room['room_number']) ?>', '<?= h(generateRoomServiceUrl($room['id'], $room['room_number'])) ?>')">
@@ -999,6 +1000,7 @@ if (isset($_GET['edit']) && is_numeric($_GET['edit'])) {
                                                         <rect x="18" y="18" width="3" height="3"/>
                                                     </svg>
                                                 </button>
+                                                <?php endif; ?>
                                                 <a href="?edit=<?= $room['id'] ?>" class="btn btn-sm btn-outline btn-icon" title="Modifier">
                                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
@@ -1028,6 +1030,7 @@ if (isset($_GET['edit']) && is_numeric($_GET['edit'])) {
         </main>
     </div>
 
+    <?php if (featureEnabled('qr_codes')): ?>
     <!-- QR Code Modal -->
     <div class="qr-modal-overlay" id="qrModalOverlay" onclick="closeQrModal(event)">
         <div class="qr-modal" onclick="event.stopPropagation()">
@@ -1504,5 +1507,6 @@ if (isset($_GET['edit']) && is_numeric($_GET['edit'])) {
             if (e.key === 'Escape') closeQrModal();
         });
     </script>
+    <?php endif; /* featureEnabled('qr_codes') */ ?>
 </body>
 </html>

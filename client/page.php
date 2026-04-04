@@ -119,16 +119,20 @@ $navPages = getNavigationPages();
                     // Insert Room Service link before Contact
                     if ($navPage['slug'] === 'contact' || $navPage['page_type'] === 'contact'):
                 ?>
+                <?php if (featureEnabled('room_service')): ?>
                 <a href="room-service.php" class="nav-link nav-link-room-service" data-i18n="nav.roomService"><?= h(establishmentLabel('nav_link')) ?> <?php if ($roomSession): ?><span class="nav-room-badge">Ch. <?= h($roomSession['room_number']) ?></span><?php else: ?><span class="nav-qr-badge" data-i18n="footer.qrOnly">QR</span><?php endif; ?></a>
+                <?php endif; ?>
                 <?php endif; ?>
                 <a href="<?= h($navUrl) ?>" class="nav-link<?= $isActive ? ' active' : '' ?>"<?= $navI18nKey ? ' data-i18n="' . h($navI18nKey) . '"' : '' ?>><?= h($navPage['nav_title'] ?: $navPage['title']) ?></a>
                 <?php endforeach; ?>
+                <?php if (featureEnabled('messaging')): ?>
                 <button type="button" class="btn-contact-reception" id="btnContactReception" data-i18n="header.contactReception">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                     </svg>
                     Contacter la réception
                 </button>
+                <?php endif; ?>
             </nav>
             <div class="menu-toggle" id="menuToggle">
                 <span></span>
@@ -187,10 +191,12 @@ $navPages = getNavigationPages();
                     <ul class="footer-links">
                         <li><a href="services.php" data-i18n="footer.restaurant">Restaurant</a></li>
                         <li><a href="services.php" data-i18n="footer.bar">Bar</a></li>
+                        <?php if (featureEnabled('room_service')): ?>
                         <li class="room-service-item">
                             <a href="room-service.php" data-i18n="footer.roomService"><?= h(establishmentLabel('nav_link')) ?></a>
                             <span class="qr-badge" data-i18n="footer.qrOnly">QR code</span>
                         </li>
+                        <?php endif; ?>
                     </ul>
                 </div>
                 <div class="footer-contact">
@@ -237,6 +243,7 @@ $navPages = getNavigationPages();
     </button>
 
     <!-- Contact Reception Modal -->
+    <?php if (featureEnabled('messaging')): ?>
     <div class="modal-overlay" id="contactReceptionModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -318,6 +325,7 @@ $navPages = getNavigationPages();
             </div>
         </div>
     </div>
+    <?php endif; ?>
 
     <!-- Scripts -->
     <script src="js/i18n.js"></script>
@@ -375,6 +383,7 @@ $navPages = getNavigationPages();
         });
 
         // Contact Reception Modal
+        <?php if (featureEnabled('messaging')): ?>
         const modal = document.getElementById('contactReceptionModal');
         const btnOpenModal = document.getElementById('btnContactReception');
         const btnCloseModal = document.getElementById('modalClose');
@@ -460,6 +469,7 @@ $navPages = getNavigationPages();
                 }
             });
         }
+        <?php endif; ?>
     </script>
 </body>
 </html>

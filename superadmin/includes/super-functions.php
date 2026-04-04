@@ -919,14 +919,9 @@ function getDefaultHotelUrls(string $slug): array {
 // --- Feature Toggles ---
 // ============================================================
 
-const AVAILABLE_FEATURES = [
-    'room_service'   => ['label' => 'Room Service',        'description' => 'Commandes en chambre via QR code'],
-    'messaging'      => ['label' => 'Messagerie',          'description' => 'Messages invités → réception'],
-    'qr_codes'       => ['label' => 'QR Codes',            'description' => 'Scan QR pour accès chambre'],
-    'multilingual'   => ['label' => 'Multilingue',         'description' => 'Support FR / EN / ES / IT'],
-    'dynamic_pages'  => ['label' => 'Pages dynamiques',    'description' => 'Sections et contenu personnalisable'],
-    'housekeeping'   => ['label' => 'Housekeeping',        'description' => 'Gestion ménage et inspections'],
-];
+// AVAILABLE_FEATURES, isFeatureEnabled(), featureEnabled(), requireFeature()
+// are defined in shared/includes/modules/feature-toggles.php
+require_once HOTEL_ROOT . '/shared/includes/modules/feature-toggles.php';
 
 function getEstablishmentFeatures(int $hotelId): array {
     ensureHotelsTable();
@@ -947,7 +942,7 @@ function getEstablishmentFeatures(int $hotelId): array {
             'feature_key' => $key,
             'label'       => $meta['label'],
             'description' => $meta['description'],
-            'is_enabled'  => $saved[$key] ?? true, // enabled by default
+            'is_enabled'  => $saved[$key] ?? true,
         ];
     }
     return $features;
@@ -968,16 +963,6 @@ function setFeatureToggle(int $hotelId, string $featureKey, bool $enabled): bool
     ');
     $stmt->execute([$hotelId, $featureKey, $enabled ? 'true' : 'false']);
     return true;
-}
-
-function isFeatureEnabled(int $hotelId, string $featureKey): bool {
-    ensureHotelsTable();
-    $pdo = getSuperDatabase();
-    $stmt = $pdo->prepare('SELECT is_enabled FROM public.establishment_features WHERE hotel_id = ? AND feature_key = ?');
-    $stmt->execute([$hotelId, $featureKey]);
-    $row = $stmt->fetch();
-    if (!$row) return true; // enabled by default
-    return filter_var($row['is_enabled'], FILTER_VALIDATE_BOOLEAN);
 }
 
 // ============================================================

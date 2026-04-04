@@ -9,6 +9,7 @@ require_once HOTEL_ROOT . '/shared/includes/auth.php';
 require_once HOTEL_ROOT . '/shared/includes/functions.php';
 
 requireRole('messages');
+requireFeature('messaging');
 
 $admin = getCurrentAdmin();
 $unreadMessages = getUnreadMessagesCount();
