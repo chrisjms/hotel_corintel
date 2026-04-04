@@ -131,6 +131,7 @@ $maxOrders = max(1, max(array_column($trend, 'orders')));
                                 <tr>
                                     <th>#</th>
                                     <th>Établissement</th>
+                                    <th>Type</th>
                                     <th style="text-align: right;">Commandes</th>
                                     <th style="text-align: right;">CA</th>
                                     <th style="text-align: right;">Messages</th>
@@ -144,6 +145,9 @@ $maxOrders = max(1, max(array_column($trend, 'orders')));
                                     if ($rank === 1) $rankStyle = 'background: rgba(237,196,58,0.15); color: #D4A017;';
                                     elseif ($rank === 2) $rankStyle = 'background: rgba(169,169,169,0.15); color: #808080;';
                                     elseif ($rank === 3) $rankStyle = 'background: rgba(205,127,50,0.15); color: #CD7F32;';
+                                    $typeBadge = ($h['type'] ?? 'hotel') === 'pizzeria'
+                                        ? '<span class="badge badge-type badge-pizzeria">Pizzeria</span>'
+                                        : '<span class="badge badge-type badge-hotel">Hôtel</span>';
                                 ?>
                                     <tr>
                                         <td>
@@ -157,6 +161,7 @@ $maxOrders = max(1, max(array_column($trend, 'orders')));
                                                 <span class="badge" style="background: rgba(245,101,101,0.15); color: var(--sa-error); margin-left: 0.5rem;">Inactif</span>
                                             <?php endif; ?>
                                         </td>
+                                        <td><?= $typeBadge ?></td>
                                         <td style="text-align: right; font-family: monospace;"><?= $h['orders'] ?></td>
                                         <td style="text-align: right; font-family: monospace;"><?= number_format($h['revenue'], 2, ',', ' ') ?> &euro;</td>
                                         <td style="text-align: right; font-family: monospace;"><?= $h['messages'] ?></td>
@@ -164,7 +169,7 @@ $maxOrders = max(1, max(array_column($trend, 'orders')));
                                     </tr>
                                 <?php endforeach; ?>
                                 <?php if (empty($perHotel)): ?>
-                                    <tr><td colspan="6" style="text-align: center; color: var(--sa-text-light); padding: 2rem;">Aucune donnée sur cette période</td></tr>
+                                    <tr><td colspan="7" style="text-align: center; color: var(--sa-text-light); padding: 2rem;">Aucune donnée sur cette période</td></tr>
                                 <?php endif; ?>
                             </tbody>
                         </table>

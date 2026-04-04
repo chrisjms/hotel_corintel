@@ -560,6 +560,21 @@ tbody tr:hover {
     border-radius: 99px;
 }
 
+.badge-type {
+    font-weight: 500;
+    letter-spacing: 0.02em;
+}
+
+.badge-hotel {
+    background: rgba(66, 153, 225, 0.12);
+    color: var(--sa-primary);
+}
+
+.badge-pizzeria {
+    background: rgba(237, 137, 54, 0.12);
+    color: var(--sa-warning);
+}
+
 /* Modal */
 .modal {
     display: none;
@@ -853,25 +868,21 @@ tbody tr:hover {
    NEW FEATURES STYLES
    ============================================================ */
 
-/* --- Nav Separator --- */
-.sa-nav-separator {
-    padding: 0.5rem 1.5rem 0.15rem;
-    margin-top: 0.25rem;
-    font-size: 0.6rem;
+/* --- Nav Section Titles --- */
+.sa-nav-section {
+    padding: 0.625rem 1.5rem 0.25rem;
+    margin-top: 0.5rem;
+    font-size: 0.625rem;
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 1.5px;
-    color: rgba(255,255,255,0.35);
+    letter-spacing: 1.2px;
+    color: rgba(255,255,255,0.4);
     user-select: none;
     pointer-events: none;
 }
 
-.sa-nav-separator::before {
-    content: '';
-    display: block;
-    height: 1px;
-    background: rgba(255,255,255,0.08);
-    margin-bottom: 0.35rem;
+.sa-nav-section:first-child {
+    margin-top: 0;
 }
 
 /* --- Gauges & Progress Bars (Monitoring) --- */

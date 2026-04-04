@@ -1114,6 +1114,7 @@ function getPerHotelAnalytics(int $days = 30): array {
             'hotel_id'   => $hotel['id'],
             'hotel_name' => $hotel['name'],
             'slug'       => $hotel['slug'],
+            'type'       => $hotel['type'] ?? 'hotel',
             'is_active'  => filter_var($hotel['is_active'], FILTER_VALIDATE_BOOLEAN),
             'orders'     => 0,
             'revenue'    => 0.0,
