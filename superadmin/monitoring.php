@@ -135,6 +135,35 @@ $ramColor = $metrics['ram_percent'] < 60 ? 'green' : ($metrics['ram_percent'] < 
                     </div>
                 </div>
 
+                <!-- Per-Schema Table -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Lignes par schéma</h2>
+                    </div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Schéma</th>
+                                    <th style="text-align: right;">Lignes totales</th>
+                                </tr>
+                            </thead>
+                            <tbody id="schemasTable">
+                                <?php if (empty($metrics['schemas'])): ?>
+                                    <tr><td colspan="2" style="text-align: center; color: var(--sa-text-light);">Aucun schéma hôtel détecté</td></tr>
+                                <?php else: ?>
+                                    <?php foreach ($metrics['schemas'] as $s): ?>
+                                        <tr>
+                                            <td><?= htmlspecialchars($s['name']) ?></td>
+                                            <td style="text-align: right; font-family: monospace;"><?= number_format($s['total_rows']) ?></td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
                 <!-- Glossary -->
                 <div class="metrics-glossary">
                     <div class="metrics-glossary-title">Glossaire des métriques</div>
@@ -181,35 +210,6 @@ $ramColor = $metrics['ram_percent'] < 60 ? 'green' : ($metrics['ram_percent'] < 
                                 <div class="glossary-item-desc">Nombre de requêtes HTTP reçues par le serveur chaque minute. Permet de mesurer le trafic et d'anticiper les besoins en ressources. Valeur simulée — nécessiterait un outil comme Prometheus ou l'API Render pour être réelle.</div>
                             </div>
                         </div>
-                    </div>
-                </div>
-
-                <!-- Per-Schema Table -->
-                <div class="card" style="margin-top: 1.5rem;">
-                    <div class="card-header">
-                        <h2>Lignes par schéma</h2>
-                    </div>
-                    <div class="table-wrap">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Schéma</th>
-                                    <th style="text-align: right;">Lignes totales</th>
-                                </tr>
-                            </thead>
-                            <tbody id="schemasTable">
-                                <?php if (empty($metrics['schemas'])): ?>
-                                    <tr><td colspan="2" style="text-align: center; color: var(--sa-text-light);">Aucun schéma hôtel détecté</td></tr>
-                                <?php else: ?>
-                                    <?php foreach ($metrics['schemas'] as $s): ?>
-                                        <tr>
-                                            <td><?= htmlspecialchars($s['name']) ?></td>
-                                            <td style="text-align: right; font-family: monospace;"><?= number_format($s['total_rows']) ?></td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                <?php endif; ?>
-                            </tbody>
-                        </table>
                     </div>
                 </div>
             </div>
