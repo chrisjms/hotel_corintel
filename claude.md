@@ -82,6 +82,7 @@ Déploiement temporaire sur Render.com en attendant la migration VPS. Pas de wil
 - **Schéma par hotel** : chaque hotel a son propre schema PostgreSQL `hotel_{slug}` créé automatiquement à la création de l'hotel via superadmin. Le `search_path` est positionné sur ce schema dès la résolution du contexte hotel.
 - **Multi-tenancy** : toutes les tables per-hotel ont une colonne `hotel_id` (compatibilité) ET sont dans leur schema dédié. La migration `010_add_schema_name_to_hotels.sql` ajoute la colonne `schema_name` à la table `public.hotels`.
 - **DDL pgBouncer** : ne jamais grouper plusieurs instructions SQL dans un seul `exec()`. Toujours séparer chaque statement (`CREATE TABLE`, `ALTER TABLE`, `CREATE TRIGGER`, etc.) en appels `exec()` distincts.
+- **Feature toggles** : table `public.establishment_features` (migration 012). Feature keys définis dans `AVAILABLE_FEATURES` constant (`super-functions.php`) : `room_service`, `messaging`, `qr_codes`, `multilingual`, `dynamic_pages`, `housekeeping`. Tous activés par défaut si aucune ligne n'existe.
 
 ## Development
 
@@ -99,7 +100,7 @@ php -S localhost:8002 -t superadmin/                   # Super admin
 # First-time setup : exécuter les fichiers SQL dans cet ordre via Supabase SQL Editor
 # 1. shared/setup/schema.sql
 # 2. shared/setup/003_create_guest_messages_table.sql
-# 3. shared/config/migrations/003 à 010 (dans l'ordre numérique)
+# 3. shared/config/migrations/003 à 012 (dans l'ordre numérique)
 ```
 
 No build step, no bundler, no preprocessor. Edit PHP/JS/CSS files directly.
@@ -151,12 +152,12 @@ Connexion PostgreSQL via Supabase pgBouncer (port 6543). `ATTR_EMULATE_PREPARES 
 
 - `shared/bootstrap.php` — Entry point bootstrap, defines `HOTEL_ROOT`, résout le contexte hotel, appelle `requireHotel()` pour les surfaces client/admin
 - `shared/config/hotel-context.php` — `HotelContext` singleton : résolution hotel (sous-domaine → `?hotel=slug` → cookie `_hotel_slug`), `SET search_path` automatique
-- `shared/includes/functions.php` — All helper functions (images, room service, orders, messages, content, pages, QR tokens)
+- `shared/includes/functions.php` — Module aggregator that loads 18 themed modules from `shared/includes/modules/`
 - `shared/includes/auth.php` — Admin authentication (session + persistent token cookies)
 - `shared/includes/images-helper.php` — `img()`, `imgTag()` shorthand for image rendering with fallbacks
 - `shared/includes/content-helper.php` — `content()`, `contentFirst()`, `contentImage()` for dynamic content blocks
 - `superadmin/includes/super-auth.php` — Super admin authentication (separate from hotel admin)
-- `superadmin/includes/super-functions.php` — CRUD hotels, création schema PostgreSQL, provisioning données par défaut
+- `superadmin/includes/super-functions.php` — CRUD hotels, création schema PostgreSQL, provisioning données par défaut, feature toggles, monitoring, analytics, DB health, filtered audit log, bulk actions
 
 ### QR Code → Room Service Flow
 
@@ -226,6 +227,26 @@ No WebSockets. Polling via `setInterval` (every 5s) to:
 - Server-side validation required on all forms
 - Return JSON for AJAX requests (`X-Requested-With: XMLHttpRequest`)
 
+### Backend Architecture Pattern
+
+The project follows a **"fat page" with modular helpers** pattern — no MVC framework, but well-structured:
+
+```
+Page PHP (index.php, rooms.php, etc.)
+  = POST handler (business logic) + HTML rendering (view) in one file
+  ↓ calls
+Shared modules (shared/includes/modules/*.php)
+  = Business logic layer (CRUD functions, stats, helpers)
+  ↓ calls
+PDO / Supabase (shared/config/database.php)
+  = Data layer (singleton connection, pgBouncer)
+```
+
+- **Pages** handle routing, auth, POST actions, and HTML output
+- **Modules** (`shared/includes/modules/`) contain reusable business functions organized by domain (18 modules)
+- **API endpoints** (`*/api/`) are thin JSON wrappers around module functions
+- Each surface (client, admin, superadmin) has its own `includes/` for surface-specific logic
+
 ### Page Pattern
 
 Each client page (in `client/`) is self-contained: starts with `require_once __DIR__ . '/../shared/bootstrap.php'`, includes its own dependencies via `HOTEL_ROOT`, inline JS, and calls `getRoomServiceSession()` at top. The contact modal and mobile nav JS are duplicated across all 5 pages.
@@ -250,6 +271,54 @@ Each client page (in `client/`) is self-contained: starts with `require_once __D
 - Guest message management with status tracking
 - Image management per section
 - CSV/PDF export capabilities
+
+### Super Admin Panel
+- **Hotel/Pizzeria CRUD** with onboarding wizard (4-step creation flow)
+- **Global Analytics** — cross-schema aggregation of orders, revenue, messages, QR scans with period selector (7/30/90j) and CSS bar chart
+- **Server Monitoring** — real DB metrics (latency, size, connections) + simulated CPU/RAM/uptime, auto-refresh 30s
+- **Database Health** — pg_stat_user_tables, per-schema sizes, dead tuples, connection pool visualization, auto-refresh 60s
+- **Feature Toggles** — enable/disable features per establishment (room_service, messaging, qr_codes, multilingual, dynamic_pages, housekeeping) via AJAX toggles. Table: `public.establishment_features` (migration 012)
+- **Enriched Audit Log** — filters by hotel, action type, date range, search text
+- **Bulk Actions** — select multiple hotels, activate/deactivate in bulk, export CSV
+- **Per-Hotel Performance Cards** — mini-stats (orders 7d, unread messages, last admin login, QR scans) lazy-loaded via AJAX with skeleton placeholders
+- **Cross-login** — HMAC-SHA256 signed tokens, 60s expiry, nonce anti-replay
+
+### Super Admin Architecture Pattern
+```
+superadmin/
+├── index.php              # Hotel list + mini-stats + bulk actions
+├── analytics.php          # Global analytics dashboard
+├── monitoring.php         # Server monitoring dashboard
+├── db-health.php          # Database health panel
+├── feature-toggles.php    # Feature toggles per hotel
+├── onboarding.php         # Multi-step creation wizard
+├── audit-log.php          # Enriched audit log with filters
+├── hotel-form.php         # Edit hotel form
+├── settings.php           # Super admin settings
+├── api/                   # JSON API endpoints
+│   ├── analytics-data.php
+│   ├── monitoring-data.php
+│   ├── db-health-data.php
+│   ├── hotel-stats.php
+│   ├── toggle-feature.php
+│   ├── bulk-action.php
+│   └── generate-cross-login.php
+└── includes/
+    ├── super-auth.php     # Authentication + CSRF
+    ├── super-functions.php # All business logic (~15 functions)
+    └── sidebar.php        # Navigation component
+```
+
+### CSS Variables (Super Admin)
+```css
+--sa-primary: #4299E1;     /* Blue */
+--sa-success: #48BB78;     /* Green */
+--sa-error: #F56565;       /* Red */
+--sa-warning: #ED8936;     /* Orange */
+--sa-sidebar: #1A202C;     /* Dark sidebar */
+--sa-bg: #F7FAFC;          /* Light background */
+```
+Light/dark theme via `[data-theme="dark"]` + `localStorage('sa_theme')`.
 
 ## Development Rules
 
