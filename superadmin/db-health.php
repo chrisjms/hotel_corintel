@@ -48,6 +48,17 @@ $maxSize = max(1, max(array_column($health['schemas'], 'size')));
                     <div class="stat-card">
                         <div class="stat-icon" style="background: rgba(66, 153, 225, 0.1);">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--sa-primary);">
+                                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="stat-value" id="dbLatency"><?= $health['db_latency_ms'] ?> ms</div>
+                            <div class="stat-label">Latence DB</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: rgba(72, 187, 120, 0.1);">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--sa-success);">
                                 <ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
                             </svg>
                         </div>
@@ -154,10 +165,48 @@ $maxSize = max(1, max(array_column($health['schemas'], 'size')));
                         </table>
                     </div>
                 </div>
+                <!-- Lignes par schéma -->
+                <div class="card" style="margin-bottom: 1.5rem;">
+                    <div class="card-header">
+                        <h2>Lignes par schéma</h2>
+                    </div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Schéma</th>
+                                    <th style="text-align: right;">Lignes totales</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php
+                                $hasRows = false;
+                                foreach ($health['schemas'] as $s):
+                                    if ($s['live_rows'] > 0) $hasRows = true;
+                                ?>
+                                    <tr>
+                                        <td><?= htmlspecialchars($s['name']) ?></td>
+                                        <td style="text-align: right; font-family: monospace;"><?= number_format($s['live_rows']) ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                                <?php if (empty($health['schemas'])): ?>
+                                    <tr><td colspan="2" style="text-align: center; color: var(--sa-text-light);">Aucun schéma détecté</td></tr>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
                 <!-- Glossary -->
                 <div class="metrics-glossary">
                     <div class="metrics-glossary-title">Glossaire des métriques</div>
                     <div class="metrics-glossary-grid">
+                        <div class="glossary-item is-real">
+                            <div>
+                                <div class="glossary-item-label">⚡ Latence DB <span class="badge badge-hotel" style="font-size:0.6rem;">réel</span></div>
+                                <div class="glossary-item-desc">Temps que met la base de données pour répondre à une requête simple. En dessous de 50 ms c'est excellent, au-dessus de 200 ms il peut y avoir un problème de réseau ou de charge.</div>
+                            </div>
+                        </div>
                         <div class="glossary-item is-real">
                             <div>
                                 <div class="glossary-item-label">🗄️ Taille totale DB <span class="badge badge-hotel" style="font-size:0.6rem;">réel</span></div>

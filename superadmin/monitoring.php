@@ -48,41 +48,8 @@ $ramColor = $metrics['ram_percent'] < 60 ? 'green' : ($metrics['ram_percent'] < 
             </header>
 
             <div class="sa-content">
-                <!-- Top Stats -->
+                <!-- Top Stats — server only -->
                 <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
-                    <div class="stat-card">
-                        <div class="stat-icon" style="background: rgba(66, 153, 225, 0.1);">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--sa-primary);">
-                                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-                            </svg>
-                        </div>
-                        <div>
-                            <div class="stat-value" id="dbLatency"><?= $metrics['db_latency_ms'] ?> ms</div>
-                            <div class="stat-label">Latence DB</div>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon" style="background: rgba(72, 187, 120, 0.1);">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--sa-success);">
-                                <ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
-                            </svg>
-                        </div>
-                        <div>
-                            <div class="stat-value" id="dbSize"><?= htmlspecialchars($metrics['db_size_with_quota']) ?></div>
-                            <div class="stat-label">Taille DB <small style="opacity:0.6;">(quota Supabase)</small></div>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon" style="background: rgba(237, 137, 54, 0.1);">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--sa-warning);">
-                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                            </svg>
-                        </div>
-                        <div>
-                            <div class="stat-value" id="connections"><?= $metrics['connections']['active'] ?> / <?= $metrics['connections']['total'] ?></div>
-                            <div class="stat-label">Connexions (actives/total)</div>
-                        </div>
-                    </div>
                     <div class="stat-card">
                         <div class="stat-icon" style="background: rgba(66, 153, 225, 0.1);">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--sa-primary);">
@@ -96,7 +63,7 @@ $ramColor = $metrics['ram_percent'] < 60 ? 'green' : ($metrics['ram_percent'] < 
                     </div>
                 </div>
 
-                <!-- CPU & RAM Gauges -->
+                <!-- CPU, RAM & Requests Gauges -->
                 <div class="metric-grid">
                     <div class="metric-card">
                         <div class="metric-card-header">
@@ -135,57 +102,10 @@ $ramColor = $metrics['ram_percent'] < 60 ? 'green' : ($metrics['ram_percent'] < 
                     </div>
                 </div>
 
-                <!-- Per-Schema Table -->
-                <div class="card">
-                    <div class="card-header">
-                        <h2>Lignes par schéma</h2>
-                    </div>
-                    <div class="table-wrap">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Schéma</th>
-                                    <th style="text-align: right;">Lignes totales</th>
-                                </tr>
-                            </thead>
-                            <tbody id="schemasTable">
-                                <?php if (empty($metrics['schemas'])): ?>
-                                    <tr><td colspan="2" style="text-align: center; color: var(--sa-text-light);">Aucun schéma hôtel détecté</td></tr>
-                                <?php else: ?>
-                                    <?php foreach ($metrics['schemas'] as $s): ?>
-                                        <tr>
-                                            <td><?= htmlspecialchars($s['name']) ?></td>
-                                            <td style="text-align: right; font-family: monospace;"><?= number_format($s['total_rows']) ?></td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                <?php endif; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
                 <!-- Glossary -->
                 <div class="metrics-glossary">
                     <div class="metrics-glossary-title">Glossaire des métriques</div>
                     <div class="metrics-glossary-grid">
-                        <div class="glossary-item is-real">
-                            <div>
-                                <div class="glossary-item-label">⚡ Latence DB <span class="badge badge-hotel" style="font-size:0.6rem;">réel</span></div>
-                                <div class="glossary-item-desc">Temps que met la base de données pour répondre à une requête simple. En dessous de 50 ms c'est excellent, au-dessus de 200 ms il peut y avoir un problème de réseau ou de charge.</div>
-                            </div>
-                        </div>
-                        <div class="glossary-item is-real">
-                            <div>
-                                <div class="glossary-item-label">🗄️ Taille DB <span class="badge badge-hotel" style="font-size:0.6rem;">réel</span></div>
-                                <div class="glossary-item-desc">Espace disque occupé par toutes vos données (hôtels, commandes, messages…). Affiché sur le quota total de votre offre Supabase (500 MB en offre gratuite). À surveiller pour éviter d'approcher la limite.</div>
-                            </div>
-                        </div>
-                        <div class="glossary-item is-real">
-                            <div>
-                                <div class="glossary-item-label">🔗 Connexions <span class="badge badge-hotel" style="font-size:0.6rem;">réel</span></div>
-                                <div class="glossary-item-desc">Nombre de connexions ouvertes vers la base de données. <strong>Actives</strong> = une requête est en cours. <strong>Total</strong> = toutes les connexions ouvertes (actives + en attente). Un total élevé sans beaucoup d'actives est normal avec un pool de connexions.</div>
-                            </div>
-                        </div>
                         <div class="glossary-item is-simulated">
                             <div>
                                 <div class="glossary-item-label">⏱️ Uptime <span class="badge badge-simulated">simulé</span></div>

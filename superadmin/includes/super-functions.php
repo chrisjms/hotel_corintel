@@ -1254,6 +1254,11 @@ function formatBytes(int $bytes): string {
 function getDatabaseHealth(): array {
     $pdo = getSuperDatabase();
 
+    // Real: DB latency
+    $t0 = microtime(true);
+    $pdo->query('SELECT 1');
+    $dbLatency = round((microtime(true) - $t0) * 1000, 2);
+
     // Total DB size
     $totalSize = 0;
     try {
@@ -1326,14 +1331,15 @@ function getDatabaseHealth(): array {
     } catch (PDOException $e) {}
 
     return [
+        'db_latency_ms'         => $dbLatency,
         'total_size'            => $totalSize,
         'total_size_human'      => formatBytes($totalSize),
         'total_size_with_quota' => formatBytes($totalSize) . ' / ' . formatBytes(SUPABASE_DB_QUOTA_BYTES),
         'db_quota_pct'          => min(100, round(($totalSize / SUPABASE_DB_QUOTA_BYTES) * 100, 1)),
-        'connections'      => $connections,
-        'total_dead'       => $totalDeadTuples,
-        'schema_count'     => count(array_filter($schemas, fn($s) => str_starts_with($s['name'], 'hotel_'))),
-        'schemas'          => $schemas,
+        'connections'           => $connections,
+        'total_dead'            => $totalDeadTuples,
+        'schema_count'          => count(array_filter($schemas, fn($s) => str_starts_with($s['name'], 'hotel_'))),
+        'schemas'               => $schemas,
         'timestamp'        => time(),
     ];
 }
