@@ -28,9 +28,9 @@ $response = [
 try {
     $pdo = getDatabase();
 
-    // Get counts for badges
-    $response['data']['unreadMessages'] = getUnreadMessagesCount();
-    $response['data']['pendingOrders'] = getPendingOrdersCount();
+    // Get counts for badges (respect feature toggles)
+    $response['data']['unreadMessages'] = featureEnabled('messaging') ? getUnreadMessagesCount() : 0;
+    $response['data']['pendingOrders'] = featureEnabled('room_service') ? getPendingOrdersCount() : 0;
 
     // Get today's stats
     $today = date('Y-m-d');

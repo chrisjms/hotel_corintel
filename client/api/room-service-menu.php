@@ -8,6 +8,12 @@ require_once __DIR__ . '/../../shared/bootstrap.php';
 require_once HOTEL_ROOT . '/shared/includes/functions.php';
 
 header('Content-Type: application/json');
+
+if (!featureEnabled('room_service')) {
+    echo json_encode(['error' => 'Feature disabled']);
+    exit;
+}
+
 header('Cache-Control: public, max-age=300'); // 5 minutes cache
 
 // Get room access check (optional - for personalization)

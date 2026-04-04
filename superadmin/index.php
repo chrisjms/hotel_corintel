@@ -6,6 +6,7 @@
 require_once __DIR__ . '/../shared/bootstrap.php';
 require_once __DIR__ . '/includes/super-auth.php';
 require_once __DIR__ . '/includes/super-functions.php';
+require_once HOTEL_ROOT . '/shared/includes/modules/establishment-types.php';
 
 superRequireAuth();
 
@@ -13,6 +14,11 @@ $currentPage = 'index.php';
 $csrfToken = superGenerateCsrfToken();
 $message = '';
 $messageType = '';
+
+// Determine which type we're viewing
+$viewType = ($_GET['type'] ?? 'hotel') === 'pizzeria' ? 'pizzeria' : 'hotel';
+$typeLabel = ESTABLISHMENT_TYPES[$viewType]['label'] ?? 'Hôtel';
+$typeLabelPlural = $viewType === 'hotel' ? 'Hôtels' : 'Pizzerias';
 
 // Handle hotel deletion
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
@@ -36,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
 }
 
-$hotels = getAllHotels();
+$hotels = getAllHotels($viewType);
 $totalHotels = count($hotels);
 $activeHotels = count(array_filter($hotels, fn($h) => $h['is_active']));
 ?>
@@ -46,7 +52,7 @@ $activeHotels = count(array_filter($hotels, fn($h) => $h['is_active']));
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
-    <title>Dashboard | Super Admin</title>
+    <title><?= htmlspecialchars($typeLabelPlural) ?> | Super Admin</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -64,11 +70,21 @@ $activeHotels = count(array_filter($hotels, fn($h) => $h['is_active']));
                         <line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/>
                     </svg>
                 </button>
-                <h1>Hotels</h1>
-                <a href="hotel-form.php" class="btn btn-primary">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                    Ajouter un hôtel
-                </a>
+                <h1><?= htmlspecialchars($typeLabelPlural) ?></h1>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <form method="POST" action="api/bulk-action.php" style="display: inline;">
+                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
+                        <input type="hidden" name="action" value="export_all">
+                        <button type="submit" class="btn btn-outline btn-sm">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            Exporter tout
+                        </button>
+                    </form>
+                    <a href="onboarding.php?type=<?= htmlspecialchars($viewType) ?>" class="btn btn-primary">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        Ajouter <?= $viewType === 'hotel' ? 'un hôtel' : 'une pizzeria' ?>
+                    </a>
+                </div>
             </header>
 
             <div class="sa-content">
@@ -88,7 +104,7 @@ $activeHotels = count(array_filter($hotels, fn($h) => $h['is_active']));
                         </div>
                         <div>
                             <div class="stat-value"><?= $totalHotels ?></div>
-                            <div class="stat-label">Total Hotels</div>
+                            <div class="stat-label">Total <?= htmlspecialchars($typeLabelPlural) ?></div>
                         </div>
                     </div>
                     <div class="stat-card">
@@ -99,19 +115,22 @@ $activeHotels = count(array_filter($hotels, fn($h) => $h['is_active']));
                         </div>
                         <div>
                             <div class="stat-value"><?= $activeHotels ?></div>
-                            <div class="stat-label">Hotels actifs</div>
+                            <div class="stat-label"><?= htmlspecialchars($typeLabelPlural) ?> actifs</div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Hotel Cards -->
+                <?php if (!empty($hotels)): ?>
+                <?php endif; ?>
+
                 <?php if (empty($hotels)): ?>
                     <div class="empty-state">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                             <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
                         </svg>
-                        <p>Aucun hôtel enregistré</p>
-                        <a href="hotel-form.php" class="btn btn-primary">Ajouter un hôtel</a>
+                        <p>Aucun<?= $viewType === 'hotel' ? ' hôtel enregistré' : 'e pizzeria enregistrée' ?></p>
+                        <a href="hotel-form.php?type=<?= htmlspecialchars($viewType) ?>" class="btn btn-primary">Ajouter <?= $viewType === 'hotel' ? 'un hôtel' : 'une pizzeria' ?></a>
                     </div>
                 <?php else: ?>
                     <div class="hotels-grid">
@@ -142,6 +161,7 @@ $activeHotels = count(array_filter($hotels, fn($h) => $h['is_active']));
                                             <div style="font-style: italic; opacity: 0.8;"><?= htmlspecialchars($hotel['notes']) ?></div>
                                         <?php endif; ?>
                                     </div>
+
                                     <div class="hotel-card-actions">
                                         <?php if ($hotel['site_url']): ?>
                                             <a href="<?= htmlspecialchars($hotel['site_url']) ?>" target="_blank" rel="noopener" class="btn btn-outline btn-sm">
@@ -179,6 +199,23 @@ $activeHotels = count(array_filter($hotels, fn($h) => $h['is_active']));
             </div>
         </main>
     </div>
+
+    <!-- Floating Action Bar for Bulk Actions -->
+    <div class="floating-action-bar" id="floatingActionBar">
+        <span class="selection-count" id="selectionCount">0 sélectionné(s)</span>
+        <div class="floating-actions">
+            <button class="btn btn-success btn-sm" onclick="bulkAction('activate')">Activer</button>
+            <button class="btn btn-outline btn-sm" onclick="bulkAction('deactivate')">Désactiver</button>
+            <button class="btn btn-primary btn-sm" onclick="bulkExport()">Exporter CSV</button>
+        </div>
+    </div>
+
+    <!-- Hidden form for bulk export (triggers file download) -->
+    <form id="bulkExportForm" method="POST" action="api/bulk-action.php" style="display: none;">
+        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
+        <input type="hidden" name="action" value="export">
+        <div id="bulkExportIds"></div>
+    </form>
 
     <script>
     // Theme toggle
@@ -246,6 +283,68 @@ $activeHotels = count(array_filter($hotels, fn($h) => $h['is_active']));
             popup.close();
             alert('Erreur de connexion.');
         });
+    }
+
+    // Bulk actions
+    function getSelectedIds() {
+        const ids = [];
+        document.querySelectorAll('.hotel-select:checked').forEach(cb => ids.push(cb.value));
+        return ids;
+    }
+
+    function updateBulkBar() {
+        const ids = getSelectedIds();
+        const bar = document.getElementById('floatingActionBar');
+        if (ids.length > 0) {
+            bar.classList.add('visible');
+            document.getElementById('selectionCount').textContent = ids.length + ' sélectionné(s)';
+        } else {
+            bar.classList.remove('visible');
+        }
+        // Update select-all checkbox state
+        const allBoxes = document.querySelectorAll('.hotel-select');
+        const selectAll = document.getElementById('selectAll');
+        if (selectAll) {
+            selectAll.checked = allBoxes.length > 0 && ids.length === allBoxes.length;
+        }
+    }
+
+    function toggleSelectAll(cb) {
+        document.querySelectorAll('.hotel-select').forEach(box => { box.checked = cb.checked; });
+        updateBulkBar();
+    }
+
+    function bulkAction(action) {
+        const ids = getSelectedIds();
+        if (ids.length === 0) return;
+        const label = action === 'activate' ? 'activer' : 'désactiver';
+        if (!confirm(label.charAt(0).toUpperCase() + label.slice(1) + ' ' + ids.length + ' établissement(s) ?')) return;
+
+        fetch('api/bulk-action.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: 'action=' + action + '&csrf_token=' + encodeURIComponent('<?= htmlspecialchars($csrfToken) ?>') + '&' + ids.map(id => 'hotel_ids[]=' + id).join('&')
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert(data.message || 'Erreur');
+            }
+        })
+        .catch(() => alert('Erreur de connexion'));
+    }
+
+    function bulkExport() {
+        const ids = getSelectedIds();
+        if (ids.length === 0) return;
+        const container = document.getElementById('bulkExportIds');
+        container.innerHTML = ids.map(id => '<input type="hidden" name="hotel_ids[]" value="' + id + '">').join('');
+        document.getElementById('bulkExportForm').submit();
     }
     </script>
 </body>

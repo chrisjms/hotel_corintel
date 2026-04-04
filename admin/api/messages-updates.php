@@ -9,8 +9,8 @@ require_once __DIR__ . '/../../shared/bootstrap.php';
 require_once HOTEL_ROOT . '/shared/includes/auth.php';
 require_once HOTEL_ROOT . '/shared/includes/functions.php';
 
-// Require authentication + permission
-if (!isLoggedIn() || !hasPermission('messages')) {
+// Require authentication + permission + feature
+if (!isLoggedIn() || !hasPermission('messages') || !featureEnabled('messaging')) {
     http_response_code(401);
     echo json_encode(['error' => 'Unauthorized']);
     exit;

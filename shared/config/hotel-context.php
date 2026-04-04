@@ -244,6 +244,10 @@ class HotelContext {
         return $this->schemaName;
     }
 
+    public function getType(): string {
+        return $this->hotel['type'] ?? 'hotel';
+    }
+
     public function requireHotel(): void {
         if ($this->hotelId === null) {
             http_response_code(404);

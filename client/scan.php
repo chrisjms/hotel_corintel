@@ -13,6 +13,8 @@ require_once __DIR__ . '/../shared/bootstrap.php';
 
 require_once HOTEL_ROOT . '/shared/includes/functions.php';
 
+requireFeature('qr_codes', 'index.php');
+
 // Session must be started before we can write to it
 if (session_status() === PHP_SESSION_NONE) {
     session_start();

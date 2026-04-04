@@ -41,6 +41,7 @@ $contactInfo = getContactInfo();
   <link rel="stylesheet" href="style.css">
   <?= getThemeCSS() ?>
   <?= getHotelNameJS() ?>
+  <?= getEstablishmentLabelsJS() ?>
 </head>
 <body>
   <!-- Header -->
@@ -59,14 +60,16 @@ $contactInfo = getContactInfo();
         <a href="index.php" class="nav-link" data-i18n="nav.home">Accueil</a>
         <a href="services.php" class="nav-link active" data-i18n="nav.services">Services</a>
         <a href="activites.php" class="nav-link" data-i18n="nav.discover">À découvrir</a>
-        <a href="room-service.php" class="nav-link nav-link-room-service" data-i18n="nav.roomService">Room Service <?php if ($roomSession): ?><span class="nav-room-badge">Ch. <?= h($roomSession['room_number']) ?></span><?php else: ?><span class="nav-qr-badge" data-i18n="footer.qrOnly">QR</span><?php endif; ?></a>
+        <?php if (featureEnabled('room_service')): ?><a href="room-service.php" class="nav-link nav-link-room-service" data-i18n="nav.roomService"><?= h(establishmentLabel('nav_link')) ?> <?php if ($roomSession): ?><span class="nav-room-badge">Ch. <?= h($roomSession['room_number']) ?></span><?php else: ?><span class="nav-qr-badge" data-i18n="footer.qrOnly">QR</span><?php endif; ?></a><?php endif; ?>
         <a href="contact.php" class="nav-link" data-i18n="nav.contact">Contact</a>
+        <?php if (featureEnabled('messaging')): ?>
         <button type="button" class="btn-contact-reception" id="btnContactReception" data-i18n="header.contactReception">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
           </svg>
           Contacter la réception
         </button>
+        <?php endif; ?>
       </nav>
       <div class="menu-toggle" id="menuToggle">
         <span></span>
@@ -135,10 +138,12 @@ $contactInfo = getContactInfo();
             <li><a href="services.php" data-i18n="footer.bar">Bar</a></li>
             <li><a href="services.php" data-i18n="footer.boulodrome">Boulodrome</a></li>
             <li><a href="services.php" data-i18n="footer.parking">Parking</a></li>
+            <?php if (featureEnabled('room_service')): ?>
             <li class="room-service-item">
-              <a href="room-service.php" data-i18n="footer.roomService">Room Service</a>
+              <a href="room-service.php" data-i18n="footer.roomService"><?= h(establishmentLabel('nav_link')) ?></a>
               <span class="qr-badge" data-i18n="footer.qrOnly">QR code</span>
             </li>
+            <?php endif; ?>
           </ul>
         </div>
         <div class="footer-contact">
@@ -185,6 +190,7 @@ $contactInfo = getContactInfo();
   </button>
 
   <!-- Contact Reception Modal -->
+  <?php if (featureEnabled('messaging')): ?>
   <div class="modal-overlay" id="contactReceptionModal">
     <div class="modal-content">
       <div class="modal-header">
@@ -266,6 +272,7 @@ $contactInfo = getContactInfo();
       </div>
     </div>
   </div>
+  <?php endif; ?>
 
   <!-- Scripts -->
   <script src="js/i18n.js"></script>
@@ -327,86 +334,88 @@ $contactInfo = getContactInfo();
     const btnOpenModal = document.getElementById('btnContactReception');
     const btnCloseModal = document.getElementById('modalClose');
 
-    let modalOpener = null;
+    if (modal && btnOpenModal && btnCloseModal) {
+      let modalOpener = null;
 
-    function openModal() {
-      modalOpener = document.activeElement;
-      modal.classList.add('active');
-      document.body.classList.add('modal-open');
-      menuToggle.classList.remove('active');
-      navMenu.classList.remove('active');
-      const firstFocusable = modal.querySelector('button:not([disabled]), input, textarea');
-      if (firstFocusable) firstFocusable.focus();
-    }
-
-    function closeModal() {
-      modal.classList.remove('active');
-      document.body.classList.remove('modal-open');
-      if (modalOpener) { modalOpener.focus(); modalOpener = null; }
-    }
-
-    btnOpenModal.addEventListener('click', openModal);
-    btnCloseModal.addEventListener('click', closeModal);
-
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) closeModal();
-    });
-
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && modal.classList.contains('active')) closeModal();
-    });
-
-    modal.addEventListener('keydown', (e) => {
-      if (!modal.classList.contains('active') || e.key !== 'Tab') return;
-      const focusable = Array.from(modal.querySelectorAll(
-        'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href]'
-      )).filter(el => el.offsetParent !== null);
-      if (focusable.length < 2) return;
-      const first = focusable[0];
-      const last  = focusable[focusable.length - 1];
-      if (e.shiftKey && document.activeElement === first) {
-        e.preventDefault(); last.focus();
-      } else if (!e.shiftKey && document.activeElement === last) {
-        e.preventDefault(); first.focus();
+      function openModal() {
+        modalOpener = document.activeElement;
+        modal.classList.add('active');
+        document.body.classList.add('modal-open');
+        menuToggle.classList.remove('active');
+        navMenu.classList.remove('active');
+        const firstFocusable = modal.querySelector('button:not([disabled]), input, textarea');
+        if (firstFocusable) firstFocusable.focus();
       }
-    });
 
-    // Form interactions — only present when room session is active
-    const modalForm = document.getElementById('modalMessageForm');
-    if (modalForm) {
-      const modalSuccess = document.getElementById('modalSuccess');
-      const modalFormContainer = document.getElementById('modalFormContainer');
-      const modalError = document.getElementById('modalError');
-      const btnNewMessage = document.getElementById('btnNewMessage');
+      function closeModal() {
+        modal.classList.remove('active');
+        document.body.classList.remove('modal-open');
+        if (modalOpener) { modalOpener.focus(); modalOpener = null; }
+      }
 
-      btnNewMessage.addEventListener('click', () => {
-        modalForm.reset();
-        modalError.style.display = 'none';
-        modalSuccess.style.display = 'none';
-        modalFormContainer.style.display = 'block';
+      btnOpenModal.addEventListener('click', openModal);
+      btnCloseModal.addEventListener('click', closeModal);
+
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
       });
 
-      modalForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const formData = new FormData(modalForm);
-        modalError.style.display = 'none';
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.classList.contains('active')) closeModal();
+      });
 
-        try {
-          const response = await fetch('contact.php', { method: 'POST', body: formData });
-          const data = await response.json();
-
-          if (data.success) {
-            modalFormContainer.style.display = 'none';
-            modalSuccess.style.display = 'block';
-          } else {
-            modalError.textContent = data.error || (window.I18n ? window.I18n.t('modal.errorGeneric') : 'Une erreur est survenue. Veuillez réessayer.');
-            modalError.style.display = 'block';
-          }
-        } catch (error) {
-          modalError.textContent = window.I18n ? window.I18n.t('modal.errorGeneric') : 'Une erreur est survenue. Veuillez réessayer.';
-          modalError.style.display = 'block';
+      modal.addEventListener('keydown', (e) => {
+        if (!modal.classList.contains('active') || e.key !== 'Tab') return;
+        const focusable = Array.from(modal.querySelectorAll(
+          'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href]'
+        )).filter(el => el.offsetParent !== null);
+        if (focusable.length < 2) return;
+        const first = focusable[0];
+        const last  = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault(); last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault(); first.focus();
         }
       });
+
+      // Form interactions — only present when room session is active
+      const modalForm = document.getElementById('modalMessageForm');
+      if (modalForm) {
+        const modalSuccess = document.getElementById('modalSuccess');
+        const modalFormContainer = document.getElementById('modalFormContainer');
+        const modalError = document.getElementById('modalError');
+        const btnNewMessage = document.getElementById('btnNewMessage');
+
+        btnNewMessage.addEventListener('click', () => {
+          modalForm.reset();
+          modalError.style.display = 'none';
+          modalSuccess.style.display = 'none';
+          modalFormContainer.style.display = 'block';
+        });
+
+        modalForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const formData = new FormData(modalForm);
+          modalError.style.display = 'none';
+
+          try {
+            const response = await fetch('contact.php', { method: 'POST', body: formData });
+            const data = await response.json();
+
+            if (data.success) {
+              modalFormContainer.style.display = 'none';
+              modalSuccess.style.display = 'block';
+            } else {
+              modalError.textContent = data.error || (window.I18n ? window.I18n.t('modal.errorGeneric') : 'Une erreur est survenue. Veuillez réessayer.');
+              modalError.style.display = 'block';
+            }
+          } catch (error) {
+            modalError.textContent = window.I18n ? window.I18n.t('modal.errorGeneric') : 'Une erreur est survenue. Veuillez réessayer.';
+            modalError.style.display = 'block';
+          }
+        });
+      }
     }
   </script>
 </body>

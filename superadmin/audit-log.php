@@ -1,6 +1,7 @@
 <?php
 /**
- * Super Admin - Audit Log
+ * Super Admin - Enriched Audit Log
+ * With filters: hotel, action, date range, search
  */
 
 require_once __DIR__ . '/../shared/bootstrap.php';
@@ -11,22 +12,45 @@ superRequireAuth();
 
 $currentPage = 'audit-log.php';
 
+// Filter params
+$filterHotel = !empty($_GET['hotel_id']) ? (int)$_GET['hotel_id'] : null;
+$filterAction = !empty($_GET['action']) ? trim($_GET['action']) : null;
+$filterDateFrom = !empty($_GET['date_from']) ? trim($_GET['date_from']) : null;
+$filterDateTo = !empty($_GET['date_to']) ? trim($_GET['date_to']) : null;
+$filterSearch = !empty($_GET['search']) ? trim($_GET['search']) : null;
+
 $page = max(1, (int)($_GET['page'] ?? 1));
 $perPage = 30;
 $offset = ($page - 1) * $perPage;
 
-$totalLogs = countAuditLogs();
+$totalLogs = countFilteredAuditLogs($filterHotel, $filterAction, $filterDateFrom, $filterDateTo, $filterSearch);
 $totalPages = max(1, ceil($totalLogs / $perPage));
-$logs = getAuditLog($perPage, $offset);
+$logs = getFilteredAuditLog($perPage, $offset, $filterHotel, $filterAction, $filterDateFrom, $filterDateTo, $filterSearch);
+
+$hotels = getAllHotels();
+$actions = getDistinctAuditActions();
 
 $actionLabels = [
-    'cross_login'   => 'Connexion croisée',
-    'hotel_created' => 'Hôtel créé',
-    'hotel_updated' => 'Hôtel modifié',
-    'hotel_deleted' => 'Hôtel supprimé',
-    'login'         => 'Connexion',
-    'logout'        => 'Déconnexion',
+    'cross_login'    => 'Connexion croisée',
+    'hotel_created'  => 'Hôtel créé',
+    'hotel_updated'  => 'Hôtel modifié',
+    'hotel_deleted'  => 'Hôtel supprimé',
+    'feature_toggled' => 'Feature modifiée',
+    'bulk_activate'  => 'Activation en masse',
+    'bulk_deactivate' => 'Désactivation en masse',
+    'login'          => 'Connexion',
+    'logout'         => 'Déconnexion',
 ];
+
+// Build filter query string for pagination links
+$filterParams = [];
+if ($filterHotel) $filterParams['hotel_id'] = $filterHotel;
+if ($filterAction) $filterParams['action'] = $filterAction;
+if ($filterDateFrom) $filterParams['date_from'] = $filterDateFrom;
+if ($filterDateTo) $filterParams['date_to'] = $filterDateTo;
+if ($filterSearch) $filterParams['search'] = $filterSearch;
+$filterQuery = http_build_query($filterParams);
+$hasFilters = !empty($filterParams);
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -57,12 +81,53 @@ $actionLabels = [
             </header>
 
             <div class="sa-content">
+                <!-- Filter Bar -->
+                <form method="GET" class="filter-bar">
+                    <div class="form-group">
+                        <label for="hotel_id">Établissement</label>
+                        <select name="hotel_id" id="hotel_id">
+                            <option value="">Tous</option>
+                            <?php foreach ($hotels as $h): ?>
+                                <option value="<?= $h['id'] ?>" <?= $filterHotel == $h['id'] ? 'selected' : '' ?>><?= htmlspecialchars($h['name']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="action">Action</label>
+                        <select name="action" id="action">
+                            <option value="">Toutes</option>
+                            <?php foreach ($actions as $a): ?>
+                                <option value="<?= htmlspecialchars($a) ?>" <?= $filterAction === $a ? 'selected' : '' ?>><?= htmlspecialchars($actionLabels[$a] ?? $a) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="date_from">Du</label>
+                        <input type="date" name="date_from" id="date_from" value="<?= htmlspecialchars($filterDateFrom ?? '') ?>">
+                    </div>
+                    <div class="form-group">
+                        <label for="date_to">Au</label>
+                        <input type="date" name="date_to" id="date_to" value="<?= htmlspecialchars($filterDateTo ?? '') ?>">
+                    </div>
+                    <div class="form-group">
+                        <label for="search">Recherche</label>
+                        <input type="text" name="search" id="search" placeholder="Rechercher..." value="<?= htmlspecialchars($filterSearch ?? '') ?>">
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-sm">Filtrer</button>
+                    <?php if ($hasFilters): ?>
+                        <a href="audit-log.php" class="btn btn-outline btn-sm">Effacer</a>
+                    <?php endif; ?>
+                </form>
+
                 <?php if (empty($logs)): ?>
                     <div class="empty-state">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
                         </svg>
-                        <p>Aucune entrée dans le journal</p>
+                        <p><?= $hasFilters ? 'Aucun résultat pour ces filtres' : 'Aucune entrée dans le journal' ?></p>
+                        <?php if ($hasFilters): ?>
+                            <a href="audit-log.php" class="btn btn-outline">Effacer les filtres</a>
+                        <?php endif; ?>
                     </div>
                 <?php else: ?>
                     <div class="card">
@@ -73,7 +138,7 @@ $actionLabels = [
                                         <th>Date</th>
                                         <th>Utilisateur</th>
                                         <th>Action</th>
-                                        <th>Hôtel</th>
+                                        <th>Établissement</th>
                                         <th>Détails</th>
                                         <th>IP</th>
                                     </tr>
@@ -81,7 +146,7 @@ $actionLabels = [
                                 <tbody>
                                     <?php foreach ($logs as $log): ?>
                                         <tr>
-                                            <td style="white-space: nowrap;"><?= htmlspecialchars($log['created_at']) ?></td>
+                                            <td style="white-space: nowrap; font-size: 0.8rem;"><?= htmlspecialchars(substr($log['created_at'], 0, 16)) ?></td>
                                             <td><?= htmlspecialchars($log['admin_username'] ?? 'N/A') ?></td>
                                             <td>
                                                 <span class="badge" style="background: rgba(66,153,225,0.15); color: var(--sa-primary);">
@@ -89,10 +154,10 @@ $actionLabels = [
                                                 </span>
                                             </td>
                                             <td><?= htmlspecialchars($log['hotel_name'] ?? '-') ?></td>
-                                            <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                                                <?= htmlspecialchars($log['details'] ?? '') ?>
+                                            <td style="font-size: 0.8rem; color: var(--sa-text-light); max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="<?= htmlspecialchars($log['details'] ?? '') ?>">
+                                                <?= htmlspecialchars($log['details'] ?? '-') ?>
                                             </td>
-                                            <td style="font-family: monospace; font-size: 0.8rem;"><?= htmlspecialchars($log['ip_address'] ?? '') ?></td>
+                                            <td style="font-family: monospace; font-size: 0.75rem;"><?= htmlspecialchars($log['ip_address'] ?? '') ?></td>
                                         </tr>
                                     <?php endforeach; ?>
                                 </tbody>
@@ -103,13 +168,13 @@ $actionLabels = [
                     <?php if ($totalPages > 1): ?>
                         <div class="pagination">
                             <?php if ($page > 1): ?>
-                                <a href="?page=<?= $page - 1 ?>" class="btn btn-outline btn-sm">Précédent</a>
+                                <a href="?page=<?= $page - 1 ?><?= $filterQuery ? '&' . $filterQuery : '' ?>" class="btn btn-outline btn-sm">Précédent</a>
                             <?php endif; ?>
                             <span style="color: var(--sa-text-light); font-size: 0.875rem;">
                                 Page <?= $page ?> / <?= $totalPages ?>
                             </span>
                             <?php if ($page < $totalPages): ?>
-                                <a href="?page=<?= $page + 1 ?>" class="btn btn-outline btn-sm">Suivant</a>
+                                <a href="?page=<?= $page + 1 ?><?= $filterQuery ? '&' . $filterQuery : '' ?>" class="btn btn-outline btn-sm">Suivant</a>
                             <?php endif; ?>
                         </div>
                     <?php endif; ?>

@@ -10,6 +10,8 @@ require_once __DIR__ . '/../shared/bootstrap.php';
 
 require_once HOTEL_ROOT . '/shared/includes/functions.php';
 
+requireFeature('room_service', 'index.php');
+
 // =====================================================
 // ACCESS CONTROL - QR CODE VALIDATION
 // =====================================================
@@ -127,11 +129,11 @@ if (!$accessCheck['valid']) {
                 <h1>Accès Réservé aux Clients</h1>
                 <p>
                     <?php if ($errorType === 'invalid_token'): ?>
-                        Le lien que vous avez utilisé n'est pas valide. Veuillez scanner le QR code présent dans votre chambre pour accéder au Room Service.
+                        Le lien que vous avez utilisé n'est pas valide. Veuillez scanner le QR code pour accéder au <?= h(establishmentLabel('service_name')) ?>.
                     <?php elseif ($errorType === 'room_not_found' || $errorType === 'room_inactive'): ?>
-                        Cette chambre n'est pas disponible pour le Room Service. Veuillez contacter la réception.
+                        Accès indisponible pour le <?= h(establishmentLabel('service_name')) ?>. Veuillez contacter la réception.
                     <?php else: ?>
-                        Pour commander le Room Service, veuillez scanner le QR code présent dans votre chambre d'hôtel.
+                        Pour commander, veuillez scanner le QR code pour accéder au <?= h(establishmentLabel('service_name')) ?>.
                     <?php endif; ?>
                 </p>
                 <a href="index.php" class="btn btn-primary">Retour à l'accueil</a>
@@ -283,13 +285,14 @@ $contactInfo = getContactInfo();
     <meta name="robots" content="noindex, nofollow">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Room Service | Chambre <?= h($roomNumber) ?> | <?= h($hotelName) ?></title>
+    <title><?= h(establishmentLabel('service_name')) ?> | <?= h(establishmentLabel('room_unit')) ?> <?= h($roomNumber) ?> | <?= h($hotelName) ?></title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Lato:wght@300;400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <?= getThemeCSS() ?>
     <?= getHotelNameJS() ?>
+    <?= getEstablishmentLabelsJS() ?>
     <style>
         /* =====================================================
            PREMIUM MOBILE-FIRST ROOM SERVICE STYLES
@@ -1386,7 +1389,7 @@ $contactInfo = getContactInfo();
         <div class="rs-header-content">
             <a href="index.php" class="rs-logo">
                 <?= h($hotelName) ?>
-                <span>Room Service</span>
+                <span><?= h(establishmentLabel('service_name')) ?></span>
             </a>
             <button type="button" class="btn-contact-small" id="btnContactReception">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1432,7 +1435,7 @@ $contactInfo = getContactInfo();
         <?php else: ?>
         <!-- Hero -->
         <section class="rs-hero">
-            <h1 data-i18n="roomService.heroTitle">Room Service</h1>
+            <h1 data-i18n="roomService.heroTitle"><?= h(establishmentLabel('service_name')) ?></h1>
             <p data-i18n="roomService.heroDescription">Commandez et faites-vous livrer en chambre</p>
         </section>
 

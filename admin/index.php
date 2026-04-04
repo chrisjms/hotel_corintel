@@ -98,7 +98,7 @@ $msgCategoryLabels = [
     'room_issue' => 'Problème chambre',
     'housekeeping' => 'Ménage',
     'maintenance' => 'Maintenance',
-    'room_service' => 'Room Service',
+    'room_service' => establishmentLabel('service_name'),
     'complaint' => 'Réclamation',
     'other' => 'Autre'
 ];
@@ -281,7 +281,7 @@ $estimatedDelivery = getEstimatedDeliveryTime();
                 <?php if ($rsEnabled): ?>
                 <div class="card">
                     <div class="card-header">
-                        <h2>Room Service - Activité du jour</h2>
+                        <h2><?= h(establishmentLabel('dashboard_heading')) ?></h2>
                         <a href="room-service-orders.php" class="btn btn-sm">Voir les commandes</a>
                     </div>
                     <div class="card-body">

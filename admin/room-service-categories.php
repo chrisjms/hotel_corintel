@@ -9,6 +9,7 @@ require_once HOTEL_ROOT . '/shared/includes/auth.php';
 require_once HOTEL_ROOT . '/shared/includes/functions.php';
 
 requireRole('content');
+requireFeature('room_service');
 
 $admin = getCurrentAdmin();
 $unreadMessages = getUnreadMessagesCount();
@@ -166,7 +167,7 @@ $nextPosition = getNextCategoryPosition();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
-    <title>Room Service - Catégories | Admin <?= h($hotelName) ?></title>
+    <title><?= h(establishmentLabel('categories_title')) ?> | Admin <?= h($hotelName) ?></title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Lato:wght@300;400;500;700&display=swap" rel="stylesheet">
@@ -445,7 +446,7 @@ $nextPosition = getNextCategoryPosition();
                         <line x1="3" y1="18" x2="21" y2="18"/>
                     </svg>
                 </button>
-                <h1>Room Service - Catégories</h1>
+                <h1><?= h(establishmentLabel('categories_title')) ?></h1>
                 <button type="button" class="btn btn-primary" onclick="openCreateModal()">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <line x1="12" y1="5" x2="12" y2="19"/>

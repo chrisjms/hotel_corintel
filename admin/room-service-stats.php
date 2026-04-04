@@ -9,6 +9,7 @@ require_once HOTEL_ROOT . '/shared/includes/auth.php';
 require_once HOTEL_ROOT . '/shared/includes/functions.php';
 
 requireRole('stats');
+requireFeature('room_service');
 
 $admin = getCurrentAdmin();
 $unreadMessages = getUnreadMessagesCount();
@@ -104,7 +105,7 @@ $msgCategoryLabels = [
     'room_issue' => 'Problème chambre',
     'housekeeping' => 'Ménage',
     'maintenance' => 'Maintenance',
-    'room_service' => 'Room Service',
+    'room_service' => establishmentLabel('service_name'),
     'complaint' => 'Réclamation',
     'other' => 'Autre'
 ];
@@ -132,7 +133,7 @@ $comparisonLabels = [
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
-    <title>Statistiques Room Service | Admin <?= h($hotelName) ?></title>
+    <title><?= h(establishmentLabel('stats_title')) ?> | Admin <?= h($hotelName) ?></title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Lato:wght@300;400;500;700&display=swap" rel="stylesheet">
@@ -491,7 +492,7 @@ $comparisonLabels = [
                         <line x1="3" y1="18" x2="21" y2="18"/>
                     </svg>
                 </button>
-                <h1>Statistiques Room Service</h1>
+                <h1><?= h(establishmentLabel('stats_title')) ?></h1>
                 <a href="room-service-orders.php" class="btn btn-outline">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
@@ -630,7 +631,7 @@ $comparisonLabels = [
                     <div class="insight-card">
                         <div class="insight-label">Jour le plus actif</div>
                         <div class="insight-value"><?= $peakDays['peak_day_name'] ?></div>
-                        <div class="insight-detail"><?= $peakDays['data'][$peakDays['peak_day'] - 1]['orders'] ?> commandes sur 8 semaines</div>
+                        <div class="insight-detail"><?= $peakDays['data'][$peakDays['peak_day']]['orders'] ?> commandes sur 8 semaines</div>
                     </div>
                 </div>
 
@@ -914,7 +915,7 @@ $comparisonLabels = [
                             <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
                             <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="3" height="3"/>
                         </svg>
-                        Scans QR Code Room Service
+                        Scans QR Code <?= h(establishmentLabel('service_name')) ?>
                     </h2>
                     <a href="rooms.php" class="btn btn-sm btn-outline">Gérer les QR codes</a>
                 </div>

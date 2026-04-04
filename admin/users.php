@@ -290,15 +290,7 @@ $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                                 <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
                                                 <input type="hidden" name="action" value="update_role">
                                                 <input type="hidden" name="user_id" value="<?= $user['id'] ?>">
-                                                <select name="role" onchange="this.form.submit()" style="
-                                                    padding: 0.25rem 0.5rem;
-                                                    border: 1px solid var(--admin-border);
-                                                    border-radius: 6px;
-                                                    background: var(--admin-card);
-                                                    color: var(--admin-text);
-                                                    font-size: 0.8rem;
-                                                    cursor: pointer;
-                                                ">
+                                                <select name="role" onchange="this.form.submit()">
                                                     <?php foreach (ROLE_LABELS as $roleKey => $roleLabel): ?>
                                                     <option value="<?= h($roleKey) ?>" <?= $user['role'] === $roleKey ? 'selected' : '' ?>><?= h($roleLabel) ?></option>
                                                     <?php endforeach; ?>
