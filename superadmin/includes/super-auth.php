@@ -343,3 +343,115 @@ function superChangePassword(int $adminId, string $currentPassword, string $newP
 
     return ['success' => true, 'message' => 'Mot de passe modifié avec succès.'];
 }
+
+/**
+ * List all super admins
+ */
+function getAllSuperAdmins(): array {
+    ensureSuperAdminTables();
+    $pdo = getSuperDatabase();
+    $stmt = $pdo->query('SELECT id, username, email, is_active, created_at, last_login FROM public.super_admins ORDER BY created_at ASC');
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+/**
+ * Create a new super admin account
+ */
+function createSuperAdmin(string $username, string $password, string $email = ''): array {
+    $username = trim($username);
+    $email = trim($email);
+
+    if (empty($username) || empty($password)) {
+        return ['success' => false, 'message' => 'Le nom d\'utilisateur et le mot de passe sont requis.'];
+    }
+
+    if (strlen($username) < 3 || strlen($username) > 50) {
+        return ['success' => false, 'message' => 'Le nom d\'utilisateur doit contenir entre 3 et 50 caractères.'];
+    }
+
+    if (!preg_match('/^[a-zA-Z0-9_.-]+$/', $username)) {
+        return ['success' => false, 'message' => 'Le nom d\'utilisateur ne peut contenir que des lettres, chiffres, points, tirets et underscores.'];
+    }
+
+    if (strlen($password) < 8) {
+        return ['success' => false, 'message' => 'Le mot de passe doit contenir au moins 8 caractères.'];
+    }
+
+    if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        return ['success' => false, 'message' => 'Adresse email invalide.'];
+    }
+
+    ensureSuperAdminTables();
+    $pdo = getSuperDatabase();
+
+    // Check uniqueness
+    $stmt = $pdo->prepare('SELECT id FROM public.super_admins WHERE username = ?');
+    $stmt->execute([$username]);
+    if ($stmt->fetch()) {
+        return ['success' => false, 'message' => 'Ce nom d\'utilisateur existe déjà.'];
+    }
+
+    $hash = password_hash($password, PASSWORD_DEFAULT);
+    $stmt = $pdo->prepare('INSERT INTO public.super_admins (username, password, email) VALUES (?, ?, ?)');
+    $stmt->execute([$username, $hash, $email ?: null]);
+
+    return ['success' => true, 'message' => 'Compte super admin créé avec succès.'];
+}
+
+/**
+ * Toggle super admin active status
+ */
+function toggleSuperAdminActive(int $adminId, int $currentAdminId): array {
+    if ($adminId === $currentAdminId) {
+        return ['success' => false, 'message' => 'Vous ne pouvez pas désactiver votre propre compte.'];
+    }
+
+    $pdo = getSuperDatabase();
+    $stmt = $pdo->prepare('SELECT is_active FROM public.super_admins WHERE id = ?');
+    $stmt->execute([$adminId]);
+    $admin = $stmt->fetch();
+
+    if (!$admin) {
+        return ['success' => false, 'message' => 'Compte introuvable.'];
+    }
+
+    $newStatus = !filter_var($admin['is_active'], FILTER_VALIDATE_BOOLEAN);
+    $stmt = $pdo->prepare('UPDATE public.super_admins SET is_active = ? WHERE id = ?');
+    $stmt->execute([$newStatus ? 'TRUE' : 'FALSE', $adminId]);
+
+    // Revoke persistent tokens if deactivating
+    if (!$newStatus) {
+        $stmt = $pdo->prepare('DELETE FROM public.super_persistent_tokens WHERE super_admin_id = ?');
+        $stmt->execute([$adminId]);
+    }
+
+    $label = $newStatus ? 'activé' : 'désactivé';
+    return ['success' => true, 'message' => "Compte $label avec succès."];
+}
+
+/**
+ * Delete a super admin account
+ */
+function deleteSuperAdmin(int $adminId, int $currentAdminId): array {
+    if ($adminId === $currentAdminId) {
+        return ['success' => false, 'message' => 'Vous ne pouvez pas supprimer votre propre compte.'];
+    }
+
+    $pdo = getSuperDatabase();
+
+    // Check exists
+    $stmt = $pdo->prepare('SELECT username FROM public.super_admins WHERE id = ?');
+    $stmt->execute([$adminId]);
+    if (!$stmt->fetch()) {
+        return ['success' => false, 'message' => 'Compte introuvable.'];
+    }
+
+    // Revoke tokens first
+    $stmt = $pdo->prepare('DELETE FROM public.super_persistent_tokens WHERE super_admin_id = ?');
+    $stmt->execute([$adminId]);
+
+    $stmt = $pdo->prepare('DELETE FROM public.super_admins WHERE id = ?');
+    $stmt->execute([$adminId]);
+
+    return ['success' => true, 'message' => 'Compte supprimé avec succès.'];
+}
