@@ -71,10 +71,20 @@ $activeHotels = count(array_filter($hotels, fn($h) => $h['is_active']));
                     </svg>
                 </button>
                 <h1><?= htmlspecialchars($typeLabelPlural) ?></h1>
-                <a href="hotel-form.php?type=<?= htmlspecialchars($viewType) ?>" class="btn btn-primary">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                    Ajouter <?= $viewType === 'hotel' ? 'un hôtel' : 'une pizzeria' ?>
-                </a>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <form method="POST" action="api/bulk-action.php" style="display: inline;">
+                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
+                        <input type="hidden" name="action" value="export_all">
+                        <button type="submit" class="btn btn-outline btn-sm">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            Exporter tout
+                        </button>
+                    </form>
+                    <a href="onboarding.php?type=<?= htmlspecialchars($viewType) ?>" class="btn btn-primary">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        Ajouter <?= $viewType === 'hotel' ? 'un hôtel' : 'une pizzeria' ?>
+                    </a>
+                </div>
             </header>
 
             <div class="sa-content">
@@ -111,6 +121,15 @@ $activeHotels = count(array_filter($hotels, fn($h) => $h['is_active']));
                 </div>
 
                 <!-- Hotel Cards -->
+                <?php if (!empty($hotels)): ?>
+                    <div class="select-all-bar">
+                        <label class="bulk-checkbox">
+                            <input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)">
+                        </label>
+                        <span>Tout sélectionner</span>
+                    </div>
+                <?php endif; ?>
+
                 <?php if (empty($hotels)): ?>
                     <div class="empty-state">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -124,7 +143,12 @@ $activeHotels = count(array_filter($hotels, fn($h) => $h['is_active']));
                         <?php foreach ($hotels as $hotel): ?>
                             <div class="hotel-card">
                                 <div class="hotel-card-header">
-                                    <h3><?= htmlspecialchars($hotel['name']) ?></h3>
+                                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                        <label class="bulk-checkbox" onclick="event.stopPropagation();">
+                                            <input type="checkbox" class="hotel-select" value="<?= $hotel['id'] ?>" onchange="updateBulkBar()">
+                                        </label>
+                                        <h3><?= htmlspecialchars($hotel['name']) ?></h3>
+                                    </div>
                                     <span class="hotel-status <?= $hotel['is_active'] ? 'active' : 'inactive' ?>">
                                         <span class="dot"></span>
                                         <?= $hotel['is_active'] ? 'Actif' : 'Inactif' ?>
@@ -148,6 +172,14 @@ $activeHotels = count(array_filter($hotels, fn($h) => $h['is_active']));
                                             <div style="font-style: italic; opacity: 0.8;"><?= htmlspecialchars($hotel['notes']) ?></div>
                                         <?php endif; ?>
                                     </div>
+                                    <!-- Mini Stats (lazy-loaded) -->
+                                    <div class="hotel-mini-stats" id="stats-<?= $hotel['id'] ?>">
+                                        <div class="mini-stat"><div class="skeleton"></div><div class="skeleton skeleton-sm"></div></div>
+                                        <div class="mini-stat"><div class="skeleton"></div><div class="skeleton skeleton-sm"></div></div>
+                                        <div class="mini-stat"><div class="skeleton"></div><div class="skeleton skeleton-sm"></div></div>
+                                        <div class="mini-stat"><div class="skeleton"></div><div class="skeleton skeleton-sm"></div></div>
+                                    </div>
+
                                     <div class="hotel-card-actions">
                                         <?php if ($hotel['site_url']): ?>
                                             <a href="<?= htmlspecialchars($hotel['site_url']) ?>" target="_blank" rel="noopener" class="btn btn-outline btn-sm">
@@ -186,6 +218,23 @@ $activeHotels = count(array_filter($hotels, fn($h) => $h['is_active']));
         </main>
     </div>
 
+    <!-- Floating Action Bar for Bulk Actions -->
+    <div class="floating-action-bar" id="floatingActionBar">
+        <span class="selection-count" id="selectionCount">0 sélectionné(s)</span>
+        <div class="floating-actions">
+            <button class="btn btn-success btn-sm" onclick="bulkAction('activate')">Activer</button>
+            <button class="btn btn-outline btn-sm" onclick="bulkAction('deactivate')">Désactiver</button>
+            <button class="btn btn-primary btn-sm" onclick="bulkExport()">Exporter CSV</button>
+        </div>
+    </div>
+
+    <!-- Hidden form for bulk export (triggers file download) -->
+    <form id="bulkExportForm" method="POST" action="api/bulk-action.php" style="display: none;">
+        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
+        <input type="hidden" name="action" value="export">
+        <div id="bulkExportIds"></div>
+    </form>
+
     <script>
     // Theme toggle
     function toggleTheme() {
@@ -221,6 +270,33 @@ $activeHotels = count(array_filter($hotels, fn($h) => $h['is_active']));
     if (overlay) overlay.addEventListener('click', closeSidebar);
     if (closeBtn) closeBtn.addEventListener('click', closeSidebar);
 
+    // Lazy-load mini stats for each hotel card
+    const hotelIds = <?= json_encode(array_column($hotels, 'id')) ?>;
+    hotelIds.forEach((id, index) => {
+        setTimeout(() => {
+            fetch('api/hotel-stats.php?id=' + id)
+            .then(r => r.json())
+            .then(result => {
+                if (!result.success) return;
+                const d = result.data;
+                const container = document.getElementById('stats-' + id);
+                if (!container) return;
+
+                const lastLogin = d.last_login ? new Date(d.last_login).toLocaleDateString('fr-FR') : 'Jamais';
+
+                container.innerHTML =
+                    '<div class="mini-stat"><span class="mini-stat-value">' + d.orders_week + '</span><span class="mini-stat-label">Commandes (7j)</span></div>' +
+                    '<div class="mini-stat"><span class="mini-stat-value">' + d.unread_msgs + '</span><span class="mini-stat-label">Messages non lus</span></div>' +
+                    '<div class="mini-stat"><span class="mini-stat-value">' + lastLogin + '</span><span class="mini-stat-label">Dernière connexion</span></div>' +
+                    '<div class="mini-stat"><span class="mini-stat-value">' + d.scans_week + '</span><span class="mini-stat-label">Scans QR (7j)</span></div>';
+            })
+            .catch(() => {
+                const container = document.getElementById('stats-' + id);
+                if (container) container.innerHTML = '<div class="mini-stat" style="grid-column: 1/-1; color: var(--sa-text-light); font-size: 0.8rem;">Stats indisponibles</div>';
+            });
+        }, index * 150); // stagger requests
+    });
+
     // Cross-login: Open Admin
     // window.open() must be called synchronously (before async fetch) to avoid Safari popup blocker
     function openAdmin(hotelId) {
@@ -252,6 +328,68 @@ $activeHotels = count(array_filter($hotels, fn($h) => $h['is_active']));
             popup.close();
             alert('Erreur de connexion.');
         });
+    }
+
+    // Bulk actions
+    function getSelectedIds() {
+        const ids = [];
+        document.querySelectorAll('.hotel-select:checked').forEach(cb => ids.push(cb.value));
+        return ids;
+    }
+
+    function updateBulkBar() {
+        const ids = getSelectedIds();
+        const bar = document.getElementById('floatingActionBar');
+        if (ids.length > 0) {
+            bar.classList.add('visible');
+            document.getElementById('selectionCount').textContent = ids.length + ' sélectionné(s)';
+        } else {
+            bar.classList.remove('visible');
+        }
+        // Update select-all checkbox state
+        const allBoxes = document.querySelectorAll('.hotel-select');
+        const selectAll = document.getElementById('selectAll');
+        if (selectAll) {
+            selectAll.checked = allBoxes.length > 0 && ids.length === allBoxes.length;
+        }
+    }
+
+    function toggleSelectAll(cb) {
+        document.querySelectorAll('.hotel-select').forEach(box => { box.checked = cb.checked; });
+        updateBulkBar();
+    }
+
+    function bulkAction(action) {
+        const ids = getSelectedIds();
+        if (ids.length === 0) return;
+        const label = action === 'activate' ? 'activer' : 'désactiver';
+        if (!confirm(label.charAt(0).toUpperCase() + label.slice(1) + ' ' + ids.length + ' établissement(s) ?')) return;
+
+        fetch('api/bulk-action.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: 'action=' + action + '&csrf_token=' + encodeURIComponent('<?= htmlspecialchars($csrfToken) ?>') + '&' + ids.map(id => 'hotel_ids[]=' + id).join('&')
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert(data.message || 'Erreur');
+            }
+        })
+        .catch(() => alert('Erreur de connexion'));
+    }
+
+    function bulkExport() {
+        const ids = getSelectedIds();
+        if (ids.length === 0) return;
+        const container = document.getElementById('bulkExportIds');
+        container.innerHTML = ids.map(id => '<input type="hidden" name="hotel_ids[]" value="' + id + '">').join('');
+        document.getElementById('bulkExportForm').submit();
     }
     </script>
 </body>

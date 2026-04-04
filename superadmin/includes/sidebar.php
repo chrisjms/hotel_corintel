@@ -34,6 +34,31 @@
                     </svg>
                     Pizzerias
                 </a>
+                <div class="sa-nav-separator">Outils</div>
+                <a href="analytics.php" class="nav-item<?= $currentPage === 'analytics.php' ? ' active' : '' ?>">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+                    </svg>
+                    Analytiques
+                </a>
+                <a href="monitoring.php" class="nav-item<?= $currentPage === 'monitoring.php' ? ' active' : '' ?>">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                    </svg>
+                    Monitoring
+                </a>
+                <a href="db-health.php" class="nav-item<?= $currentPage === 'db-health.php' ? ' active' : '' ?>">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+                    </svg>
+                    Santé DB
+                </a>
+                <a href="feature-toggles.php" class="nav-item<?= $currentPage === 'feature-toggles.php' ? ' active' : '' ?>">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="1" y="5" width="22" height="14" rx="7" ry="7"/><circle cx="16" cy="12" r="3"/>
+                    </svg>
+                    Features
+                </a>
                 <a href="audit-log.php" class="nav-item<?= $currentPage === 'audit-log.php' ? ' active' : '' ?>">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>

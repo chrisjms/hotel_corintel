@@ -69,6 +69,21 @@ function ensureHotelsTable(): void {
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_super_admin_audit_log_action ON super_admin_audit_log (action)');
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_super_admin_audit_log_hotel ON super_admin_audit_log (hotel_id)');
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_super_admin_audit_log_created ON super_admin_audit_log (created_at)');
+
+    // Establishment features table (migration 012)
+    $pdo->exec('
+        CREATE TABLE IF NOT EXISTS public.establishment_features (
+            id SERIAL PRIMARY KEY,
+            hotel_id INT NOT NULL,
+            feature_key VARCHAR(50) NOT NULL,
+            is_enabled BOOLEAN DEFAULT TRUE,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE (hotel_id, feature_key),
+            FOREIGN KEY (hotel_id) REFERENCES hotels(id) ON DELETE CASCADE
+        )
+    ');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_establishment_features_hotel ON public.establishment_features (hotel_id)');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_establishment_features_key ON public.establishment_features (feature_key)');
 }
 
 // --- Hotel CRUD ---
@@ -894,4 +909,559 @@ function getDefaultHotelUrls(string $slug): array {
         'site_url' => 'https://hothello-client.onrender.com/?hotel=' . $slug,
         'admin_url' => 'https://hothello-admin.onrender.com',
     ];
+}
+
+// ============================================================
+// --- Feature Toggles ---
+// ============================================================
+
+const AVAILABLE_FEATURES = [
+    'room_service'   => ['label' => 'Room Service',        'description' => 'Commandes en chambre via QR code'],
+    'messaging'      => ['label' => 'Messagerie',          'description' => 'Messages invités → réception'],
+    'qr_codes'       => ['label' => 'QR Codes',            'description' => 'Scan QR pour accès chambre'],
+    'multilingual'   => ['label' => 'Multilingue',         'description' => 'Support FR / EN / ES / IT'],
+    'dynamic_pages'  => ['label' => 'Pages dynamiques',    'description' => 'Sections et contenu personnalisable'],
+    'housekeeping'   => ['label' => 'Housekeeping',        'description' => 'Gestion ménage et inspections'],
+];
+
+function getEstablishmentFeatures(int $hotelId): array {
+    ensureHotelsTable();
+    $pdo = getSuperDatabase();
+
+    $stmt = $pdo->prepare('SELECT feature_key, is_enabled FROM public.establishment_features WHERE hotel_id = ?');
+    $stmt->execute([$hotelId]);
+    $rows = $stmt->fetchAll();
+
+    $saved = [];
+    foreach ($rows as $row) {
+        $saved[$row['feature_key']] = filter_var($row['is_enabled'], FILTER_VALIDATE_BOOLEAN);
+    }
+
+    $features = [];
+    foreach (AVAILABLE_FEATURES as $key => $meta) {
+        $features[$key] = [
+            'feature_key' => $key,
+            'label'       => $meta['label'],
+            'description' => $meta['description'],
+            'is_enabled'  => $saved[$key] ?? true, // enabled by default
+        ];
+    }
+    return $features;
+}
+
+function setFeatureToggle(int $hotelId, string $featureKey, bool $enabled): bool {
+    if (!isset(AVAILABLE_FEATURES[$featureKey])) {
+        return false;
+    }
+    ensureHotelsTable();
+    $pdo = getSuperDatabase();
+
+    $stmt = $pdo->prepare('
+        INSERT INTO public.establishment_features (hotel_id, feature_key, is_enabled, updated_at)
+        VALUES (?, ?, ?, NOW())
+        ON CONFLICT (hotel_id, feature_key)
+        DO UPDATE SET is_enabled = EXCLUDED.is_enabled, updated_at = NOW()
+    ');
+    $stmt->execute([$hotelId, $featureKey, $enabled ? 'true' : 'false']);
+    return true;
+}
+
+function isFeatureEnabled(int $hotelId, string $featureKey): bool {
+    ensureHotelsTable();
+    $pdo = getSuperDatabase();
+    $stmt = $pdo->prepare('SELECT is_enabled FROM public.establishment_features WHERE hotel_id = ? AND feature_key = ?');
+    $stmt->execute([$hotelId, $featureKey]);
+    $row = $stmt->fetch();
+    if (!$row) return true; // enabled by default
+    return filter_var($row['is_enabled'], FILTER_VALIDATE_BOOLEAN);
+}
+
+// ============================================================
+// --- Monitoring ---
+// ============================================================
+
+function getMonitoringMetrics(): array {
+    $pdo = getSuperDatabase();
+
+    // Real: DB response time
+    $t0 = microtime(true);
+    $pdo->query('SELECT 1');
+    $dbLatency = round((microtime(true) - $t0) * 1000, 2); // ms
+
+    // Real: DB size
+    $dbSize = 0;
+    try {
+        $row = $pdo->query('SELECT pg_database_size(current_database()) AS db_size')->fetch();
+        $dbSize = (int)($row['db_size'] ?? 0);
+    } catch (PDOException $e) {}
+
+    // Real: connections
+    $connections = ['total' => 0, 'active' => 0, 'idle' => 0];
+    try {
+        $row = $pdo->query("
+            SELECT COUNT(*) AS total,
+                   COUNT(*) FILTER (WHERE state = 'active') AS active,
+                   COUNT(*) FILTER (WHERE state = 'idle') AS idle
+            FROM pg_stat_activity
+        ")->fetch();
+        $connections = [
+            'total'  => (int)$row['total'],
+            'active' => (int)$row['active'],
+            'idle'   => (int)$row['idle'],
+        ];
+    } catch (PDOException $e) {}
+
+    // Real: per-schema row counts
+    $schemas = [];
+    try {
+        $rows = $pdo->query("
+            SELECT schemaname, SUM(n_live_tup) AS total_rows
+            FROM pg_stat_user_tables
+            WHERE schemaname LIKE 'hotel_%'
+            GROUP BY schemaname
+            ORDER BY total_rows DESC
+        ")->fetchAll();
+        foreach ($rows as $r) {
+            $schemas[] = [
+                'name'       => $r['schemaname'],
+                'total_rows' => (int)$r['total_rows'],
+            ];
+        }
+    } catch (PDOException $e) {}
+
+    // Simulated metrics (consistent within a 30s window via session)
+    $window = floor(time() / 30);
+    $seed = crc32('monitoring_' . $window);
+    mt_srand($seed);
+    $cpuBase = 15 + (date('G') >= 9 && date('G') <= 18 ? 20 : 0); // higher during "business hours"
+    $cpu = min(95, max(5, $cpuBase + mt_rand(-10, 25)));
+    $ram = min(92, max(30, 45 + mt_rand(-10, 30)));
+    $uptimeDays = 47 + floor((time() - strtotime('2026-01-01')) / 86400) % 90;
+    $requestsMin = max(10, 120 + mt_rand(-60, 100));
+    mt_srand(); // reset
+
+    return [
+        'db_latency_ms'  => $dbLatency,
+        'db_size'        => $dbSize,
+        'db_size_human'  => formatBytes($dbSize),
+        'connections'    => $connections,
+        'schemas'        => $schemas,
+        'cpu_percent'    => $cpu,
+        'ram_percent'    => $ram,
+        'uptime_days'    => $uptimeDays,
+        'requests_min'   => $requestsMin,
+        'timestamp'      => time(),
+    ];
+}
+
+// ============================================================
+// --- Global Analytics ---
+// ============================================================
+
+function getGlobalAnalytics(int $days = 30): array {
+    $pdo = getSuperDatabase();
+    $hotels = getAllHotels();
+
+    $totalOrders = 0;
+    $totalRevenue = 0.0;
+    $totalMessages = 0;
+    $totalScans = 0;
+
+    foreach ($hotels as $hotel) {
+        if (empty($hotel['schema_name'])) continue;
+        $schema = preg_replace('/[^a-z0-9_]/', '', $hotel['schema_name']);
+        try {
+            $pdo->exec('SET search_path TO ' . $schema . ', public');
+
+            $stmt = $pdo->prepare('SELECT COUNT(*) AS cnt, COALESCE(SUM(total_amount), 0) AS rev FROM room_service_orders WHERE created_at >= NOW() - INTERVAL \'' . (int)$days . ' days\'');
+            $stmt->execute();
+            $r = $stmt->fetch();
+            $totalOrders += (int)$r['cnt'];
+            $totalRevenue += (float)$r['rev'];
+
+            $stmt = $pdo->prepare('SELECT COUNT(*) AS cnt FROM guest_messages WHERE created_at >= NOW() - INTERVAL \'' . (int)$days . ' days\'');
+            $stmt->execute();
+            $totalMessages += (int)$stmt->fetchColumn();
+
+            $stmt = $pdo->prepare('SELECT COUNT(*) AS cnt FROM qr_scans WHERE scanned_at >= NOW() - INTERVAL \'' . (int)$days . ' days\'');
+            $stmt->execute();
+            $totalScans += (int)$stmt->fetchColumn();
+        } catch (PDOException $e) {
+            // Schema may not exist or table missing
+        }
+    }
+
+    $pdo->exec('SET search_path TO public');
+
+    return [
+        'total_orders'   => $totalOrders,
+        'total_revenue'  => round($totalRevenue, 2),
+        'total_messages' => $totalMessages,
+        'total_scans'    => $totalScans,
+        'days'           => $days,
+    ];
+}
+
+function getPerHotelAnalytics(int $days = 30): array {
+    $pdo = getSuperDatabase();
+    $hotels = getAllHotels();
+    $results = [];
+
+    foreach ($hotels as $hotel) {
+        if (empty($hotel['schema_name'])) continue;
+        $schema = preg_replace('/[^a-z0-9_]/', '', $hotel['schema_name']);
+        $entry = [
+            'hotel_id'   => $hotel['id'],
+            'hotel_name' => $hotel['name'],
+            'slug'       => $hotel['slug'],
+            'is_active'  => filter_var($hotel['is_active'], FILTER_VALIDATE_BOOLEAN),
+            'orders'     => 0,
+            'revenue'    => 0.0,
+            'messages'   => 0,
+            'scans'      => 0,
+        ];
+        try {
+            $pdo->exec('SET search_path TO ' . $schema . ', public');
+
+            $stmt = $pdo->prepare('SELECT COUNT(*) AS cnt, COALESCE(SUM(total_amount), 0) AS rev FROM room_service_orders WHERE created_at >= NOW() - INTERVAL \'' . (int)$days . ' days\'');
+            $stmt->execute();
+            $r = $stmt->fetch();
+            $entry['orders'] = (int)$r['cnt'];
+            $entry['revenue'] = round((float)$r['rev'], 2);
+
+            $stmt = $pdo->prepare('SELECT COUNT(*) FROM guest_messages WHERE created_at >= NOW() - INTERVAL \'' . (int)$days . ' days\'');
+            $stmt->execute();
+            $entry['messages'] = (int)$stmt->fetchColumn();
+
+            $stmt = $pdo->prepare('SELECT COUNT(*) FROM qr_scans WHERE scanned_at >= NOW() - INTERVAL \'' . (int)$days . ' days\'');
+            $stmt->execute();
+            $entry['scans'] = (int)$stmt->fetchColumn();
+        } catch (PDOException $e) {}
+
+        $results[] = $entry;
+    }
+
+    $pdo->exec('SET search_path TO public');
+
+    // Sort by revenue descending
+    usort($results, fn($a, $b) => $b['revenue'] <=> $a['revenue']);
+
+    return $results;
+}
+
+function getAnalyticsTrend(int $days = 30): array {
+    $pdo = getSuperDatabase();
+    $hotels = getAllHotels();
+    $daily = []; // date => ['orders' => X, 'revenue' => Y]
+
+    foreach ($hotels as $hotel) {
+        if (empty($hotel['schema_name'])) continue;
+        $schema = preg_replace('/[^a-z0-9_]/', '', $hotel['schema_name']);
+        try {
+            $pdo->exec('SET search_path TO ' . $schema . ', public');
+            $stmt = $pdo->prepare('
+                SELECT DATE(created_at) AS day, COUNT(*) AS orders, COALESCE(SUM(total_amount), 0) AS revenue
+                FROM room_service_orders
+                WHERE created_at >= NOW() - INTERVAL \'' . (int)$days . ' days\'
+                GROUP BY DATE(created_at)
+            ');
+            $stmt->execute();
+            foreach ($stmt->fetchAll() as $r) {
+                $d = $r['day'];
+                if (!isset($daily[$d])) $daily[$d] = ['orders' => 0, 'revenue' => 0];
+                $daily[$d]['orders'] += (int)$r['orders'];
+                $daily[$d]['revenue'] += (float)$r['revenue'];
+            }
+        } catch (PDOException $e) {}
+    }
+
+    $pdo->exec('SET search_path TO public');
+    ksort($daily);
+
+    // Fill gaps
+    $result = [];
+    $start = new DateTime("-{$days} days");
+    $end = new DateTime('today');
+    while ($start <= $end) {
+        $d = $start->format('Y-m-d');
+        $result[] = [
+            'date'    => $d,
+            'orders'  => $daily[$d]['orders'] ?? 0,
+            'revenue' => round($daily[$d]['revenue'] ?? 0, 2),
+        ];
+        $start->modify('+1 day');
+    }
+
+    return $result;
+}
+
+// ============================================================
+// --- Per-Hotel Quick Stats ---
+// ============================================================
+
+function getHotelQuickStats(int $hotelId): array {
+    $pdo = getSuperDatabase();
+    $hotel = getHotelById($hotelId);
+
+    $stats = [
+        'orders_week'   => 0,
+        'unread_msgs'   => 0,
+        'last_login'    => null,
+        'scans_week'    => 0,
+    ];
+
+    if (!$hotel || empty($hotel['schema_name'])) return $stats;
+
+    $schema = preg_replace('/[^a-z0-9_]/', '', $hotel['schema_name']);
+    try {
+        $pdo->exec('SET search_path TO ' . $schema . ', public');
+
+        $stmt = $pdo->query("SELECT COUNT(*) FROM room_service_orders WHERE created_at >= NOW() - INTERVAL '7 days'");
+        $stats['orders_week'] = (int)$stmt->fetchColumn();
+
+        $stmt = $pdo->query("SELECT COUNT(*) FROM guest_messages WHERE status IN ('new', 'read')");
+        $stats['unread_msgs'] = (int)$stmt->fetchColumn();
+
+        $stmt = $pdo->query("SELECT MAX(last_login) FROM admins");
+        $stats['last_login'] = $stmt->fetchColumn() ?: null;
+
+        $stmt = $pdo->query("SELECT COUNT(*) FROM qr_scans WHERE scanned_at >= NOW() - INTERVAL '7 days'");
+        $stats['scans_week'] = (int)$stmt->fetchColumn();
+    } catch (PDOException $e) {}
+
+    $pdo->exec('SET search_path TO public');
+    return $stats;
+}
+
+// ============================================================
+// --- Database Health ---
+// ============================================================
+
+function formatBytes(int $bytes): string {
+    if ($bytes <= 0) return '0 B';
+    $units = ['B', 'KB', 'MB', 'GB', 'TB'];
+    $i = floor(log($bytes, 1024));
+    return round($bytes / pow(1024, $i), 2) . ' ' . $units[$i];
+}
+
+function getDatabaseHealth(): array {
+    $pdo = getSuperDatabase();
+
+    // Total DB size
+    $totalSize = 0;
+    try {
+        $row = $pdo->query('SELECT pg_database_size(current_database()) AS s')->fetch();
+        $totalSize = (int)($row['s'] ?? 0);
+    } catch (PDOException $e) {}
+
+    // Connections
+    $connections = ['total' => 0, 'active' => 0, 'idle' => 0];
+    try {
+        $row = $pdo->query("
+            SELECT COUNT(*) AS total,
+                   COUNT(*) FILTER (WHERE state = 'active') AS active,
+                   COUNT(*) FILTER (WHERE state = 'idle') AS idle
+            FROM pg_stat_activity
+        ")->fetch();
+        $connections = [
+            'total'  => (int)$row['total'],
+            'active' => (int)$row['active'],
+            'idle'   => (int)$row['idle'],
+        ];
+    } catch (PDOException $e) {}
+
+    // Per-schema stats
+    $schemas = [];
+    $totalDeadTuples = 0;
+    try {
+        $rows = $pdo->query("
+            SELECT schemaname,
+                   SUM(n_live_tup) AS live_rows,
+                   SUM(n_dead_tup) AS dead_rows,
+                   MAX(last_autovacuum) AS last_vacuum
+            FROM pg_stat_user_tables
+            WHERE schemaname LIKE 'hotel_%' OR schemaname = 'public'
+            GROUP BY schemaname
+            ORDER BY live_rows DESC
+        ")->fetchAll();
+        foreach ($rows as $r) {
+            $schemas[] = [
+                'name'        => $r['schemaname'],
+                'live_rows'   => (int)$r['live_rows'],
+                'dead_rows'   => (int)$r['dead_rows'],
+                'last_vacuum' => $r['last_vacuum'],
+            ];
+            $totalDeadTuples += (int)$r['dead_rows'];
+        }
+    } catch (PDOException $e) {}
+
+    // Per-schema sizes
+    try {
+        $rows = $pdo->query("
+            SELECT n.nspname AS schema_name,
+                   SUM(pg_total_relation_size(c.oid)) AS total_size
+            FROM pg_class c
+            JOIN pg_namespace n ON n.oid = c.relnamespace
+            WHERE (n.nspname LIKE 'hotel_%' OR n.nspname = 'public')
+              AND c.relkind IN ('r', 'i', 't')
+            GROUP BY n.nspname
+            ORDER BY total_size DESC
+        ")->fetchAll();
+        $sizeMap = [];
+        foreach ($rows as $r) {
+            $sizeMap[$r['schema_name']] = (int)$r['total_size'];
+        }
+        foreach ($schemas as &$s) {
+            $s['size'] = $sizeMap[$s['name']] ?? 0;
+            $s['size_human'] = formatBytes($s['size']);
+        }
+        unset($s);
+    } catch (PDOException $e) {}
+
+    return [
+        'total_size'       => $totalSize,
+        'total_size_human' => formatBytes($totalSize),
+        'connections'      => $connections,
+        'total_dead'       => $totalDeadTuples,
+        'schema_count'     => count(array_filter($schemas, fn($s) => str_starts_with($s['name'], 'hotel_'))),
+        'schemas'          => $schemas,
+        'timestamp'        => time(),
+    ];
+}
+
+// ============================================================
+// --- Filtered Audit Log ---
+// ============================================================
+
+function getFilteredAuditLog(int $limit, int $offset, ?int $hotelId = null, ?string $action = null, ?string $dateFrom = null, ?string $dateTo = null, ?string $search = null): array {
+    ensureHotelsTable();
+    $pdo = getSuperDatabase();
+
+    $where = '1=1';
+    $params = [];
+
+    if ($hotelId) {
+        $where .= ' AND al.hotel_id = ?';
+        $params[] = $hotelId;
+    }
+    if ($action) {
+        $where .= ' AND al.action = ?';
+        $params[] = $action;
+    }
+    if ($dateFrom) {
+        $where .= ' AND al.created_at >= ?';
+        $params[] = $dateFrom;
+    }
+    if ($dateTo) {
+        $where .= " AND al.created_at < (?::date + INTERVAL '1 day')";
+        $params[] = $dateTo;
+    }
+    if ($search) {
+        $where .= ' AND (al.details ILIKE ? OR sa.username ILIKE ?)';
+        $params[] = '%' . $search . '%';
+        $params[] = '%' . $search . '%';
+    }
+
+    $params[] = $limit;
+    $params[] = $offset;
+
+    $stmt = $pdo->prepare("
+        SELECT al.*, sa.username AS admin_username, h.name AS hotel_name
+        FROM public.super_admin_audit_log al
+        LEFT JOIN public.super_admins sa ON sa.id = al.super_admin_id
+        LEFT JOIN public.hotels h ON h.id = al.hotel_id
+        WHERE {$where}
+        ORDER BY al.created_at DESC
+        LIMIT ? OFFSET ?
+    ");
+    $stmt->execute($params);
+    return $stmt->fetchAll();
+}
+
+function countFilteredAuditLogs(?int $hotelId = null, ?string $action = null, ?string $dateFrom = null, ?string $dateTo = null, ?string $search = null): int {
+    ensureHotelsTable();
+    $pdo = getSuperDatabase();
+
+    $where = '1=1';
+    $params = [];
+
+    if ($hotelId) {
+        $where .= ' AND al.hotel_id = ?';
+        $params[] = $hotelId;
+    }
+    if ($action) {
+        $where .= ' AND al.action = ?';
+        $params[] = $action;
+    }
+    if ($dateFrom) {
+        $where .= ' AND al.created_at >= ?';
+        $params[] = $dateFrom;
+    }
+    if ($dateTo) {
+        $where .= " AND al.created_at < (?::date + INTERVAL '1 day')";
+        $params[] = $dateTo;
+    }
+    if ($search) {
+        $where .= ' AND (al.details ILIKE ? OR sa.username ILIKE ?)';
+        $params[] = '%' . $search . '%';
+        $params[] = '%' . $search . '%';
+    }
+
+    $stmt = $pdo->prepare("
+        SELECT COUNT(*)
+        FROM public.super_admin_audit_log al
+        LEFT JOIN public.super_admins sa ON sa.id = al.super_admin_id
+        WHERE {$where}
+    ");
+    $stmt->execute($params);
+    return (int)$stmt->fetchColumn();
+}
+
+function getDistinctAuditActions(): array {
+    ensureHotelsTable();
+    $pdo = getSuperDatabase();
+    return $pdo->query('SELECT DISTINCT action FROM public.super_admin_audit_log ORDER BY action')->fetchAll(PDO::FETCH_COLUMN);
+}
+
+// ============================================================
+// --- Bulk Actions ---
+// ============================================================
+
+function bulkUpdateHotelStatus(array $hotelIds, bool $isActive): int {
+    if (empty($hotelIds)) return 0;
+    ensureHotelsTable();
+    $pdo = getSuperDatabase();
+
+    // Safely cast all IDs to int
+    $ids = array_map('intval', $hotelIds);
+    $placeholders = implode(',', array_fill(0, count($ids), '?'));
+
+    $stmt = $pdo->prepare("UPDATE public.hotels SET is_active = ?, updated_at = NOW() WHERE id IN ({$placeholders})");
+    $params = [$isActive ? 'true' : 'false'];
+    $params = array_merge($params, $ids);
+    $stmt->execute($params);
+    return $stmt->rowCount();
+}
+
+function exportHotelsCsv(array $hotels): void {
+    // BOM for Excel UTF-8 compatibility
+    echo "\xEF\xBB\xBF";
+
+    $out = fopen('php://output', 'w');
+    fputcsv($out, ['Nom', 'Slug', 'Type', 'Site URL', 'Admin URL', 'Statut', 'Créé le', 'Notes'], ';');
+
+    foreach ($hotels as $h) {
+        fputcsv($out, [
+            $h['name'],
+            $h['slug'],
+            $h['type'] ?? 'hotel',
+            $h['site_url'] ?? '',
+            $h['admin_url'] ?? '',
+            filter_var($h['is_active'], FILTER_VALIDATE_BOOLEAN) ? 'Actif' : 'Inactif',
+            $h['created_at'] ?? '',
+            $h['notes'] ?? '',
+        ], ';');
+    }
+
+    fclose($out);
 }
