@@ -870,7 +870,7 @@ tbody tr:hover {
 
 /* --- Nav Section Titles --- */
 .sa-nav-section {
-    padding: 0.625rem 1.5rem 0.25rem;
+    padding: 0.625rem 1.5rem 0.25rem calc(1.5rem + 20px + 0.75rem);
     margin-top: 0.5rem;
     font-size: 0.625rem;
     font-weight: 600;

@@ -173,13 +173,6 @@ $activeHotels = count(array_filter($hotels, fn($h) => $h['is_active']));
                                             <div style="font-style: italic; opacity: 0.8;"><?= htmlspecialchars($hotel['notes']) ?></div>
                                         <?php endif; ?>
                                     </div>
-                                    <!-- Mini Stats (lazy-loaded) -->
-                                    <div class="hotel-mini-stats" id="stats-<?= $hotel['id'] ?>">
-                                        <div class="mini-stat"><div class="mini-stat-content"><div class="skeleton"></div><div class="skeleton skeleton-sm"></div></div></div>
-                                        <div class="mini-stat"><div class="mini-stat-content"><div class="skeleton"></div><div class="skeleton skeleton-sm"></div></div></div>
-                                        <div class="mini-stat"><div class="mini-stat-content"><div class="skeleton"></div><div class="skeleton skeleton-sm"></div></div></div>
-                                        <div class="mini-stat"><div class="mini-stat-content"><div class="skeleton"></div><div class="skeleton skeleton-sm"></div></div></div>
-                                    </div>
 
                                     <div class="hotel-card-actions">
                                         <?php if ($hotel['site_url']): ?>
@@ -270,52 +263,6 @@ $activeHotels = count(array_filter($hotels, fn($h) => $h['is_active']));
 
     if (overlay) overlay.addEventListener('click', closeSidebar);
     if (closeBtn) closeBtn.addEventListener('click', closeSidebar);
-
-    // Lazy-load mini stats for each hotel card
-    const hotelIds = <?= json_encode(array_column($hotels, 'id')) ?>;
-    hotelIds.forEach((id, index) => {
-        setTimeout(() => {
-            fetch('api/hotel-stats.php?id=' + id)
-            .then(r => r.json())
-            .then(result => {
-                if (!result.success) return;
-                const d = result.data;
-                const container = document.getElementById('stats-' + id);
-                if (!container) return;
-
-                let lastLogin = 'Jamais';
-                if (d.last_login) {
-                    const dt = new Date(d.last_login);
-                    const now = new Date();
-                    const diffMs = now - dt;
-                    const diffH = Math.floor(diffMs / 3600000);
-                    if (diffH < 1) lastLogin = 'Il y a ' + Math.max(1, Math.floor(diffMs / 60000)) + ' min';
-                    else if (diffH < 24) lastLogin = 'Il y a ' + diffH + 'h';
-                    else if (diffH < 48) lastLogin = 'Hier';
-                    else lastLogin = dt.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
-                }
-
-                function miniStat(iconClass, iconSvg, value, label) {
-                    return '<div class="mini-stat">' +
-                        '<div class="mini-stat-icon ' + iconClass + '">' + iconSvg + '</div>' +
-                        '<div class="mini-stat-content">' +
-                            '<span class="mini-stat-value">' + value + '</span>' +
-                            '<span class="mini-stat-label">' + label + '</span>' +
-                        '</div></div>';
-                }
-
-                container.innerHTML =
-                    miniStat('icon-orders', '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>', d.orders_week, 'Commandes (7j)') +
-                    miniStat('icon-messages', '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>', d.unread_msgs, 'Messages non lus') +
-                    miniStat('icon-login', '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>', lastLogin, 'Dernière connexion') +
-                    miniStat('icon-scans', '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>', d.scans_week, 'Scans QR (7j)');
-            })
-            .catch(() => {
-                const container = document.getElementById('stats-' + id);
-                if (container) container.innerHTML = '<div class="mini-stat" style="grid-column: 1/-1; color: var(--sa-text-light); font-size: 0.8rem;">Stats indisponibles</div>';
-            });
-        }, index * 150); // stagger requests
-    });
 
     // Cross-login: Open Admin
     // window.open() must be called synchronously (before async fetch) to avoid Safari popup blocker
