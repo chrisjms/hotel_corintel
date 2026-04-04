@@ -122,13 +122,6 @@ $activeHotels = count(array_filter($hotels, fn($h) => $h['is_active']));
 
                 <!-- Hotel Cards -->
                 <?php if (!empty($hotels)): ?>
-                    <div class="select-all-bar">
-                        <label class="bulk-checkbox">
-                            <input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)">
-                        </label>
-                        <span>Tout sélectionner</span>
-                        <span class="bulk-hint">Cochez pour activer, désactiver ou exporter en masse</span>
-                    </div>
                 <?php endif; ?>
 
                 <?php if (empty($hotels)): ?>

@@ -870,9 +870,9 @@ tbody tr:hover {
 
 /* --- Nav Section Titles --- */
 .sa-nav-section {
-    padding: 0.625rem 1.5rem 0.25rem calc(1.5rem + 20px + 0.75rem);
+    padding: 0.75rem 1.5rem 0.25rem 1.5rem;
     margin-top: 0.5rem;
-    font-size: 0.625rem;
+    font-size: 0.6rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 1.2px;
@@ -881,8 +881,20 @@ tbody tr:hover {
     pointer-events: none;
 }
 
+.sa-nav-section::before {
+    content: '';
+    display: block;
+    height: 1px;
+    background: rgba(255,255,255,0.08);
+    margin-bottom: 0.5rem;
+}
+
 .sa-nav-section:first-child {
     margin-top: 0;
+}
+
+.sa-nav-section:first-child::before {
+    display: none;
 }
 
 /* --- Gauges & Progress Bars (Monitoring) --- */
