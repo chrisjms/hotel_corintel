@@ -294,6 +294,187 @@ p {
   transition: var(--transition);
 }
 
+/* ---------- Header Variant: Centered ---------- */
+.header--centered {
+  height: auto;
+}
+
+.header--centered .container {
+  flex-direction: column;
+  padding-top: 0.75rem;
+  padding-bottom: 0;
+}
+
+.header-centered-top {
+  display: flex;
+  justify-content: center;
+  padding-bottom: 0.5rem;
+}
+
+.header--centered .logo--centered {
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.25rem;
+}
+
+.header--centered .logo--centered .logo-icon {
+  width: 38px;
+  height: 38px;
+}
+
+.header--centered .logo--centered .logo-text {
+  font-size: 1.4rem;
+}
+
+.header--centered .logo--centered .logo-text span {
+  letter-spacing: 3px;
+}
+
+.header--centered .nav-menu--centered {
+  justify-content: center;
+  border-top: 1px solid var(--color-beige, #E8E0D4);
+  padding-top: 0.6rem;
+  padding-bottom: 0.6rem;
+  width: 100%;
+  gap: 1.75rem;
+}
+
+.header--centered.scrolled .header-centered-top {
+  display: none;
+}
+
+.header--centered.scrolled .container {
+  flex-direction: row;
+  justify-content: center;
+  padding-top: 0;
+}
+
+.header--centered.scrolled .nav-menu--centered {
+  border-top: none;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+/* ---------- Header Variant: Minimal/Transparent ---------- */
+.header--minimal {
+  background: transparent;
+  box-shadow: none;
+}
+
+.header--minimal .logo-text {
+  color: #fff;
+  font-size: 1.75rem;
+}
+
+.header--minimal .logo-text span {
+  display: none;
+}
+
+.header--minimal .nav-link {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.header--minimal .nav-link:hover,
+.header--minimal .nav-link.active {
+  color: #fff;
+}
+
+.header--minimal .nav-link::after {
+  background-color: #fff;
+}
+
+.header--minimal .nav-qr-badge,
+.header--minimal .nav-room-badge {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.header--minimal .menu-toggle span {
+  background-color: #fff;
+}
+
+.header--minimal .btn-contact-reception {
+  background: transparent;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.header--minimal .btn-contact-reception:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: none;
+  box-shadow: none;
+}
+
+/* Minimal: solid state (on scroll or on non-home pages) */
+.header--minimal.scrolled,
+.header--minimal.header--solid {
+  background-color: var(--color-white);
+  box-shadow: var(--shadow-medium);
+}
+
+.header--minimal.scrolled .logo-text,
+.header--minimal.header--solid .logo-text {
+  color: var(--color-primary);
+  font-size: 1.5rem;
+}
+
+.header--minimal.scrolled .nav-link,
+.header--minimal.header--solid .nav-link {
+  color: var(--color-text);
+}
+
+.header--minimal.scrolled .nav-link:hover,
+.header--minimal.scrolled .nav-link.active,
+.header--minimal.header--solid .nav-link:hover,
+.header--minimal.header--solid .nav-link.active {
+  color: var(--color-primary);
+}
+
+.header--minimal.scrolled .nav-link::after,
+.header--minimal.header--solid .nav-link::after {
+  background-color: var(--color-primary);
+}
+
+.header--minimal.scrolled .nav-qr-badge,
+.header--minimal.header--solid .nav-qr-badge {
+  background: var(--color-primary);
+}
+
+.header--minimal.scrolled .nav-room-badge,
+.header--minimal.header--solid .nav-room-badge {
+  background: var(--color-accent);
+}
+
+.header--minimal.scrolled .menu-toggle span,
+.header--minimal.header--solid .menu-toggle span {
+  background-color: var(--color-text);
+}
+
+.header--minimal.scrolled .btn-contact-reception,
+.header--minimal.header--solid .btn-contact-reception {
+  background-color: var(--color-primary);
+  color: var(--color-white);
+  border-color: transparent;
+}
+
+.header--minimal.scrolled .btn-contact-reception:hover,
+.header--minimal.header--solid .btn-contact-reception:hover {
+  background-color: var(--color-primary-dark);
+}
+
+/* ---------- Header Style: Body-Level Overrides ---------- */
+/* Minimal header overlaps the hero — remove top margin */
+body[data-header-style="minimal"] .hero,
+body[data-header-style="minimal"] .page-hero {
+  margin-top: 0;
+}
+
+/* Centered header is taller — adjust hero margin */
+body[data-header-style="centered"] .hero,
+body[data-header-style="centered"] .page-hero {
+  margin-top: 110px;
+}
+
 /* ---------- Hero Section ---------- */
 .hero {
   position: relative;
@@ -1405,6 +1586,37 @@ p {
 
   .footer-contact-item {
     justify-content: center;
+  }
+
+  /* Centered header: collapse to standard single-row on mobile */
+  .header--centered .container {
+    flex-direction: row;
+    justify-content: space-between;
+    padding-top: 0;
+  }
+
+  .header-centered-top {
+    display: none;
+  }
+
+  .header--centered .nav-menu--centered {
+    border-top: none;
+    padding-top: 0;
+    justify-content: center;
+  }
+
+  body[data-header-style="centered"] .hero,
+  body[data-header-style="centered"] .page-hero {
+    margin-top: var(--header-height);
+  }
+
+  /* Minimal header: dark text for hamburger when nav is open */
+  .header--minimal .nav-menu.active {
+    background-color: var(--color-white);
+  }
+
+  .header--minimal .menu-toggle.active span {
+    background-color: var(--color-text);
   }
 }
 

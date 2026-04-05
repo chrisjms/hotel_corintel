@@ -73,6 +73,7 @@ $heroImage = $heroSectionCode ? contentImage($heroSectionCode, 1, $defaultHeroIm
 $hotelName = getHotelName();
 $logoText = getLogoText();
 $contactInfo = getContactInfo();
+$headerStyle = getSetting('header_style', 'classic');
 
 // Check for active room session (set by scanning QR code via scan.php)
 $roomSession = getRoomServiceSession();
@@ -97,50 +98,8 @@ $navPages = getNavigationPages();
     <?= getHotelNameJS() ?>
     <?= getEstablishmentLabelsJS() ?>
 </head>
-<body>
-    <!-- Header -->
-    <header class="header" id="header">
-        <div class="container">
-            <a href="index.php" class="logo">
-                <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6M9 9h.01M15 9h.01M9 13h.01M15 13h.01"/>
-                </svg>
-                <div class="logo-text">
-                    <?= h($hotelName) ?>
-                    <span><?= h($logoText) ?></span>
-                </div>
-            </a>
-            <nav class="nav-menu" id="navMenu">
-                <?php foreach ($navPages as $navPage): ?>
-                <?php
-                    $navUrl = $navPage['slug'] === '' ? 'index.php' : '/' . $navPage['slug'];
-                    $isActive = $navPage['code'] === $pageCode;
-                    $navI18nKey = $navPage['i18n_nav_key'] ?: '';
-                    // Insert Room Service link before Contact
-                    if ($navPage['slug'] === 'contact' || $navPage['page_type'] === 'contact'):
-                ?>
-                <?php if (featureEnabled('room_service')): ?>
-                <a href="room-service.php" class="nav-link nav-link-room-service" data-i18n="nav.roomService"><?= h(establishmentLabel('nav_link')) ?> <?php if ($roomSession): ?><span class="nav-room-badge">Ch. <?= h($roomSession['room_number']) ?></span><?php else: ?><span class="nav-qr-badge" data-i18n="footer.qrOnly">QR</span><?php endif; ?></a>
-                <?php endif; ?>
-                <?php endif; ?>
-                <a href="<?= h($navUrl) ?>" class="nav-link<?= $isActive ? ' active' : '' ?>"<?= $navI18nKey ? ' data-i18n="' . h($navI18nKey) . '"' : '' ?>><?= h($navPage['nav_title'] ?: $navPage['title']) ?></a>
-                <?php endforeach; ?>
-                <?php if (featureEnabled('messaging')): ?>
-                <button type="button" class="btn-contact-reception" id="btnContactReception" data-i18n="header.contactReception">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                    </svg>
-                    Contacter la réception
-                </button>
-                <?php endif; ?>
-            </nav>
-            <div class="menu-toggle" id="menuToggle">
-                <span></span>
-                <span></span>
-                <span></span>
-            </div>
-        </div>
-    </header>
+<body data-header-style="<?= h($headerStyle ?? 'classic') ?>">
+    <?php $currentPageSlug = $slug; include __DIR__ . '/includes/header.php'; ?>
 
     <!-- Page Hero -->
     <section class="page-hero" style="background-image: url('<?= h($heroImage) ?>');">
@@ -330,44 +289,8 @@ $navPages = getNavigationPages();
     <!-- Scripts -->
     <script src="js/i18n.js"></script>
     <script src="js/animations.js"></script>
+    <?php include __DIR__ . '/includes/header-js.php'; ?>
     <script>
-        // Mobile menu toggle
-        const menuToggle = document.getElementById('menuToggle');
-        const navMenu = document.getElementById('navMenu');
-
-        menuToggle.addEventListener('click', () => {
-            menuToggle.classList.toggle('active');
-            navMenu.classList.toggle('active');
-        });
-
-        // Close mobile nav on outside tap
-        document.addEventListener('click', (e) => {
-            if (navMenu.classList.contains('active') &&
-                !navMenu.contains(e.target) &&
-                !menuToggle.contains(e.target)) {
-                navMenu.classList.remove('active');
-                menuToggle.classList.remove('active');
-            }
-        });
-
-        // Close mobile nav when a link is tapped
-        document.querySelectorAll('.nav-link').forEach(link => {
-            link.addEventListener('click', () => {
-                navMenu.classList.remove('active');
-                menuToggle.classList.remove('active');
-            });
-        });
-
-        // Header scroll effect
-        const header = document.getElementById('header');
-        window.addEventListener('scroll', () => {
-            if (window.scrollY > 100) {
-                header.classList.add('scrolled');
-            } else {
-                header.classList.remove('scrolled');
-            }
-        });
-
         // Scroll to top button
         const scrollTop = document.getElementById('scrollTop');
         window.addEventListener('scroll', () => {

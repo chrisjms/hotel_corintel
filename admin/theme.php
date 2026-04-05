@@ -51,6 +51,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 break;
 
+            case 'save_header_style':
+                $style = $_POST['header_style'] ?? 'classic';
+                $validStyles = ['classic', 'centered', 'minimal'];
+                if (in_array($style, $validStyles)) {
+                    setSetting('header_style', $style);
+                    $message = 'Style d\'en-tête enregistré avec succès.';
+                    $messageType = 'success';
+                } else {
+                    $message = 'Style d\'en-tête invalide.';
+                    $messageType = 'error';
+                }
+                break;
+
             case 'reset_theme':
                 if (resetThemeSettings()) {
                     $message = 'Thème réinitialisé aux valeurs par défaut.';
@@ -63,6 +76,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
+
+// Get current header style
+$currentHeaderStyle = getSetting('header_style', 'classic');
 
 // Get current theme settings
 $themeSettings = getThemeSettings();
@@ -256,7 +272,153 @@ $colorFields = [
             background: var(--admin-bg);
             color: var(--admin-text);
         }
+        /* Header style selector */
+        .header-styles-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.25rem;
+        }
+        .header-style-card {
+            position: relative;
+            border: 2px solid var(--admin-border);
+            border-radius: var(--admin-radius);
+            padding: 1rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: var(--admin-card);
+        }
+        .header-style-card:hover {
+            border-color: var(--admin-primary);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .header-style-card.selected {
+            border-color: var(--admin-primary);
+            box-shadow: 0 0 0 3px rgba(139, 90, 43, 0.15);
+        }
+        .header-style-card input[type="radio"] {
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
+        }
+        .header-style-card .style-check {
+            position: absolute;
+            top: 0.75rem;
+            right: 0.75rem;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            border: 2px solid var(--admin-border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+        .header-style-card.selected .style-check {
+            border-color: var(--admin-primary);
+            background: var(--admin-primary);
+        }
+        .header-style-card.selected .style-check svg {
+            display: block;
+        }
+        .header-style-card .style-check svg {
+            display: none;
+            width: 12px;
+            height: 12px;
+            color: #fff;
+        }
+        .header-style-preview {
+            background: #f8f6f3;
+            border-radius: 6px;
+            padding: 0.75rem;
+            margin-bottom: 0.75rem;
+            min-height: 60px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        /* Mini preview: Classic */
+        .mini-header-classic {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .mini-logo {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .mini-logo-icon {
+            width: 14px;
+            height: 14px;
+            background: var(--admin-primary, #8B5A2B);
+            border-radius: 2px;
+        }
+        .mini-logo-text {
+            font-size: 0.65rem;
+            font-weight: 600;
+            color: var(--admin-primary, #8B5A2B);
+        }
+        .mini-nav {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+        .mini-nav-item {
+            width: 20px;
+            height: 3px;
+            background: #b0a89d;
+            border-radius: 2px;
+        }
+        .mini-nav-item.active {
+            background: var(--admin-primary, #8B5A2B);
+        }
+        /* Mini preview: Centered */
+        .mini-header-centered {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+        .mini-header-centered .mini-nav {
+            border-top: 1px solid #ddd;
+            padding-top: 6px;
+            width: 100%;
+            justify-content: center;
+        }
+        /* Mini preview: Minimal */
+        .mini-header-minimal {
+            background: linear-gradient(135deg, #2d2d2d 0%, #444 100%);
+            border-radius: 6px;
+            padding: 0.75rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .mini-header-minimal .mini-logo-text {
+            color: #fff;
+            font-size: 0.7rem;
+        }
+        .mini-header-minimal .mini-nav-item {
+            background: rgba(255,255,255,0.5);
+        }
+        .mini-header-minimal .mini-nav-item.active {
+            background: #fff;
+        }
+        .header-style-name {
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: var(--admin-text);
+            margin-bottom: 0.25rem;
+        }
+        .header-style-desc {
+            font-size: 0.8rem;
+            color: var(--admin-text-light);
+            line-height: 1.4;
+        }
         @media (max-width: 768px) {
+            .header-styles-grid {
+                grid-template-columns: 1fr;
+            }
             .preview-cards {
                 grid-template-columns: 1fr;
             }
@@ -296,6 +458,99 @@ $colorFields = [
                         <?= h($message) ?>
                     </div>
                 <?php endif; ?>
+
+                <!-- Header Style Selection -->
+                <form method="POST" id="headerStyleForm">
+                    <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
+                    <input type="hidden" name="action" value="save_header_style">
+
+                    <div class="card" style="margin-bottom: 2rem;">
+                        <div class="card-header">
+                            <h2>Style d'en-tête</h2>
+                        </div>
+                        <div class="card-body">
+                            <p style="margin-bottom: 1.25rem; color: var(--admin-text-light);">
+                                Choisissez le design du header affiché sur le site client.
+                            </p>
+
+                            <div class="header-styles-grid">
+                                <?php
+                                $headerStyles = [
+                                    'classic' => [
+                                        'name' => 'Classique',
+                                        'desc' => 'Logo à gauche, navigation à droite. Design standard et épuré.'
+                                    ],
+                                    'centered' => [
+                                        'name' => 'Centré',
+                                        'desc' => 'Logo centré en haut, navigation centrée en dessous. Élégant et symétrique.'
+                                    ],
+                                    'minimal' => [
+                                        'name' => 'Minimal',
+                                        'desc' => 'Transparent sur le héro, texte blanc. Devient solide au défilement.'
+                                    ],
+                                ];
+                                foreach ($headerStyles as $styleKey => $styleInfo):
+                                    $isSelected = ($currentHeaderStyle === $styleKey);
+                                ?>
+                                <label class="header-style-card<?= $isSelected ? ' selected' : '' ?>">
+                                    <input type="radio" name="header_style" value="<?= h($styleKey) ?>" <?= $isSelected ? 'checked' : '' ?>>
+                                    <div class="style-check">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                            <polyline points="20 6 9 17 4 12"/>
+                                        </svg>
+                                    </div>
+                                    <div class="header-style-preview">
+                                        <?php if ($styleKey === 'classic'): ?>
+                                        <div class="mini-header-classic">
+                                            <div class="mini-logo">
+                                                <div class="mini-logo-icon"></div>
+                                                <div class="mini-logo-text">Hôtel</div>
+                                            </div>
+                                            <div class="mini-nav">
+                                                <div class="mini-nav-item active"></div>
+                                                <div class="mini-nav-item"></div>
+                                                <div class="mini-nav-item"></div>
+                                                <div class="mini-nav-item"></div>
+                                            </div>
+                                        </div>
+                                        <?php elseif ($styleKey === 'centered'): ?>
+                                        <div class="mini-header-centered">
+                                            <div class="mini-logo">
+                                                <div class="mini-logo-icon"></div>
+                                                <div class="mini-logo-text">Hôtel</div>
+                                            </div>
+                                            <div class="mini-nav">
+                                                <div class="mini-nav-item active"></div>
+                                                <div class="mini-nav-item"></div>
+                                                <div class="mini-nav-item"></div>
+                                                <div class="mini-nav-item"></div>
+                                            </div>
+                                        </div>
+                                        <?php elseif ($styleKey === 'minimal'): ?>
+                                        <div class="mini-header-minimal">
+                                            <div class="mini-logo">
+                                                <div class="mini-logo-text">Hôtel</div>
+                                            </div>
+                                            <div class="mini-nav">
+                                                <div class="mini-nav-item active"></div>
+                                                <div class="mini-nav-item"></div>
+                                                <div class="mini-nav-item"></div>
+                                            </div>
+                                        </div>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="header-style-name"><?= h($styleInfo['name']) ?></div>
+                                    <div class="header-style-desc"><?= h($styleInfo['desc']) ?></div>
+                                </label>
+                                <?php endforeach; ?>
+                            </div>
+
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">Enregistrer le style</button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
 
                 <form method="POST" id="themeForm">
                     <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
@@ -494,6 +749,15 @@ $colorFields = [
         if (confirm('Voulez-vous vraiment réinitialiser toutes les couleurs aux valeurs par défaut ?')) {
             document.getElementById('resetForm').submit();
         }
+    });
+
+    // Header style card selection
+    document.querySelectorAll('.header-style-card').forEach(card => {
+        card.addEventListener('click', function() {
+            document.querySelectorAll('.header-style-card').forEach(c => c.classList.remove('selected'));
+            this.classList.add('selected');
+            this.querySelector('input[type="radio"]').checked = true;
+        });
     });
     </script>
 </body>
