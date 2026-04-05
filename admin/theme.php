@@ -53,7 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             case 'save_header_style':
                 $style = $_POST['header_style'] ?? 'classic';
-                $validStyles = ['classic', 'centered', 'minimal', 'split', 'grand', 'prestige', 'riviera'];
+                $validStyles = ['classic', 'centered', 'minimal', 'split', 'grand', 'riviera', 'palace', 'cotier'];
                 if (in_array($style, $validStyles)) {
                     setSetting('header_style', $style);
                     $message = 'Style d\'en-tête enregistré avec succès.';
@@ -464,52 +464,6 @@ $colorFields = [
         .mini-header-grand .mini-nav-item.active {
             background: #C9A962;
         }
-        /* Mini preview: Prestige */
-        .mini-header-prestige {
-            display: flex;
-            flex-direction: column;
-            gap: 0;
-            border-radius: 6px;
-            overflow: hidden;
-        }
-        .mini-prestige-top {
-            background: #4a3a28;
-            padding: 0.55rem 0.6rem;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 5px;
-        }
-        .mini-prestige-top .mini-monogram {
-            width: 14px;
-            height: 14px;
-            border: 1.5px solid #C9A962;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.4rem;
-            font-weight: 700;
-            color: #C9A962;
-        }
-        .mini-prestige-top .mini-logo-text {
-            color: #f0e6d8;
-            font-size: 0.55rem;
-            letter-spacing: 1px;
-        }
-        .mini-prestige-bottom {
-            background: #fff;
-            padding: 0.35rem 0.5rem;
-            display: flex;
-            justify-content: center;
-            border-bottom: 1px solid #eee;
-        }
-        .mini-prestige-bottom .mini-nav {
-            gap: 4px;
-        }
-        .mini-prestige-bottom .mini-nav-item {
-            width: 14px;
-        }
         /* Mini preview: Riviera */
         .mini-header-riviera {
             background: linear-gradient(135deg, #3a5a6a 0%, #4a6a5a 100%);
@@ -549,6 +503,107 @@ $colorFields = [
             border-radius: 50%;
             background: #C9A962;
             box-shadow: 0 0 4px rgba(201,169,98,0.5);
+        }
+        /* Mini preview: Palace */
+        .mini-header-palace {
+            display: flex;
+            flex-direction: column;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        .mini-palace-accent {
+            height: 2px;
+            background: linear-gradient(90deg, #4a3a28, #C9A962 40%, #C9A962 60%, #4a3a28);
+        }
+        .mini-palace-top {
+            background: #4a3a28;
+            padding: 0.5rem 0.6rem 0.3rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 6px;
+        }
+        .mini-palace-rule {
+            flex: 1;
+            max-width: 20px;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(201,169,98,0.4), transparent);
+        }
+        .mini-palace-top .mini-monogram {
+            width: 14px;
+            height: 14px;
+            border: 1.5px solid #C9A962;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.4rem;
+            font-weight: 700;
+            color: #C9A962;
+        }
+        .mini-palace-top .mini-logo-text {
+            color: #f0e6d8;
+            font-size: 0.55rem;
+            letter-spacing: 1px;
+        }
+        .mini-palace-bottom {
+            background: #4a3a28;
+            padding: 0.25rem 0.5rem 0.45rem;
+            display: flex;
+            justify-content: center;
+            border-top: 1px solid rgba(201,169,98,0.15);
+        }
+        .mini-palace-bottom .mini-nav {
+            gap: 3px;
+        }
+        .mini-palace-bottom .mini-nav-item {
+            background: rgba(250,246,240,0.3);
+            width: 12px;
+        }
+        .mini-palace-bottom .mini-nav-item.active {
+            background: #C9A962;
+        }
+        /* Mini preview: Côtier */
+        .mini-header-cotier {
+            background: linear-gradient(135deg, #5a7a8a 0%, #6a8a7a 100%);
+            border-radius: 6px;
+            padding: 0.6rem 0.6rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+        }
+        .mini-header-cotier::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 15%;
+            right: 15%;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(201,169,98,0.5), transparent);
+        }
+        .mini-header-cotier .mini-logo-text {
+            color: #fff;
+            font-size: 0.6rem;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+        }
+        .mini-cotier-glass {
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.25);
+            border-radius: 10px;
+            padding: 2px 5px;
+            display: flex;
+            gap: 2px;
+        }
+        .mini-cotier-glass .mini-nav-item {
+            background: rgba(255,255,255,0.35);
+            border-radius: 6px;
+            height: 4px;
+            width: 10px;
+        }
+        .mini-cotier-glass .mini-nav-item.active {
+            background: rgba(255,255,255,0.85);
         }
         .header-style-name {
             font-weight: 600;
@@ -642,13 +697,17 @@ $colorFields = [
                                         'name' => 'Grand',
                                         'desc' => 'Fond sombre luxueux, monogramme doré, typographie majuscule.'
                                     ],
-                                    'prestige' => [
-                                        'name' => 'Prestige',
-                                        'desc' => 'Barre sombre avec monogramme centré + barre de navigation claire en dessous.'
-                                    ],
                                     'riviera' => [
                                         'name' => 'Riviera',
                                         'desc' => 'Transparent aérien, typographie large, accent doré. Style méditerranéen.'
+                                    ],
+                                    'palace' => [
+                                        'name' => 'Palace',
+                                        'desc' => 'Fond sombre, logo centré avec lignes dorées, navigation en dessous avec séparateurs.'
+                                    ],
+                                    'cotier' => [
+                                        'name' => 'Côtier',
+                                        'desc' => 'Transparent avec barre de navigation en verre dépoli. Moderne et aérien.'
                                     ],
                                 ];
                                 foreach ($headerStyles as $styleKey => $styleInfo):
@@ -723,21 +782,6 @@ $colorFields = [
                                                 <div class="mini-nav-item"></div>
                                             </div>
                                         </div>
-                                        <?php elseif ($styleKey === 'prestige'): ?>
-                                        <div class="mini-header-prestige">
-                                            <div class="mini-prestige-top">
-                                                <div class="mini-monogram">H</div>
-                                                <div class="mini-logo-text">HÔTEL</div>
-                                            </div>
-                                            <div class="mini-prestige-bottom">
-                                                <div class="mini-nav">
-                                                    <div class="mini-nav-item active"></div>
-                                                    <div class="mini-nav-item"></div>
-                                                    <div class="mini-nav-item"></div>
-                                                    <div class="mini-nav-item"></div>
-                                                </div>
-                                            </div>
-                                        </div>
                                         <?php elseif ($styleKey === 'riviera'): ?>
                                         <div class="mini-header-riviera">
                                             <div class="mini-logo">
@@ -749,6 +793,35 @@ $colorFields = [
                                                 <div class="mini-nav-item"></div>
                                             </div>
                                             <div class="mini-riviera-dot"></div>
+                                        </div>
+                                        <?php elseif ($styleKey === 'palace'): ?>
+                                        <div class="mini-header-palace">
+                                            <div class="mini-palace-accent"></div>
+                                            <div class="mini-palace-top">
+                                                <div class="mini-palace-rule"></div>
+                                                <div class="mini-monogram">H</div>
+                                                <div class="mini-logo-text">HÔTEL</div>
+                                                <div class="mini-palace-rule"></div>
+                                            </div>
+                                            <div class="mini-palace-bottom">
+                                                <div class="mini-nav">
+                                                    <div class="mini-nav-item active"></div>
+                                                    <div class="mini-nav-item"></div>
+                                                    <div class="mini-nav-item"></div>
+                                                    <div class="mini-nav-item"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <?php elseif ($styleKey === 'cotier'): ?>
+                                        <div class="mini-header-cotier">
+                                            <div class="mini-logo">
+                                                <div class="mini-logo-text">Hôtel</div>
+                                            </div>
+                                            <div class="mini-cotier-glass">
+                                                <div class="mini-nav-item active"></div>
+                                                <div class="mini-nav-item"></div>
+                                                <div class="mini-nav-item"></div>
+                                            </div>
                                         </div>
                                         <?php endif; ?>
                                     </div>

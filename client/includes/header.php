@@ -36,11 +36,14 @@ switch ($headerStyle) {
     case 'grand':
         include __DIR__ . '/header-grand.php';
         break;
-    case 'prestige':
-        include __DIR__ . '/header-prestige.php';
-        break;
     case 'riviera':
         include __DIR__ . '/header-riviera.php';
+        break;
+    case 'palace':
+        include __DIR__ . '/header-palace.php';
+        break;
+    case 'cotier':
+        include __DIR__ . '/header-cotier.php';
         break;
     case 'classic':
     default:
