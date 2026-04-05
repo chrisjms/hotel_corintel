@@ -766,10 +766,11 @@ p {
 }
 
 .prestige-topbar-inner {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  position: relative;
+  display: flex;
   align-items: center;
-  gap: 2rem;
+  justify-content: space-between;
+  min-height: 80px;
 }
 
 .prestige-tagline {
@@ -778,16 +779,17 @@ p {
   letter-spacing: 2.5px;
   text-transform: uppercase;
   color: rgba(250, 246, 240, 0.45);
-  justify-self: start;
 }
 
 .logo--prestige {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
   align-items: center;
   gap: 0.6rem;
   flex-direction: column;
   text-align: center;
-  justify-self: center;
 }
 
 .header--prestige .logo-monogram {
@@ -817,7 +819,6 @@ p {
 }
 
 .prestige-contact {
-  justify-self: end;
   background: transparent !important;
   color: var(--color-cream, #FAF6F0) !important;
   border: 1px solid rgba(201, 169, 98, 0.4) !important;
@@ -903,14 +904,14 @@ p {
 }
 
 .header--prestige.scrolled .prestige-topbar-inner {
-  grid-template-columns: auto 1fr auto;
-  gap: 1rem;
+  min-height: auto;
 }
 
 .header--prestige.scrolled .logo--prestige {
+  position: static;
+  transform: none;
   flex-direction: row;
   gap: 0.5rem;
-  justify-self: start;
 }
 
 .header--prestige.scrolled .logo-monogram {
@@ -2402,6 +2403,7 @@ body[data-header-style="riviera"] .page-hero {
   .prestige-topbar-inner {
     flex-direction: column;
     gap: 0.5rem;
+    min-height: auto;
   }
 
   .prestige-tagline {
@@ -2409,6 +2411,8 @@ body[data-header-style="riviera"] .page-hero {
   }
 
   .logo--prestige {
+    position: static;
+    transform: none;
     flex-direction: row;
     gap: 0.5rem;
   }
