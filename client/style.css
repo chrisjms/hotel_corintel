@@ -510,11 +510,18 @@ p {
   height: auto;
   padding: 0;
   overflow: visible;
+  box-shadow: none;
 }
 
 .header-accent-line {
-  height: 3px;
-  background: linear-gradient(90deg, var(--color-primary), var(--color-gold, #C9A962), var(--color-primary));
+  height: 4px;
+  background: linear-gradient(90deg,
+    var(--color-primary) 0%,
+    var(--color-gold, #C9A962) 35%,
+    var(--color-gold, #C9A962) 65%,
+    var(--color-primary) 100%
+  );
+  box-shadow: 0 1px 4px rgba(201, 169, 98, 0.35);
 }
 
 .header--split .container {
@@ -537,8 +544,9 @@ p {
 .header-divider {
   width: 1px;
   height: 36px;
-  background: var(--color-beige, #E8E0D4);
+  background: linear-gradient(180deg, transparent, var(--color-gold, #C9A962), transparent);
   flex-shrink: 0;
+  opacity: 0.6;
 }
 
 .header--split .nav-link {
@@ -581,6 +589,7 @@ p {
 
 .header--split.scrolled {
   height: auto;
+  box-shadow: var(--shadow-soft);
 }
 
 .header--split.scrolled .container {
@@ -589,7 +598,7 @@ p {
 }
 
 .header--split.scrolled .header-accent-line {
-  height: 2px;
+  height: 3px;
 }
 
 .header--split.scrolled .logo-text {
@@ -737,6 +746,406 @@ p {
   background: var(--color-primary-dark, #6B5635);
 }
 
+/* ---------- Header Variant: Prestige ---------- */
+.header--prestige {
+  height: auto;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+}
+
+.header--prestige .container {
+  height: auto;
+}
+
+/* Prestige: top bar — centered logo, flanked by tagline and contact */
+.header-prestige-topbar {
+  background: var(--color-primary-dark, #6B5635);
+  padding: 0.9rem 0;
+  transition: all 0.4s ease;
+}
+
+.prestige-topbar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.prestige-tagline {
+  font-family: var(--font-body);
+  font-size: 0.7rem;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: rgba(250, 246, 240, 0.5);
+  min-width: 140px;
+}
+
+.logo--prestige {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-direction: column;
+  text-align: center;
+}
+
+.header--prestige .logo-monogram {
+  width: 42px;
+  height: 42px;
+  border: 1.5px solid var(--color-gold, #C9A962);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-heading);
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--color-gold, #C9A962);
+  flex-shrink: 0;
+  transition: var(--transition);
+}
+
+.header--prestige .logo-text {
+  color: var(--color-cream, #FAF6F0);
+  font-size: 1.2rem;
+  letter-spacing: 2px;
+}
+
+.header--prestige .logo-text span {
+  display: none;
+}
+
+.prestige-contact {
+  background: transparent !important;
+  color: var(--color-cream, #FAF6F0) !important;
+  border: 1px solid rgba(201, 169, 98, 0.4) !important;
+  border-radius: 2px !important;
+  padding: 0.4rem 0.9rem !important;
+  font-size: 0.72rem !important;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  box-shadow: none !important;
+  margin-left: 0 !important;
+}
+
+.prestige-contact:hover {
+  background: var(--color-gold, #C9A962) !important;
+  color: var(--color-primary-dark, #6B5635) !important;
+  border-color: var(--color-gold, #C9A962) !important;
+  transform: none !important;
+}
+
+/* Prestige: bottom nav bar */
+.header-prestige-navbar {
+  background: var(--color-white);
+  border-bottom: 1px solid var(--color-beige, #E8E0D4);
+  padding: 0;
+  transition: all 0.4s ease;
+}
+
+.header-prestige-navbar .container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nav-menu--prestige {
+  justify-content: center;
+  gap: 0;
+  width: 100%;
+}
+
+.header--prestige .nav-link {
+  font-size: 0.8rem;
+  font-weight: 500;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--color-text);
+  padding: 0.85rem 1.2rem;
+  position: relative;
+}
+
+.header--prestige .nav-link::after {
+  bottom: 0;
+  height: 2px;
+  background: var(--color-gold, #C9A962);
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.header--prestige .nav-link:hover {
+  color: var(--color-primary);
+  background: var(--color-cream);
+}
+
+.header--prestige .nav-link.active {
+  color: var(--color-primary);
+}
+
+.header--prestige .nav-link.active::after {
+  width: 60%;
+}
+
+.header--prestige .nav-qr-badge {
+  background: var(--color-gold, #C9A962);
+  color: var(--color-primary-dark);
+}
+
+.header--prestige .menu-toggle span {
+  background-color: var(--color-text);
+}
+
+/* Prestige: scrolled state — collapse top bar */
+.header--prestige.scrolled .header-prestige-topbar {
+  padding: 0.5rem 0;
+}
+
+.header--prestige.scrolled .logo--prestige {
+  flex-direction: row;
+  gap: 0.5rem;
+}
+
+.header--prestige.scrolled .logo-monogram {
+  width: 30px;
+  height: 30px;
+  font-size: 1rem;
+}
+
+.header--prestige.scrolled .logo-text {
+  font-size: 1rem;
+  letter-spacing: 1.5px;
+}
+
+.header--prestige.scrolled .prestige-tagline {
+  display: none;
+}
+
+.header--prestige.scrolled .header-prestige-navbar {
+  padding: 0;
+}
+
+.header--prestige.scrolled .nav-link {
+  padding: 0.65rem 1rem;
+}
+
+/* Prestige: solid state for non-home pages (same as default since prestige always has top bar) */
+.header--prestige.header--solid {
+  box-shadow: var(--shadow-soft);
+}
+
+/* ---------- Header Variant: Riviera ---------- */
+.header--riviera {
+  height: auto;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+}
+
+.header-riviera-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 0;
+  width: 100%;
+}
+
+.logo--riviera .logo-text {
+  font-size: 1.8rem;
+  font-weight: 500;
+  color: #fff;
+  letter-spacing: 1.5px;
+  text-shadow: 0 2px 12px rgba(0,0,0,0.25);
+}
+
+.logo--riviera .logo-text span {
+  display: none;
+}
+
+.nav-menu--riviera {
+  gap: 0.5rem;
+}
+
+.header--riviera .nav-link {
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 0.82rem;
+  font-weight: 400;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  padding: 0.45rem 0.75rem;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.15);
+  border-radius: 3px;
+}
+
+.header--riviera .nav-link::after {
+  display: none;
+}
+
+.header--riviera .nav-link:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.header--riviera .nav-link.active {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.15);
+  font-weight: 500;
+}
+
+.riviera-right {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-shrink: 0;
+}
+
+.riviera-accent-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--color-gold, #C9A962);
+  box-shadow: 0 0 6px rgba(201, 169, 98, 0.5);
+}
+
+.riviera-tagline {
+  font-family: var(--font-heading);
+  font-size: 0.8rem;
+  font-style: italic;
+  color: rgba(255, 255, 255, 0.7);
+  letter-spacing: 1px;
+  white-space: nowrap;
+}
+
+.header--riviera .nav-qr-badge,
+.header--riviera .nav-room-badge {
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(4px);
+}
+
+.header--riviera .menu-toggle span {
+  background-color: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.header--riviera .btn-contact-reception {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  backdrop-filter: blur(4px);
+  border-radius: 3px;
+  font-size: 0.78rem;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  padding: 0.45rem 0.9rem;
+  box-shadow: none;
+}
+
+.header--riviera .btn-contact-reception:hover {
+  background: rgba(255, 255, 255, 0.22);
+  transform: none;
+  box-shadow: none;
+}
+
+/* Riviera: bottom border accent */
+.header-riviera-border {
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent 5%,
+    rgba(255, 255, 255, 0.2) 30%,
+    var(--color-gold, #C9A962) 50%,
+    rgba(255, 255, 255, 0.2) 70%,
+    transparent 95%
+  );
+}
+
+/* Riviera: solid state (on scroll or on non-home pages) */
+.header--riviera.scrolled,
+.header--riviera.header--solid {
+  background: var(--color-white);
+  box-shadow: var(--shadow-soft);
+}
+
+.header--riviera.scrolled .header-riviera-border,
+.header--riviera.header--solid .header-riviera-border {
+  background: linear-gradient(90deg,
+    transparent 5%,
+    var(--color-beige) 30%,
+    var(--color-gold, #C9A962) 50%,
+    var(--color-beige) 70%,
+    transparent 95%
+  );
+}
+
+.header--riviera.scrolled .logo--riviera .logo-text,
+.header--riviera.header--solid .logo--riviera .logo-text {
+  color: var(--color-primary);
+  font-size: 1.5rem;
+  text-shadow: none;
+}
+
+.header--riviera.scrolled .nav-link,
+.header--riviera.header--solid .nav-link {
+  color: var(--color-text);
+  text-shadow: none;
+}
+
+.header--riviera.scrolled .nav-link:hover,
+.header--riviera.header--solid .nav-link:hover {
+  color: var(--color-primary);
+  background: var(--color-cream);
+}
+
+.header--riviera.scrolled .nav-link.active,
+.header--riviera.header--solid .nav-link.active {
+  color: var(--color-primary);
+  background: var(--color-cream);
+}
+
+.header--riviera.scrolled .riviera-accent-dot,
+.header--riviera.header--solid .riviera-accent-dot {
+  background: var(--color-gold, #C9A962);
+  box-shadow: none;
+}
+
+.header--riviera.scrolled .riviera-tagline,
+.header--riviera.header--solid .riviera-tagline {
+  color: var(--color-text-light);
+}
+
+.header--riviera.scrolled .nav-qr-badge,
+.header--riviera.header--solid .nav-qr-badge {
+  background: var(--color-primary);
+  backdrop-filter: none;
+}
+
+.header--riviera.scrolled .nav-room-badge,
+.header--riviera.header--solid .nav-room-badge {
+  background: var(--color-accent);
+  backdrop-filter: none;
+}
+
+.header--riviera.scrolled .menu-toggle span,
+.header--riviera.header--solid .menu-toggle span {
+  background-color: var(--color-text);
+  box-shadow: none;
+}
+
+.header--riviera.scrolled .btn-contact-reception,
+.header--riviera.header--solid .btn-contact-reception {
+  background: var(--color-primary);
+  color: var(--color-white);
+  border-color: transparent;
+  backdrop-filter: none;
+}
+
+.header--riviera.scrolled .btn-contact-reception:hover,
+.header--riviera.header--solid .btn-contact-reception:hover {
+  background: var(--color-primary-dark);
+}
+
+.header--riviera.scrolled .header-riviera-inner,
+.header--riviera.header--solid .header-riviera-inner {
+  padding: 0.65rem 0;
+}
+
 /* ---------- Header Style: Body-Level Overrides ---------- */
 /* Minimal header overlaps the hero — remove top margin */
 body[data-header-style="minimal"] .hero,
@@ -760,6 +1169,18 @@ body[data-header-style="split"] .page-hero {
 body[data-header-style="grand"] .hero,
 body[data-header-style="grand"] .page-hero {
   margin-top: 85px;
+}
+
+/* Prestige header — two-row, adjust hero margin */
+body[data-header-style="prestige"] .hero,
+body[data-header-style="prestige"] .page-hero {
+  margin-top: 120px;
+}
+
+/* Riviera header — transparent overlay, no hero margin */
+body[data-header-style="riviera"] .hero,
+body[data-header-style="riviera"] .page-hero {
+  margin-top: 0;
 }
 
 /* ---------- Hero Section ---------- */
@@ -1966,6 +2387,92 @@ body[data-header-style="grand"] .page-hero {
   body[data-header-style="grand"] .hero,
   body[data-header-style="grand"] .page-hero {
     margin-top: var(--header-height);
+  }
+
+  /* Prestige header: stack top bar vertically on mobile */
+  .prestige-topbar-inner {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .prestige-tagline {
+    display: none;
+  }
+
+  .logo--prestige {
+    flex-direction: row;
+    gap: 0.5rem;
+  }
+
+  .header--prestige .logo-monogram {
+    width: 32px;
+    height: 32px;
+    font-size: 1rem;
+  }
+
+  .header--prestige .logo-text {
+    font-size: 1rem;
+    letter-spacing: 1.5px;
+  }
+
+  .prestige-contact {
+    display: none !important;
+  }
+
+  .header-prestige-navbar .container {
+    justify-content: flex-start;
+  }
+
+  .header--prestige .nav-link {
+    letter-spacing: 0.8px;
+    padding: 0.6rem 0;
+    text-transform: none;
+  }
+
+  .header--prestige .nav-menu.active {
+    background-color: var(--color-white);
+  }
+
+  body[data-header-style="prestige"] .hero,
+  body[data-header-style="prestige"] .page-hero {
+    margin-top: 90px;
+  }
+
+  /* Riviera header: mobile adjustments */
+  .riviera-right {
+    display: none;
+  }
+
+  .header--riviera .nav-menu.active {
+    background-color: var(--color-white);
+  }
+
+  .header--riviera .nav-menu.active .nav-link {
+    color: var(--color-text);
+    text-shadow: none;
+    text-transform: none;
+    letter-spacing: 0.3px;
+  }
+
+  .header--riviera .nav-menu.active .nav-link.active {
+    color: var(--color-primary);
+    background: var(--color-cream);
+  }
+
+  .header--riviera .nav-menu.active .btn-contact-reception {
+    background: var(--color-primary);
+    color: var(--color-white);
+    border-color: transparent;
+    backdrop-filter: none;
+  }
+
+  .header--riviera .menu-toggle.active span {
+    background-color: var(--color-text);
+  }
+
+  body[data-header-style="riviera"] .hero,
+  body[data-header-style="riviera"] .page-hero {
+    margin-top: 0;
   }
 }
 
