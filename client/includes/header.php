@@ -30,6 +30,12 @@ switch ($headerStyle) {
     case 'minimal':
         include __DIR__ . '/header-minimal.php';
         break;
+    case 'split':
+        include __DIR__ . '/header-split.php';
+        break;
+    case 'grand':
+        include __DIR__ . '/header-grand.php';
+        break;
     case 'classic':
     default:
         $headerStyle = 'classic';

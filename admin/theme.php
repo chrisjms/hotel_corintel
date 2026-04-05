@@ -53,7 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             case 'save_header_style':
                 $style = $_POST['header_style'] ?? 'classic';
-                $validStyles = ['classic', 'centered', 'minimal'];
+                $validStyles = ['classic', 'centered', 'minimal', 'split', 'grand'];
                 if (in_array($style, $validStyles)) {
                     setSetting('header_style', $style);
                     $message = 'Style d\'en-tête enregistré avec succès.';
@@ -275,7 +275,7 @@ $colorFields = [
         /* Header style selector */
         .header-styles-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
             gap: 1.25rem;
         }
         .header-style-card {
@@ -404,6 +404,66 @@ $colorFields = [
         .mini-header-minimal .mini-nav-item.active {
             background: #fff;
         }
+        /* Mini preview: Split */
+        .mini-header-split {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-top: 2px solid;
+            border-image: linear-gradient(90deg, var(--admin-primary, #8B5A2B), #C9A962, var(--admin-primary, #8B5A2B)) 1;
+            padding-top: 8px;
+        }
+        .mini-header-split .mini-divider {
+            width: 1px;
+            height: 18px;
+            background: #ddd;
+            flex-shrink: 0;
+        }
+        .mini-header-split .mini-nav-item {
+            border-radius: 8px;
+            height: 6px;
+            width: 16px;
+        }
+        .mini-header-split .mini-nav-item.active {
+            background: var(--admin-primary, #8B5A2B);
+            width: 22px;
+        }
+        /* Mini preview: Grand */
+        .mini-header-grand {
+            background: #4a3a28;
+            border-radius: 6px;
+            padding: 0.65rem 0.75rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .mini-header-grand .mini-monogram {
+            width: 16px;
+            height: 16px;
+            border: 1.5px solid #C9A962;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.45rem;
+            font-weight: 700;
+            color: #C9A962;
+            flex-shrink: 0;
+        }
+        .mini-header-grand .mini-logo {
+            gap: 5px;
+        }
+        .mini-header-grand .mini-logo-text {
+            color: #f0e6d8;
+            font-size: 0.6rem;
+            letter-spacing: 0.5px;
+        }
+        .mini-header-grand .mini-nav-item {
+            background: rgba(250, 246, 240, 0.35);
+        }
+        .mini-header-grand .mini-nav-item.active {
+            background: #C9A962;
+        }
         .header-style-name {
             font-weight: 600;
             font-size: 0.95rem;
@@ -417,7 +477,7 @@ $colorFields = [
         }
         @media (max-width: 768px) {
             .header-styles-grid {
-                grid-template-columns: 1fr;
+                grid-template-columns: repeat(2, 1fr);
             }
             .preview-cards {
                 grid-template-columns: 1fr;
@@ -482,11 +542,19 @@ $colorFields = [
                                     ],
                                     'centered' => [
                                         'name' => 'Centré',
-                                        'desc' => 'Logo centré en haut, navigation centrée en dessous. Élégant et symétrique.'
+                                        'desc' => 'Logo centré en haut, navigation centrée en dessous. Symétrique.'
                                     ],
                                     'minimal' => [
                                         'name' => 'Minimal',
-                                        'desc' => 'Transparent sur le héro, texte blanc. Devient solide au défilement.'
+                                        'desc' => 'Transparent sur le héro, texte blanc. Solide au défilement.'
+                                    ],
+                                    'split' => [
+                                        'name' => 'Élégant',
+                                        'desc' => 'Ligne dorée décorative, liens en pilules arrondies. Raffiné.'
+                                    ],
+                                    'grand' => [
+                                        'name' => 'Grand',
+                                        'desc' => 'Fond sombre luxueux, monogramme doré, typographie majuscule.'
                                     ],
                                 ];
                                 foreach ($headerStyles as $styleKey => $styleInfo):
@@ -530,6 +598,30 @@ $colorFields = [
                                         <div class="mini-header-minimal">
                                             <div class="mini-logo">
                                                 <div class="mini-logo-text">Hôtel</div>
+                                            </div>
+                                            <div class="mini-nav">
+                                                <div class="mini-nav-item active"></div>
+                                                <div class="mini-nav-item"></div>
+                                                <div class="mini-nav-item"></div>
+                                            </div>
+                                        </div>
+                                        <?php elseif ($styleKey === 'split'): ?>
+                                        <div class="mini-header-split">
+                                            <div class="mini-logo">
+                                                <div class="mini-logo-text">Hôtel</div>
+                                            </div>
+                                            <div class="mini-divider"></div>
+                                            <div class="mini-nav">
+                                                <div class="mini-nav-item active"></div>
+                                                <div class="mini-nav-item"></div>
+                                                <div class="mini-nav-item"></div>
+                                            </div>
+                                        </div>
+                                        <?php elseif ($styleKey === 'grand'): ?>
+                                        <div class="mini-header-grand">
+                                            <div class="mini-logo">
+                                                <div class="mini-monogram">H</div>
+                                                <div class="mini-logo-text">HÔTEL</div>
                                             </div>
                                             <div class="mini-nav">
                                                 <div class="mini-nav-item active"></div>
